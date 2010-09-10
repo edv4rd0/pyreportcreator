@@ -5,13 +5,13 @@ from urllib import quote_plus as urlquote
 from sqlalchemy import create_engine
 
 
-
+xstr = lambda s: s or ""
 
 class ConnectionManager(object):
     """This class manages the connections to databases"""
     
     dataConnections = dict() #holds all data connections
-
+    metaData = dict()
     def CreateDataConnection(self, databaseType, address, dbname = None, user = None, password = None, port = None, driver = None):
         """Create connection string then initialize connection object"""
         if databaseType == u'sqlite':
@@ -49,11 +49,7 @@ class ConnectionManager(object):
         try:
             testConnection = self.dataConnections[dbname].connect()
             testConnection.close()
-            return self.dataConnections[dbname]
         except:
             # log error
             del self.dataConnections[dbname]
             print "Failure"
-
-
-ConnectionManager.CreateDataConnection(ConnectionManager(), databaseType = u'mysql', address = u'127.0.0.1', dbname = u'thingy', user = u'joe', password = u'kjhgfghj', port = u'8000') 
