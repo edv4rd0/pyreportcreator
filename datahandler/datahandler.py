@@ -12,7 +12,9 @@ class ConnectionManager(object):
     
     dataConnections = dict() #holds all data connections
     metaData = dict()
-    def CreateDataConnection(self, databaseType, address, dbname = None, user = None, password = None, port = None, driver = None):
+    
+    @classmethod
+    def CreateDataConnection(cls, databaseType, address, dbname = None, user = None, password = None, port = None, driver = None):
         """Create connection string then initialize connection object"""
         if databaseType == u'sqlite':
             if driver:
@@ -42,14 +44,17 @@ class ConnectionManager(object):
                     connectionString = databaseType+"://:"+address+"/"+dbname
             
         if databaseType == u'mysql':
-            self.dataConnections[dbname] = (create_engine(connectionString, pool_recycle=3600, echo = True)) #create new engine
+            cls.dataConnections[dbname] = (create_engine(connectionString, pool_recycle=3600, echo = True)) #create new engine
         else:
-            self.dataConnections[dbname] = (create_engine(connectionString, echo = True)) #create new engine
+            cls.dataConnections[dbname] = (create_engine(connectionString, echo = True)) #create new engine
         #TODO: turn off 'echo = True' before shipping
         try:
-            testConnection = self.dataConnections[dbname].connect()
+            testConnection = cls.dataConnections[dbname].connect()
             testConnection.close()
+            print "Success"
         except:
             # log error
-            del self.dataConnections[dbname]
+            del cls.dataConnections[dbname]
             print "Failure"
+
+ConnectionManager.CreateDataConnection(u'sqlite', u'testdb.db')
