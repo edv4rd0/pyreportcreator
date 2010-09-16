@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<resource>
+  <object class="wxWizard">
+    <object class="wxWizardPageSimple" name="databaseType">
+      <object class="wxBoxSizer">
+        <orient>wxVERTICAL</orient>
+        <object class="sizeritem">
+          <object class="wxStaticText" name="headingDT">
+            <size>18</size>
+            <label>Please select your database type</label>
+          </object>
+          <border>5</border>
+        </object>
+        <object class="sizeritem">
+          <object class="wxRadioButton">
+            <label>MySQL</label>
+          </object>
+          <border>5</border>
+        </object>
+        <object class="sizeritem">
+          <object class="wxRadioButton">
+            <label>SQLite</label>
+          </object>
+        </object>
+      </object>
+    </object>
+    <object class="wxWizardPageSimple" name="connectionDetails"/>
+    <object class="wxWizardPageSimple" name="finish"/>
+  </object>
+</resource>

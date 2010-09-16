@@ -11,16 +11,16 @@ class ConnectionManager(object):
     """This class manages the connections to databases"""
     
     dataConnections = dict() #holds all data connections
-    metaData = dict()
     
     @classmethod
     def CreateDataConnection(cls, databaseType, address, dbname = None, user = None, password = None, port = None, driver = None):
         """Create connection string then initialize connection object"""
+        dbStringID = address + "," + xstr(dbname)
         if databaseType == u'sqlite':
             if driver:
                 #Loads pysqlite2 first if installed, must be able to override this
                 connectionString = "sqlite+"+driver+":///"+address #CHECK: relative and absolute paths
-            else:    
+            else:
                 connectionString = "sqlite:///"+address #CHECK: relative and absolute paths
                 
         if databaseType != u'sqlite':
@@ -44,17 +44,19 @@ class ConnectionManager(object):
                     connectionString = databaseType+"://:"+address+"/"+dbname
             
         if databaseType == u'mysql':
-            cls.dataConnections[dbname] = (create_engine(connectionString, pool_recycle=3600, echo = True)) #create new engine
+            cls.dataConnections[dbStringID] = (create_engine(connectionString, pool_recycle=3600, echo = True)) #create new engine
         else:
-            cls.dataConnections[dbname] = (create_engine(connectionString, echo = True)) #create new engine
+            cls.dataConnections[dbStringID] = (create_engine(connectionString, echo = True)) #create new engine
         #TODO: turn off 'echo = True' before shipping
         try:
-            testConnection = cls.dataConnections[dbname].connect()
+            testConnection = cls.dataConnections[dbStringID].connect()
             testConnection.close()
             print "Success"
         except:
             # log error
-            del cls.dataConnections[dbname]
+            del cls.dataConnections[dbStringID]
             print "Failure"
 
-ConnectionManager.CreateDataConnection(u'sqlite', u'testdb.db')
+#hackish test
+ConnectionManager.CreateDataConnection(u'sqlite', u'dbtest.db')
+#NOTE: http://www.sqlalchemy.org/trac/wiki/DatabaseNotes#MySQL
