@@ -21,14 +21,12 @@ class Profile(object):
 
 class ProfileHandler(object):
     """Handles the storing, loading and saving of profile objects"""
-
-    profile = object
-
+    
     @classmethod
     def init_profile_object(cls):
         """Initialize an empty profile object"""
         try:
-            self.profile = Profile()
+            cls.profile = Profile()
             return True
         except:
             return False   
@@ -37,11 +35,24 @@ class ProfileHandler(object):
     def save_profile(cls, fileName):
         """Pickles profile to file"""
         import cPickle
+        try:
+            cls.file = open(fileName, 'w')
+            cPickle.dump(cls.profile, cls.file)
+            return True
+        except PicklingError, e:
+            return e
         
     @classmethod
     def open_profile(cls, fileName):
         """Opens file and unpickles it"""
-        
+        import cPickle
+        try:
+            cls.file = open(fileName, 'r')
+            cls.profile = cPickle.load(cls.file)
+            return True
+        except UnPicklingError, e:
+            returnValues = (e, filename)
+            return returnValues
         
 class Query(object):
     """Defines a query"""
