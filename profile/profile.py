@@ -1,4 +1,4 @@
-from pyreportcreator.datahandler import metadata
+from pyreportcreator.datahandler import metadata, connectionhandler
 from sqlalchemy import select
 
 
@@ -8,16 +8,27 @@ class Profile(object):
     def __init__(self):
         self._fileName = ""
         self.queries = [] #stores query objects
+        self.connections = []
+        self.reports = []
 
-    def save_query(self, query, connAssociated):
+    def 
+
+    def save_query(self, query, queryID):
         """Save query to dictionary with key being the id for the database connection"""
-        self.queries.append((query, connAssociated)) 
+        self.queries[queryID] = query
 
     def remove_query(self, queryID):
         """Remove query"""
-        pass
-
-    
+        try:
+            del self.queries[queryID]
+            return True
+        except IndexError:
+            return False
+    def run_query(self, queryID):
+        """Run the query and return the result"""
+        q = self.queries[queryID].build_query() #might need to optimize this later so already built objects just get run
+        engine = connectionmanager.ConnectionManager.dataConnections[self.queries[queryID].engineID]
+        return engine.execute(q)
 
 class ProfileHandler(object):
     """Handles the storing, loading and saving of profile objects"""
@@ -56,21 +67,28 @@ class ProfileHandler(object):
         
 class Query(object):
     """Defines a query"""
+
     _name = ""
     queryDefinition = dict() #stores the definition
+    engineID = 0
     
-    def __init__(self, name, selectItems, whereConditions, joinInfo = None):
+    def __init__(self, name = "Untitled"):
         """This initializes the query object from some supplied definitions"""
         self._name = name
-        self.queryDefinition['selectItems'] = selectItems
-        self.queryDefinition['conditions'] = whereConditions
-        if joinInfo:
-            self.queryDefinition['joinInfo'] = joinInfo
-            
-            
+        self.queryDefinition['selectItems'] = []
+
+    def change_name(self, newName):
+        """Change name of query"""
+        self._name = newName
+    
     def add_select_item(self, table, column):
         """Add a select item to the query"""
-            
+        if (table, column) not in self.selectItems:
+            self.selectItems.append((table, column))
+            return True
+        else:
+            return False
+
     def remove_select_item(self, table, column):
         """Remove a select item from the query"""
         try:
@@ -82,9 +100,9 @@ class Query(object):
         """Describe the join"""
         if self.queryDefinition['joinInfo']:
             description = "This is a join to " + str(self.queryDefinition['joinInfo'][0]) + " with the condition: " 
-            if self.queryDefinition['joinInfo'][1] == u'=':
+            if self.queryDefinition['joinInfo'][1] == '=':
                 description += str(self.queryDefinition['joinInfo'][2]) + " equal " + str(self.queryDefinition['joinInfo'][3])
-            elif self.queryDefinition['joinInfo'][1] == u'like':
+            elif self.queryDefinition['joinInfo'][1] == 'like':
                 description += str(self.queryDefinition['joinInfo'][2]) + " is like "+ str(self.queryDefinition['joinInfo'][3])
             return description
         else:
@@ -93,8 +111,8 @@ class Query(object):
     def build_join_expression(self, joinDefinition):
         """Creates the join expression for the query"""
         pass
-        #return [firstTable.join(, 
-    
+        #return [firstTable.join(,
+
     def build_query(self):
         """Builds query by creating all objects based on the unicode 
         string descriptors stored in the query object"""
@@ -103,12 +121,3 @@ class Query(object):
             for c in queryDefinition['selectItems'][t]:
                 query.append(metadata.DataObjectHandler.get_column_object(t, cls.queryDefinition['connID'], c))
         return query
-        
-    def run_query(self):
-        """Run the query and return the result"""
-        q = build_query() #might need to optimize this later so already built objects just get run
-        engine = get_engine() #
-        
-        return engine.execute(q)
-        
-ProfileHandler.init_profile_object()

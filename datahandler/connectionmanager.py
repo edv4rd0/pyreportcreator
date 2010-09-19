@@ -11,11 +11,14 @@ class ConnectionManager(object):
     """This class manages the connections to databases"""
     
     dataConnections = dict() #holds all data connections
+
+    def CreateDataConnectionFromDef(cls, databaseType, address, dbname, user, password):
+        pass
     
     @classmethod
-    def CreateDataConnection(cls, databaseType, address, dbname = None, user = None, password = None, port = None, driver = None):
+    def CreateNewDataConnection(cls, databaseType, address, dbname = None, user = None, password = None, port = None, driver = None, dbID = None):
         """Create connection string then initialize connection object"""
-        dbStringID = address + "," + xstr(dbname)
+        
         if databaseType == u'sqlite':
             if driver:
                 #Loads pysqlite2 first if installed, must be able to override this
@@ -42,19 +45,21 @@ class ConnectionManager(object):
                     connectionString = databaseType+"://:"+address+":"+port+"/"+dbname
                 else:
                     connectionString = databaseType+"://:"+address+"/"+dbname
-            
+        if dbID == None: 
+            dbID = hash(address + "," + xstr(dbname)) #create unique ID
+        #create engines
         if databaseType == u'mysql':
-            cls.dataConnections[dbStringID] = (create_engine(connectionString, pool_recycle=3600, echo = True)) #create new engine
+            cls.dataConnections[dbID] = (create_engine(connectionString, pool_recycle=3600, echo = True)) #create new engine
         else:
-            cls.dataConnections[dbStringID] = (create_engine(connectionString, echo = True)) #create new engine
+            cls.dataConnections[dbID] = (create_engine(connectionString, echo = True)) #create new engine
         #TODO: turn off 'echo = True' before shipping
         try:
-            testConnection = cls.dataConnections[dbStringID].connect()
+            testConnection = cls.dataConnections[dbID].connect()
             testConnection.close()
             print "Success"
         except:
-            # log error
-            del cls.dataConnections[dbStringID]
+            #TODO: Need to provide better info to user
+            del cls.dataConnections[dbID]
             print "Failure"
 
 #hackish test
