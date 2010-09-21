@@ -16,7 +16,9 @@ import wx
 class MainToolBar(object):
     """defines the main toolbar"""
     def __init__(self, parent):
-        self.mainToolbar = parent.CreateToolBar( wx.TB_HORIZONTAL, wx.ID_ANY ) 
+        self.mainToolbar = parent.CreateToolBar( wx.TB_HORIZONTAL, wx.ID_ANY )
+	self.mainToolbar.AddLabelTool(1, u"Add a New Data Source", wx.Bitmap( u"icons/db_add.png", wx.BITMAP_TYPE_ANY ), wx.NullBitmap, wx.ITEM_NORMAL, u"Add a New Data Source", u"Launch New Data Source Wizard", None)
+
 	self.mainToolbar.Realize()
 
 class MainMenu(object):

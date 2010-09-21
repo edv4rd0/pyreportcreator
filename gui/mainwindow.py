@@ -26,7 +26,7 @@ class Application(wx.App):
         ##help menu
         self.Bind(wx.EVT_MENU, self.about_dialog, self.menu.menuHelpAbout)
         # bind toolbar events
-        #self.Bind(wx.EVT_TOOL, self.add_data_source, id=xrc.XRCID('dataToolbar_addSource'))
+        self.Bind(wx.EVT_TOOL, self.add_data_source, id = 1)
         #start app
         self.frame.Maximize()
         self.frame.Show()
