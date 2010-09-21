@@ -1,36 +1,111 @@
-from wx import wizard
+from wx import wizard as wiz
 import wx
 import os.path
 
-class TitledPage(wizard.WizardPageSimple):
-    """Generic titled page for a wizard"""
+
+
+class TitlePage(wiz.PyWizardPage):
+    """Page for wizard"""
 
     def __init__(self, parent, title):
 
-        wizard.WizardPageSimple.__init__(self, parent)
+        wiz.PyWizardPage.__init__(self, parent)
+        self.next = self.prev = None
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetSizer(self.sizer)
+        self.textTitle = wx.StaticText(self, -1, title)
+        self.textTitle.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
+        self.textExplain = wx.StaticText(self, -1, "Please select your database type")
+        self.rbDBChoice_mysql = wx.RadioButton(self, -1, 'MySQL - Connect to a MySQL database', (10, 10), style=wx.RB_GROUP)
+        self.rbDBChoice_postresql = wx.RadioButton(self, -1, 'PostgreSQL - Connect to a PostgreSQL database', (10, 10))
+        self.rbDBChoice_sqlite = wx.RadioButton(self, -1, 'SQLite 3 - Connect to an SQLite 3 database', (10, 10))
+        
+        self.sizer.Add(self.textTitle, 0, wx.ALIGN_CENTRE | wx.ALL, 5)
+        self.sizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.ALL, 5)
+        self.sizer.Add(self.textExplain, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.sizer.Add(self.rbDBChoice_mysql, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.sizer.Add(self.rbDBChoice_postresql, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+        self.sizer.Add(self.rbDBChoice_sqlite, 0, wx.ALIGN_LEFT | wx.ALL, 5)
+
+    def SetNext(self, next):
+
+        self.next = next
+
+    def SetPrev(self, prev):
+
+        self.prev = prev
+
+    def GetNext(self):
+
+        return self.next
+
+    def GetPrev(self):
+
+        return self.prev
+
+class DetailsPage(wiz.PyWizardPage):
+    """Page for wizard"""
+
+    def __init__(self, parent, title):
+
+        wiz.PyWizardPage.__init__(self, parent)
+        self.next = self.prev = None
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.sizer)
         self.titleText = wx.StaticText(self, -1, title)
         self.titleText.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
+        
+        
         self.sizer.Add(self.titleText, 0, wx.ALIGN_CENTRE | wx.ALL, 5)
         self.sizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.ALL, 5)
+
+
+    def SetNext(self, next):
+
+        self.next = next
+
+    def SetPrev(self, prev):
+
+        self.prev = prev
+
+    def GetNext(self):
+
+        return self.next
+
+    def GetPrev(self):
+
+        return self.prev
+
         
 class WizardNewDataSource(object):
     """This wizard handles the process of adding a new datasource to the profile"""
         
     def __init__(self, parent):
         """Initialize the wizard"""
-        self.wizard = wizard.Wizard(parent, -1, "Add a New Data Source")
+        #set wizard bitmap
+        try:
+            bitmap = wx.Image('graphics/some-bitmap', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        except:
+            bitmap = wxNullBitmap
+            
+        wizard = wiz.Wizard(parent, -1, "Add a New Data Source", bitmap)
         #add pages
-        self.page1 = TitledPage(self.wizard, "Page1")
-        self.page2 = TitledPage(self.wizard, "Page2")
-        self.page3 = TitledPage(self.wizard, "Page3")
+        page1 = TitlePage(wizard, "Page1")
+        page2 = DetailsPage(wizard, "Page2")
+        page3 = DetailsPage(wizard, "Page3")
         #add content to pages
-        self.page1.sizer.Add(wx.StaticText(self.page1, -1, "Please select your database type"))
-        self.page3.sizer.Add(wx.StaticText(self.page3, -1, "Last page"))
-        #order pages
-        wizard.WizardPageSimple_Chain(self.page1, self.page2)
-        wizard.WizardPageSimple_Chain(self.page2, self.page3)
+        page3.sizer.Add(wx.StaticText(page3, -1, "Last page"))
+        #order page
+        page1.SetNext(page2)
+        page2.SetPrev(page1)
+        page2.SetNext(page3)
+        page3.SetPrev(page2)
 
-        if self.wizard.RunWizard(self.page1):
+        wizard.GetPageAreaSizer().Add(page1)
+        
+        if wizard.RunWizard(page1):
             print "Success"
+        else:
+            print "cancelled"

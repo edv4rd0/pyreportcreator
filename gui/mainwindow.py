@@ -1,25 +1,32 @@
 import wx
 import wx.xrc as xrc
+from wx.lib.wordwrap import wordwrap
 #imports form same package
 import wizards
+import gui
+
 
 class Application(wx.App):
     
     def OnInit(self):
-        """Loads xrc resource file for GUI and starts application."""
-        self.res = xrc.XmlResource("resource.xrc")
+        """Bind events to gui."""
  
-        self.frame = self.res.LoadFrame(None, 'mainFrame')
-        self.treeDataObjects = xrc.XRCCTRL(self.frame, 'treeDataObjects')
-        self.treeDataSources = self.treeDataObjects.AddRoot('Data Sources')
+        self.frame = gui.MainFrame(None)
+        
+        # initialize menus and toolbars
+        self.menu = gui.MainMenu(self.frame)
+        self.toolbar = gui.MainToolBar(self.frame)
+
         #menu events
-        self.Bind(wx.EVT_MENU, self.OnClose, id=xrc.XRCID('fileExit'))
+        self.Bind(wx.EVT_MENU, self.OnClose, self.menu.menuFileQuit)
         ## bind file/profile events
-        self.Bind(wx.EVT_MENU, self.profile_open, id=xrc.XRCID('fileOpen'))
-        self.Bind(wx.EVT_MENU, self.profile_save, id=xrc.XRCID('fileSave'))
-        self.Bind(wx.EVT_MENU, self.profile_save_as, id=xrc.XRCID('fileSaveAs'))
+        self.Bind(wx.EVT_MENU, self.profile_open, self.menu.menuFileOpen)
+        self.Bind(wx.EVT_MENU, self.profile_save, self.menu.menuFileSave)
+        self.Bind(wx.EVT_MENU, self.profile_save_as, self.menu.menuFileSaveAs)
+        ##help menu
+        self.Bind(wx.EVT_MENU, self.about_dialog, self.menu.menuHelpAbout)
         # bind toolbar events
-        self.Bind(wx.EVT_TOOL, self.add_data_source, id=xrc.XRCID('dataToolbar_addSource'))
+        #self.Bind(wx.EVT_TOOL, self.add_data_source, id=xrc.XRCID('dataToolbar_addSource'))
         #start app
         self.frame.Maximize()
         self.frame.Show()
@@ -51,6 +58,22 @@ class Application(wx.App):
         """Runs a select data source wizard and handles any errors raised when adding it
         to the current profile"""
         wizards.WizardNewDataSource(self.frame)
+
+    def about_dialog(self, evt):
+        """Loads and displays an about dialog box"""
+        info = wx.AboutDialogInfo()
+        info.Name = "Edward's Report Builder"
+        info.Version = "0.0.1 Devel"
+        info.Copyright = "(C) 2010 Edward Williams"
+        info.Description = wordwrap("This is a GUI based application for"
+                                    "easy query and report creation",
+                                    350, wx.ClientDC(self.frame))
+        info.WebSite = ("http://www.twitter.com/edv4rd0", "@edv4rd0 on Twitter")
+        info.Developers = ["Edward Williams"]
+        info.License = wordwrap("BSD License", 500,
+                            wx.ClientDC(self.frame))
+        # Show the wx.AboutBox
+        wx.AboutBox(info)
  
 if __name__ == "__main__":
     app = Application(False)

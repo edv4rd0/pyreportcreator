@@ -16,6 +16,7 @@ class DataHandler(object):
         cls.metaData[connID] = MetaData()
         cls.metaData[connID].reflect(bind=connectionmanager.ConnectionManager.dataConnections[connID])
 
+    @classmethod
     def add_data_objects(cls, connID):
         """Build up table objects"""
         cls.dataObjects[connID] = dict()

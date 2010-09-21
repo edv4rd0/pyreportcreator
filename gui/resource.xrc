@@ -1,86 +1,60 @@
 <?xml version="1.0" ?>
 <resource>
-<object class="wxFrame" name="mainFrame">
-  <object class="wxMenuBar" name="appMenuBar">
-    <object class="wxMenu" name="menuFile">
-      <object class="wxMenuItem" name="fileOpen">
-        <label>&amp;Open</label>
-        <bitmap stock_id="wxART_FILE_OPEN"/>
-      </object>
-      <object class="wxMenuItem" name="fileSave">
-        <label>&amp;Save</label>
-        <bitmap stock_id="wxART_FILE_SAVE"/>
-      </object>
-      <object class="wxMenuItem" name="fileSaveAs">
-        <label>Save As</label>
-        <bitmap stock_id="wxART_FILE_SAVE_AS"/>
-      </object>
-      <object class="wxMenuItem" name="fileExit">
-        <label>E&amp;xit</label>
-        <bitmap stock_id="wxART_QUIT"/>
-      </object>
-      <label>&amp;File</label>
-    </object>
-    <object class="wxMenu" name="menuEdit">
-      <label>&amp;Edit</label>
-    </object>
-    <object class="wxMenu" name="menuData">
-      <label>&amp;Data</label>
-    </object>
-    <object class="wxMenu" name="menuReport">
-      <label>&amp;Report</label>
-    </object>
-    <object class="wxMenu" name="Help">
-      <object class="wxMenuItem" name="helpAbout">
-        <label>&amp;About</label>
-      </object>
-      <label>&amp;Help</label>
-    </object>
-  </object>
-  <object class="wxToolBar" name="dataToolbar">
-    <object class="tool" name="dataToolbar_addSource">
-     <bitmap>icons/db_add.png</bitmap>
-      <tooltip>Add New Database Source</tooltip>
-    </object>
-    <object class="tool" name="newQuery">
-      <bitmap>icons/document-edit.png</bitmap>
-      <tooltip>Create New Query</tooltip>
-    </object>
-  </object>
-  <object class="wxSplitterWindow" name="splitWindow">
-    <object class="wxPanel" name="leftPanel">
-      <object class="wxBoxSizer">
-        <object class="sizeritem">
-          <object class="wxTreeCtrl" name="treeDataObjects">
-            <size>100</size>
-            <style>wxSUNKEN_BORDER|wxTR_HIDE_ROOT</style>
-          </object>
-          <option>1</option>
-          <flag>wxLEFT|wxALL|wxEXPAND</flag>
-          <border>5</border>
-          <minsize>100</minsize>
+  <object class="wxFrame" name="mainFrame">
+    <object class="wxMenuBar" name="appMenuBar">
+      <object class="wxMenu" name="menuFile">
+        <object class="wxMenuItem" name="fileOpen">
+          <label>&amp;Open</label>
+          <bitmap stock_id="wxART_FILE_OPEN"/>
         </object>
-        <orient>wxVERTICAL</orient>
-      </object>
-    </object>
-    <object class="wxPanel" name="rightPanel">
-      <object class="wxBoxSizer">
-        <orient>wxVERTICAL</orient>
-        <object class="sizeritem">
-          <object class="wxNotebook" name="noteBook">
-          </object>
-          <option>1</option>
-          <flag>wxALL|wxEXPAND</flag>
-          <border>5</border>
+        <object class="wxMenuItem" name="fileSave">
+          <label>&amp;Save</label>
+          <bitmap stock_id="wxART_FILE_SAVE"/>
         </object>
+        <object class="wxMenuItem" name="fileSaveAs">
+          <label>Save As</label>
+          <bitmap stock_id="wxART_FILE_SAVE_AS"/>
+        </object>
+        <object class="wxMenuItem" name="fileExit">
+          <label>E&amp;xit</label>
+          <bitmap stock_id="wxART_QUIT"/>
+        </object>
+        <label>&amp;File</label>
       </object>
-      <size>1</size>
+      <object class="wxMenu" name="menuEdit">
+        <label>&amp;Edit</label>
+      </object>
+      <object class="wxMenu" name="menuData">
+        <label>&amp;Data</label>
+      </object>
+      <object class="wxMenu" name="menuReport">
+        <label>&amp;Report</label>
+      </object>
+      <object class="wxMenu" name="Help">
+        <object class="wxMenuItem" name="helpAbout">
+          <label>&amp;About</label>
+        </object>
+        <label>&amp;Help</label>
+      </object>
     </object>
-    <orientation>vertical</orientation>
-    <sashpos>250</sashpos>
-    <minsize>1</minsize>
+    <object class="wxToolBar" name="dataToolbar">
+      <object class="tool" name="dataToolbar_addSource">
+       <bitmap>icons/db_add.png</bitmap>
+        <tooltip>Add New Database Source</tooltip>
+      </object>
+      <object class="tool" name="newQuery">
+        <bitmap>icons/document-edit.png</bitmap>
+        <tooltip>Create New Query</tooltip>
+      </object>
+    </object>
+    <object class="wxSplitterWindow" name="splitWindow">
+
+ 
+      <orientation>vertical</orientation>
+      <sashpos>250</sashpos>
+      <minsize>1</minsize>
+    </object>
+    <title>Edward's Report Creator</title>
+    <style>wxRESIZE_BORDER|wxCLOSE_BOX|wxMAXIMIZE_BOX|wxMINIMIZE_BOX</style>
   </object>
-  <title>Edward's Report Creator</title>
-  <style>wxRESIZE_BORDER|wxCLOSE_BOX|wxMAXIMIZE_BOX|wxMINIMIZE_BOX</style>
-</object>
 </resource>

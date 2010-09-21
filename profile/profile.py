@@ -11,8 +11,6 @@ class Profile(object):
         self.connections = []
         self.reports = []
 
-    def 
-
     def save_query(self, query, queryID):
         """Save query to dictionary with key being the id for the database connection"""
         self.queries[queryID] = query
@@ -24,6 +22,7 @@ class Profile(object):
             return True
         except IndexError:
             return False
+
     def run_query(self, queryID):
         """Run the query and return the result"""
         q = self.queries[queryID].build_query() #might need to optimize this later so already built objects just get run
@@ -92,9 +91,25 @@ class Query(object):
     def remove_select_item(self, table, column):
         """Remove a select item from the query"""
         try:
-            self.queryDefinition['selectItems'][table].remove[column]
-        except ValueError:
-            print ValueError
+            i = self.queryDefinition['selectItems'].index((table, column))
+            self.queryDefinition['selectItems'].remove(i)
+            return True
+        except IndexError:
+            print IndexError
+            return False
+
+    def add_condition(self, firstField, secondField, operator):
+        """Adds a condition to the query defintion. It will first check if it exists"""
+        if firstField is String:
+
+    def alter_condition(self, 
+
+    def add_join(self):
+        """Add a join to the query definition"""
+        
+
+    def remove_join(self):
+        """Remove a join form the definition"""
 
     def describe_join(self):
         """Describe the join"""
@@ -111,7 +126,6 @@ class Query(object):
     def build_join_expression(self, joinDefinition):
         """Creates the join expression for the query"""
         pass
-        #return [firstTable.join(,
 
     def build_query(self):
         """Builds query by creating all objects based on the unicode 
