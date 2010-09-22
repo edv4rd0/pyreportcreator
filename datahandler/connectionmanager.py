@@ -22,9 +22,9 @@ class ConnectionManager(object):
         if databaseType == u'sqlite':
             if driver:
                 #Loads pysqlite2 first if installed, must be able to override this
-                connectionString = "sqlite+"+driver+":///"+address #CHECK: relative and absolute paths
+                connectionString = "sqlite+"+driver+":///"+address+xstr(dbname) #CHECK: relative and absolute paths
             else:
-                connectionString = "sqlite:///"+address #CHECK: relative and absolute paths
+                connectionString = "sqlite:///"+address+xstr(dbname) #CHECK: relative and absolute paths
                 
         if databaseType != u'sqlite':
             if user:
@@ -45,8 +45,10 @@ class ConnectionManager(object):
                     connectionString = databaseType+"://:"+address+":"+port+"/"+dbname
                 else:
                     connectionString = databaseType+"://:"+address+"/"+dbname
+
         if dbID == None: 
             dbID = hash(address + "," + xstr(dbname)) #create unique ID
+            
         #create engines
         if databaseType == u'mysql':
             cls.dataConnections[dbID] = (create_engine(connectionString, pool_recycle=3600, echo = True)) #create new engine
@@ -56,12 +58,13 @@ class ConnectionManager(object):
         try:
             testConnection = cls.dataConnections[dbID].connect()
             testConnection.close()
-            print "Success"
+            print "Success" #TODO: remove this
+            return dbID
         except:
-            #TODO: Need to provide better info to user
             del cls.dataConnections[dbID]
-            print "Failure"
+            print "Failure" #TODO Remove this
+            return False
 
 #hackish test
-ConnectionManager.CreateDataConnection(u'sqlite', u'dbtest.db')
+#ConnectionManager.CreateNewDataConnection(u'sqlite', u'dbtest.db')
 #NOTE: http://www.sqlalchemy.org/trac/wiki/DatabaseNotes#MySQL

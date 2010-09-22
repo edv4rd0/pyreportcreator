@@ -15,6 +15,12 @@ class DataHandler(object):
         """Add metadata object, auto reflect tables"""
         cls.metaData[connID] = MetaData()
         cls.metaData[connID].reflect(bind=connectionmanager.ConnectionManager.dataConnections[connID])
+        try:
+            cls.add_data_objects(connID)
+            return True
+        except:
+            return False
+            #TODO: Actually raise errors (will have to update calling code)
 
     @classmethod
     def add_data_objects(cls, connID):

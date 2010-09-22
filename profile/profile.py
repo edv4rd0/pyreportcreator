@@ -1,4 +1,4 @@
-from pyreportcreator.datahandler import metadata, connectionhandler
+from pyreportcreator.datahandler import metadata, connectionmanager
 from sqlalchemy import select
 
 
@@ -7,8 +7,8 @@ class Profile(object):
 
     def __init__(self):
         self._fileName = ""
-        self.queries = [] #stores query objects
-        self.connections = []
+        self.queries = dict() #stores query objects
+        self.connections = dict()
         self.reports = []
 
     def save_query(self, query, queryID):
@@ -28,6 +28,14 @@ class Profile(object):
         q = self.queries[queryID].build_query() #might need to optimize this later so already built objects just get run
         engine = connectionmanager.ConnectionManager.dataConnections[self.queries[queryID].engineID]
         return engine.execute(q)
+
+    def save_connection(self, connID, address, databaseName, user = None, password = None, port = None, driver = None):
+        """Save the database connection"""
+        try:
+            self.connections[connID] = (address, databaseName, user, password, port, driver)
+            return True
+        except:
+            return False
 
 class ProfileHandler(object):
     """Handles the storing, loading and saving of profile objects"""
@@ -101,12 +109,14 @@ class Query(object):
     def add_condition(self, firstField, secondField, operator):
         """Adds a condition to the query defintion. It will first check if it exists"""
         if firstField is String:
+            pass
 
-    def alter_condition(self, 
+    def alter_condition(self, condition):
+        pass
 
     def add_join(self):
         """Add a join to the query definition"""
-        
+        pass
 
     def remove_join(self):
         """Remove a join form the definition"""

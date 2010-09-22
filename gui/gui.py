@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*- 
-
-###########################################################################
-## Python code generated with wxFormBuilder (version Sep 20 2010)
-## http://www.wxformbuilder.org/
-##
-## PLEASE DO "NOT" EDIT THIS FILE!
-###########################################################################
-
 import wx
 
 ###########################################################################
@@ -17,7 +8,7 @@ class MainToolBar(object):
     """defines the main toolbar"""
     def __init__(self, parent):
         self.mainToolbar = parent.CreateToolBar( wx.TB_HORIZONTAL, wx.ID_ANY )
-	self.mainToolbar.AddLabelTool(1, u"Add a New Data Source", wx.Bitmap( u"icons/db_add.png", wx.BITMAP_TYPE_ANY ), wx.NullBitmap, wx.ITEM_NORMAL, u"Add a New Data Source", u"Launch New Data Source Wizard", None)
+	self.mainToolbar.AddLabelTool(1, u"Add a New Data Source", wx.Bitmap( u"gui/icons/db_add.png", wx.BITMAP_TYPE_ANY ), wx.NullBitmap, wx.ITEM_NORMAL, u"Add a New Data Source", u"Launch New Data Source Wizard", None)
 
 	self.mainToolbar.Realize()
 
@@ -56,6 +47,14 @@ class MainMenu(object):
 	self.menuBar.Append( self.menuHelp, u"&Help" ) 
 	# Set Menubar
 	parent.SetMenuBar( self.menuBar )
+
+
+class DataPanel(object):
+    """This defines the data object panel and it's presentation and logic"""
+
+    def __init__(self, fpb):
+        """Set up layout"""
+        pass
 		
 
 class SidePanel(object):
@@ -63,14 +62,16 @@ class SidePanel(object):
 
     def __init__(self, parent, sizer):
         import wx.lib.agw.foldpanelbar as fpb
-        #self.text_ctrl_1 = wx.TextCtrl(parent,-1,style=wx.TE_MULTILINE)
 
-        self.fpb = fpb.FoldPanelBar(parent,-1, style=fpb.FPB_HORIZONTAL)
-        self.fold_panel = self.fpb.AddFoldPanel("Thing")
-        self.thing = wx.TextCtrl(self.fold_panel,-1, size=(400,-1), style=wx.TE_MULTILINE)
-        self.fpb.AddFoldPanelWindow(self.fold_panel, self.thing)
-
-        #sizer.Add(self.text_ctrl_1,1,wx.EXPAND)
+        self.fpb = fpb.FoldPanelBar(parent, -1, style = fpb.FPB_HORIZONTAL)
+        # data object bar
+        self.panelDataObjects = self.fpb.AddFoldPanel("Data Objects")
+        self.tcDataObjects = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
+        self.fpb.AddFoldPanelWindow(self.panelDataObjects, self.tcDataObjects)
+        # profile objects
+        self.panelProfile = self.fpb.AddFoldPanel("Profile Objects")
+        self.tcProfileObjects = wx.TreeCtrl(self.panelProfile, -1, style = wx.TR_HIDE_ROOT)
+        self.fpb.AddFoldPanelWindow(self.panelProfile, self.tcProfileObjects)
         sizer.Add(self.fpb,1,wx.EXPAND)
 
         parent.SetSizer(sizer)

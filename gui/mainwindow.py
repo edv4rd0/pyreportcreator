@@ -75,6 +75,4 @@ class Application(wx.App):
         # Show the wx.AboutBox
         wx.AboutBox(info)
  
-if __name__ == "__main__":
-    app = Application(False)
-    app.MainLoop()
+
