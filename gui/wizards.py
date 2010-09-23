@@ -2,10 +2,12 @@ from wx import wizard as wiz
 import wx
 import os.path
 import string
-#from datahandler import connectionmanager, metadata
+from pyreportcreator.datahandler import datahandler
+#TODO: Cleanup all print statements
 
 def establish_sqlite_connection(address):
     """Establish an SQLite connection."""
+    
     print "trying to establish a connection"
     print address
     import sys
@@ -25,11 +27,10 @@ def establish_sqlite_connection(address):
     print i
     name = address[i:]
     address = address[:i+1]
-    connID = pyreportcreator.datahandler.connectionmanager.ConnectionManager.CreateNewDataConnection(u"sqlite", address, name)
+    connID = datahandler.ConnectionManager.CreateNewDataConnection(u"sqlite", address, name)
     if connID != False:
-        if metadata.DataHandler.add(connID) == True:
-            print "YaSuccess" #TODO: Remove this"
-            return connID
+        if datahandler.DataHandler.add(connID):
+            return (connID, name)
         else:
             print "fail"
             return False
@@ -37,7 +38,7 @@ def establish_sqlite_connection(address):
         print "connection failed "+ address + " " + name
         return False
 
-
+#-------------------------------------------------------#
 
 class TitlePage(wiz.PyWizardPage):
     """Page for wizard, allows user to select database type to connect to."""
@@ -94,7 +95,8 @@ class TitlePage(wiz.PyWizardPage):
     def GetPrev(self):
 
         return self.prev
-        
+
+#-------------------------------------------------------#
 
 class SQLitePage(wiz.PyWizardPage):
     """Page for wizard"""
@@ -151,6 +153,8 @@ class SQLitePage(wiz.PyWizardPage):
         if dialog.ShowModal() == wx.ID_OK:
             self.tcFilePath.SetValue(dialog.GetPath())
 
+#-------------------------------------------------------#
+
 class DetailsPage(wiz.PyWizardPage):
     """MySQL or Postgresql configuration page"""
 
@@ -183,7 +187,7 @@ class DetailsPage(wiz.PyWizardPage):
 	self.stPort.Wrap( -1 )
 	fgsConnConf.Add( self.stPort, 0, wx.ALL, 5 )
 		
-	self.tcPort = wx.TextCtrl( self, wx.ID_ANY, u"4038", wx.DefaultPosition, wx.DefaultSize, 0 )
+	self.tcPort = wx.TextCtrl( self, wx.ID_ANY, u"3306", wx.DefaultPosition, wx.DefaultSize, 0 )
 	self.tcPort.SetMaxLength( 4 ) 
 	fgsConnConf.Add( self.tcPort, 0, wx.ALL, 5 )
 		
@@ -241,7 +245,7 @@ class DetailsPage(wiz.PyWizardPage):
 
         return self.prev
 
-
+#-------------------------------------------------------#
 
 class FinishedPage(wiz.PyWizardPage):
     """Page for wizard"""
@@ -277,6 +281,8 @@ class FinishedPage(wiz.PyWizardPage):
 
         return self.prev
 
+#-------------------------------------------------------#
+
 class FailPage(wiz.PyWizardPage):
     """Page for wizard"""
 
@@ -311,6 +317,7 @@ class FailPage(wiz.PyWizardPage):
 
         return self.prev
 
+#-------------------------------------------------------#
         
 class WizardNewDataSource(object):
     """This wizard handles the process of adding a new datasource to the profile"""

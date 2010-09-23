@@ -1,5 +1,5 @@
 #Application Launcher
-from pyreportcreator.datahandler import connectionmanager, metadata
+
 from pyreportcreator.profile import profile
 from pyreportcreator.gui import mainwindow
 

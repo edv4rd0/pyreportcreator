@@ -1,4 +1,3 @@
-from pyreportcreator.datahandler import metadata, connectionmanager
 from sqlalchemy import select
 
 
@@ -26,7 +25,7 @@ class Profile(object):
     def run_query(self, queryID):
         """Run the query and return the result"""
         q = self.queries[queryID].build_query() #might need to optimize this later so already built objects just get run
-        engine = connectionmanager.ConnectionManager.dataConnections[self.queries[queryID].engineID]
+        engine = datahandler.ConnectionManager.dataConnections[self.queries[queryID].engineID]
         return engine.execute(q)
 
     def save_connection(self, connID, address, databaseName, user = None, password = None, port = None, driver = None):

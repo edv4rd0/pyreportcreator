@@ -1,7 +1,6 @@
 import wx
 import wx.xrc as xrc
 from wx.lib.wordwrap import wordwrap
-#imports form same package
 import wizards
 import gui
 
@@ -41,7 +40,7 @@ class Application(wx.App):
         pass
 
     def profile_save(self, evt):
-        """Calls save method of the profile class and does some checking and handles any errors"""
+        """Calls save method of the profile class and does some checking annd handles any errors"""
         import profile
         try:
             Profile.Save()

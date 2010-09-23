@@ -1,9 +1,5 @@
 import wx
 
-###########################################################################
-## Class mainFrame
-###########################################################################
-
 class MainToolBar(object):
     """defines the main toolbar"""
     def __init__(self, parent):
@@ -66,11 +62,12 @@ class SidePanel(object):
         self.fpb = fpb.FoldPanelBar(parent, -1, style = fpb.FPB_HORIZONTAL)
         # data object bar
         self.panelDataObjects = self.fpb.AddFoldPanel("Data Objects")
-        self.tcDataObjects = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
+        self.treeDataObjects = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
+        
         self.fpb.AddFoldPanelWindow(self.panelDataObjects, self.tcDataObjects)
         # profile objects
         self.panelProfile = self.fpb.AddFoldPanel("Profile Objects")
-        self.tcProfileObjects = wx.TreeCtrl(self.panelProfile, -1, style = wx.TR_HIDE_ROOT)
+        self.treeProfileObjects = wx.TreeCtrl(self.panelProfile, -1, style = wx.TR_HIDE_ROOT)
         self.fpb.AddFoldPanelWindow(self.panelProfile, self.tcProfileObjects)
         sizer.Add(self.fpb,1,wx.EXPAND)
 
