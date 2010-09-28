@@ -1,9 +1,8 @@
-from sqlalchemy import select
+from pubsub import pub #PubSub implements a Publisher - Subscriber pattern for the application
 
 
 class Profile(object):
     """A profile object. This stores query, report and data connection objects"""
-
     def __init__(self):
         self._fileName = ""
         self.queries = dict() #stores query objects
@@ -36,19 +35,6 @@ class Profile(object):
         except:
             return False
 
-class ProfileHandler(object):
-    """Handles the storing, loading and saving of profile objects"""
-    
-    @classmethod
-    def init_profile_object(cls):
-        """Initialize an empty profile object"""
-        try:
-            cls.profile = Profile()
-            return True
-        except:
-            return False   
-    
-    @classmethod
     def save_profile(cls, fileName):
         """Pickles profile to file"""
         import cPickle
@@ -59,7 +45,6 @@ class ProfileHandler(object):
         except PicklingError, e:
             return e
         
-    @classmethod
     def open_profile(cls, fileName):
         """Opens file and unpickles it"""
         import cPickle
@@ -71,55 +56,162 @@ class ProfileHandler(object):
             returnValues = (e, filename)
             return returnValues
         
-class Query(object):
-    """Defines a query"""
+    def new_document(self, docType, engineID):
+        """Create new document"""
+        import uuid
+        if docType == 'query':
+            documentID = uuid.uuid4()
+            while documentID in self.queries.keys():
+                documentID = uuid.uuid4()
+            self.queries[documentID] = Query(documentID, engineID)
+        else:
+            return False #TODO: change to raise unknown doc type error
 
+#-----------------------------------------------------------------#
+
+class Document(object):
+    """Abstract document class"
+    __STATE_SAVED = 'saved'
+    __STATE_NEW = 'new'
+    __STATE_ALTERED = 'altered'
+    state = __STATE_NEW
     _name = ""
-    queryDefinition = dict() #stores the definition
+    _documentID = 0_
+    def __init__(self, documentID, name = ""):
+        self._documentID = documentID
+        self._name = name
+
+    def change_made(self):
+        """This allows items like save buttons on toolbars to realise it now needs to be saved"""
+        state = __STATE_ALTERED
+        pub.sendMessage('document.state.altered', self._documentID)
+
+    def was_saved(self):
+        """This allows items like toolbars to register that it doesn't need saving"""
+        state = __STATE_SAVED
+        pub.sendMessage('document.state.saved', self._documentID
+
+#-----------------------------------------------------------------#
+
+class Query(Document):
+    """Defines a query document"""
+
+    # for concatenating operators
+    O_AND = "inclusive"
+    O_OR = "inclusive"
+    O_NOT = "exclusive"
+    #data definition
+    distinct = False
+    selectItems = dict()
+    conditions = dict() #Dict of tuples. Each key is a different
+    # 'set' of related conditions. Think of there being an OR between each one.
+    order_by = tuple() #single tuple of (table, column, direction)
+    joins = dict() #firstjoin => join info, secondJoin => join info
     engineID = 0
     
-    def __init__(self, name = "Untitled"):
+    def __init__(self, documentID, engineID, name = "Untitled Query"):
         """This initializes the query object from some supplied definitions"""
-        self._name = name
-        self.queryDefinition['selectItems'] = []
-
+        super(__init__(documentID, name))
+        sub.subscribe(add_select_item, 'document.query.select.add')
+        sub.subscribe(add_condition, 'document.query.condition.add')
+        sub.subscribe(edit_condition, 'document.query.condition.edit')
+        sub.subscribe(add_join, 'document.query.join.add')
+        
     def change_name(self, newName):
         """Change name of query"""
         self._name = newName
+        sub.sendMessage('document.name_change', self._name, self._documentID)
     
     def add_select_item(self, table, column):
-        """Add a select item to the query"""
-        if (table, column) not in self.selectItems:
-            self.selectItems.append((table, column))
-            return True
+        """Add a select item to the query. If from a new table, this must
+        check how the user wants to join the two tables."""
+        if table in self.selectItems.keys():
+            if column not in self.selectItems[table]:
+                self.selectItems[table].append(column)
+                change_made()
+                pub.sendMessage('query.add_select.success', table, column, self._documentID)
+            else:
+                pub.sendMessage('query.add_select.duplicate', table, column, self._documentID)
         else:
-            return False
+            self.selectItems[table] = [column]
+            pub.sendMessage('query.add_select.success', table, column, self._documentID)
 
-    def remove_select_item(self, table, column):
-        """Remove a select item from the query"""
+    def check_for_dependent_join(self, table):
+        """Checks for any dependent joins"""
+        for i in self.join.keys():
+            if table in i:
+                return True
+        return False
+
+    def remove_select_item(self, table, column, force = False):
+        """Remove a select item from the query.
+        This must check to see if removing it would render a join statement useless."""
+        if table in self.selectItems.keys():
+            if column in self.selectItems and len(self.selectItems) is 1:
+                if check_for_dependent_join(table) is True:
+                    if f == False:
+                        pub.sendMessage('query.del_select.join_exists_error', table, column, self._documentID)
+                    else:
+                        try:
+                            self.selectItems[table].remove(column)
+                            change_made()
+                            pub.sendMessage('query.del_select.success', table, column, self._documentID)
+                        except KeyError, IndexError:
+                            pub.sendMessage('query.del_select.not_exist', self._documentID)
+                else:
+                    try:
+                        self.selectItems[table].remove(column)
+                        change_made()
+                        pub.sendMessage('query.del_select.success', table, column, self._documentID)
+                    except KeyError, IndexError:
+                        pub.sendMessage('query.del_select.not_exist', self._documentID)
+            try:
+                self.selectItems[table].remove(column)
+                pub.sendMessage('query.del_select.success', table, column, self._documentID)
+            except KeyError, IndexError:
+                pub.sendMessage('query.del_select.not_exist', self._documentID)
+                
+    def configure_condition(self, column, operator, valueOrColumn, conditionNo):
+        """Adds a condition to the query definition. It will first check if it exists"""
+        
+        
+
+    def remove_condition(self, conditionNo, column):
+        """Removes condition from query definition"""
         try:
-            i = self.queryDefinition['selectItems'].index((table, column))
-            self.queryDefinition['selectItems'].remove(i)
-            return True
+            if len(self.conditions[conditionNo]) == 1:
+                self.conditions.remove(self.conditions[conditionNo])
+                pub.sendMessage('query.condition.completely_removed', self._documentID)
+            else:
+                for j in self.conditions[conditionNo]:
+                    if column == j[0]:
+                        self.conditions[conditionNo].remove(j)
+                        break
+                pub.sendMessage('query.condition.removed', self._documentID, conditionNo, column)
         except IndexError:
-            print IndexError
-            return False
+            pub.sendMessage('query.condition.completely_removed', self._documentID)
 
-    def add_condition(self, firstField, secondField, operator):
-        """Adds a condition to the query defintion. It will first check if it exists"""
-        if firstField is String:
-            pass
-
-    def alter_condition(self, condition):
-        pass
-
-    def add_join(self):
-        """Add a join to the query definition"""
-        pass
-
-    def remove_join(self):
-        """Remove a join form the definition"""
-
+            
+    def add_join(self, leftTable, joiningTable, type, tableValue, joiningValue, opr):
+        """Add a join to the query definition.
+        @params: leftTable is the table name of the left, or main table.
+                joiningTable is the table being joined onto leftTable.
+                type: the type of join chosen 'left' or 'inner'"""
+        try:
+            if (leftTable, joiningTable) in self.joins.keys():
+                self.joins[(leftTable, joiningTable)] = (type, tableValue, joiningValue, opr)
+            elif (joiningTable, leftTable) in self.joins.keys():
+                self.joins[(leftTable, joiningTable)] = (type, tableValue, joiningValue, opr)
+            else:
+                self.joins[(leftTable, joiningTable)] = (type, tableValue, joiningValue, opr)
+            pub.sendMessage('query.add_join.success', self._documentID, leftTable, joiningTable)
+        except:
+            pub.sendMessage('query.add_join.failure', self._documentID) 
+            
+    def remove_join(self, ):
+        """Remove a join from the definition"""
+        try
+        
     def describe_join(self):
         """Describe the join"""
         if self.queryDefinition['joinInfo']:
@@ -131,16 +223,15 @@ class Query(object):
             return description
         else:
             return "There is no join."
+        
+    def group(self, column, table):
+        """Set up GROUP BY on a particular column"""
+        try:
+            self.group_by = self.selectValues[table][column]
+            pub.sendMessage('query.group_by.updated', table, column, self._documentID)
+        except KeyError, IndexError:
+            pub.sendMessage('query.group_by.unchanged', self._documentID)
+            
 
-    def build_join_expression(self, joinDefinition):
-        """Creates the join expression for the query"""
-        pass
 
-    def build_query(self):
-        """Builds query by creating all objects based on the unicode 
-        string descriptors stored in the query object"""
-        query = []
-        for t in queryDefinition['selectItems']:
-            for c in queryDefinition['selectItems'][t]:
-                query.append(metadata.DataObjectHandler.get_column_object(t, cls.queryDefinition['connID'], c))
-        return query
+

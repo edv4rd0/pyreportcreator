@@ -101,11 +101,6 @@ class DataHandler(object):
         """Refresh all meta data"""
         for m in cls.metaData.keys():
             cls.metaData[m].reflect(bind=ConnectionManager.dataConnections[m])
-    
-    @classmethod
-    def get_db_names(cls, connID):
-        """Return a list of database connection id's"""
-        return [split(i)[2] for i in cls.metaData.keys()]
 
     @classmethod
     def get_tables(cls, connID):
@@ -115,7 +110,7 @@ class DataHandler(object):
     @classmethod
     def get_columns(cls, connID, tableName):
         """Return a list of column names"""
-        return [c.name for c in cls.metaData[connID].tables[tableName].columns]
+        return [(c.name, c.type) for c in cls.metaData[connID].tables[tableName].columns]
 
     @classmethod
     def get_table_object(cls, tableName, connID):
@@ -127,4 +122,5 @@ class DataHandler(object):
     def get_column_object(cls, tableName, connID, colName):
         """Returns column object based on three supplied identifying strings"""
         col = cls.dataObjects[connID][tableName].columns[colName]
-        print col
+        col_type = cls.metaData[connID][tableName].columns[colName].type
+        return (col, col_type)

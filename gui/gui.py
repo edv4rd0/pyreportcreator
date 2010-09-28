@@ -44,14 +44,43 @@ class MainMenu(object):
 	# Set Menubar
 	parent.SetMenuBar( self.menuBar )
 
+#----------------------------------------------------------------------------------#
 
 class DataPanel(object):
     """This defines the data object panel and it's presentation and logic"""
+    
 
     def __init__(self, fpb):
         """Set up layout"""
-        pass
-		
+        self.panelDataObjects = fpb.AddFoldPanel("Data Objects")
+        #self.treeCtrlDataItems = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
+        self.treeCtrlDataItems = wx.TreeCtrl(self.panelDataObjects, -1)
+        self.treeCtrlDataItems.AddRoot('root')
+        fpb.AddFoldPanelWindow(self.panelDataObjects, self.treeCtrlDataItems)
+        # index of data items in treectrl
+        self.dataIndex = dict()
+
+    def add_database(self, name, connID, address, type):
+        """Extract info from meta data object and populate TreeCtrl"""
+        from pyreportcreator.datahandler import datahandler
+        
+        if (connID, name, address, type) in self.dataIndex.keys():
+            pass
+        else:
+            if type == 'sqlite':
+                itemName = name + " : " + "(" + type + ")" + address + name 
+            else:
+                itemName = name + " : " + "(" + type + ")" + address
+                
+            dbNode = self.treeCtrlDataItems.AppendItem(self.treeCtrlDataItems.GetRootItem(), itemName, -1, -1, connID)
+            self.dataIndex[(connID, name, address, type)] = dbNode
+            
+        for t in datahandler.DataHandler.get_tables(connID):
+            tNode = self.treeCtrlDataItems.AppendItem(dbNode, t, -1, -1)
+            for c in datahandler.DataHandler.get_columns(connID, t):
+                self.treeCtrlDataItems.AppendItem(tNode, c, -1, -1)
+            
+#-----------------------------------------------------------------------#
 
 class SidePanel(object):
     """Defines the layout of the sidepanel which includes treeviews in foldpanels"""
@@ -61,14 +90,11 @@ class SidePanel(object):
 
         self.fpb = fpb.FoldPanelBar(parent, -1, style = fpb.FPB_HORIZONTAL)
         # data object bar
-        self.panelDataObjects = self.fpb.AddFoldPanel("Data Objects")
-        self.treeDataObjects = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
-        
-        self.fpb.AddFoldPanelWindow(self.panelDataObjects, self.tcDataObjects)
+        self.dataPanel = DataPanel(self.fpb) #initialize Data Panel
         # profile objects
         self.panelProfile = self.fpb.AddFoldPanel("Profile Objects")
         self.treeProfileObjects = wx.TreeCtrl(self.panelProfile, -1, style = wx.TR_HIDE_ROOT)
-        self.fpb.AddFoldPanelWindow(self.panelProfile, self.tcProfileObjects)
+        self.fpb.AddFoldPanelWindow(self.panelProfile, self.treeProfileObjects)
         sizer.Add(self.fpb,1,wx.EXPAND)
 
         parent.SetSizer(sizer)

@@ -30,7 +30,7 @@ def establish_sqlite_connection(address):
     connID = datahandler.ConnectionManager.CreateNewDataConnection(u"sqlite", address, name)
     if connID != False:
         if datahandler.DataHandler.add(connID):
-            return (connID, name)
+            pass                
         else:
             print "fail"
             return False
