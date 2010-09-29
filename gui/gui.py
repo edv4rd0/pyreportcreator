@@ -19,13 +19,10 @@ class MainMenu(object):
 	self.menuFileNewProject = wx.MenuItem( self.menuFile, wx.ID_ANY, u"&New Project", wx.EmptyString, wx.ITEM_NORMAL )
 	self.menuFile.AppendItem( self.menuFileNewProject )
 	
-	self.menuFileOpen = wx.MenuItem( self.menuFile, wx.ID_ANY, u"&Open...", wx.EmptyString, wx.ITEM_NORMAL )
+	self.menuFileOpen = wx.MenuItem( self.menuFile, wx.ID_ANY, u"&Open Project", wx.EmptyString, wx.ITEM_NORMAL )
 	self.menuFile.AppendItem( self.menuFileOpen )
 	
-	self.menuFileSave = wx.MenuItem( self.menuFile, wx.ID_ANY, u"&Save", wx.EmptyString, wx.ITEM_NORMAL )
-	self.menuFile.AppendItem( self.menuFileSave )
-	
-	self.menuFileSaveAs = wx.MenuItem( self.menuFile, wx.ID_ANY, u"Save As", wx.EmptyString, wx.ITEM_NORMAL )
+	self.menuFileSaveAs = wx.MenuItem( self.menuFile, wx.ID_ANY, u"Save Project As", wx.EmptyString, wx.ITEM_NORMAL )
 	self.menuFile.AppendItem( self.menuFileSaveAs )
 	
 	self.menuFileQuit = wx.MenuItem( self.menuFile, wx.ID_ANY, u"E&xit", wx.EmptyString, wx.ITEM_NORMAL )
@@ -137,9 +134,6 @@ class MainFrame ( wx.Frame ):
 		self.SetSizer( bSizer1 )
 		self.Layout()
 		self.mainStatusBar = self.CreateStatusBar( 1, wx.ST_SIZEGRIP, wx.ID_ANY )
-		
-
-		
 		
 		self.Centre( wx.BOTH )
 	

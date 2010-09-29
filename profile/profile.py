@@ -70,26 +70,26 @@ class Profile(object):
 #-----------------------------------------------------------------#
 
 class Document(object):
-    """Abstract document class"
+    """Abstract document class"""
     __STATE_SAVED = 'saved'
     __STATE_NEW = 'new'
     __STATE_ALTERED = 'altered'
     state = __STATE_NEW
     _name = ""
-    _documentID = 0_
+    _documentID = 0
     def __init__(self, documentID, name = ""):
         self._documentID = documentID
         self._name = name
 
     def change_made(self):
         """This allows items like save buttons on toolbars to realise it now needs to be saved"""
-        state = __STATE_ALTERED
+        state = _self._STATE_ALTERED
         pub.sendMessage('document.state.altered', self._documentID)
 
     def was_saved(self):
         """This allows items like toolbars to register that it doesn't need saving"""
         state = __STATE_SAVED
-        pub.sendMessage('document.state.saved', self._documentID
+        pub.sendMessage('document.state.saved', self._documentID)
 
 #-----------------------------------------------------------------#
 
@@ -103,12 +103,13 @@ class Query(Document):
     #data definition
     distinct = False
     selectItems = dict()
-    conditions = dict() #Dict of tuples. Each key is a different
+    conditions = dict() #Dict of list of tuples. Each key is a different
     # 'set' of related conditions. Think of there being an OR between each one.
     order_by = tuple() #single tuple of (table, column, direction)
     joins = dict() #firstjoin => join info, secondJoin => join info
     engineID = 0
     
+
     def __init__(self, documentID, engineID, name = "Untitled Query"):
         """This initializes the query object from some supplied definitions"""
         super(__init__(documentID, name))
@@ -117,24 +118,29 @@ class Query(Document):
         sub.subscribe(edit_condition, 'document.query.condition.edit')
         sub.subscribe(add_join, 'document.query.join.add')
         
+
     def change_name(self, newName):
         """Change name of query"""
         self._name = newName
         sub.sendMessage('document.name_change', self._name, self._documentID)
+        self.change_made()
     
+
     def add_select_item(self, table, column):
         """Add a select item to the query. If from a new table, this must
         check how the user wants to join the two tables."""
         if table in self.selectItems.keys():
             if column not in self.selectItems[table]:
                 self.selectItems[table].append(column)
-                change_made()
+                self.change_made()
                 pub.sendMessage('query.add_select.success', table, column, self._documentID)
             else:
                 pub.sendMessage('query.add_select.duplicate', table, column, self._documentID)
         else:
             self.selectItems[table] = [column]
+            self.change_made()
             pub.sendMessage('query.add_select.success', table, column, self._documentID)
+
 
     def check_for_dependent_join(self, table):
         """Checks for any dependent joins"""
@@ -142,6 +148,7 @@ class Query(Document):
             if table in i:
                 return True
         return False
+
 
     def remove_select_item(self, table, column, force = False):
         """Remove a select item from the query.
@@ -154,26 +161,40 @@ class Query(Document):
                     else:
                         try:
                             self.selectItems[table].remove(column)
-                            change_made()
+                            self.change_made()
                             pub.sendMessage('query.del_select.success', table, column, self._documentID)
                         except KeyError, IndexError:
                             pub.sendMessage('query.del_select.not_exist', self._documentID)
                 else:
                     try:
                         self.selectItems[table].remove(column)
-                        change_made()
+                        self.change_made()
                         pub.sendMessage('query.del_select.success', table, column, self._documentID)
                     except KeyError, IndexError:
                         pub.sendMessage('query.del_select.not_exist', self._documentID)
             try:
                 self.selectItems[table].remove(column)
                 pub.sendMessage('query.del_select.success', table, column, self._documentID)
+                self.change_made()
             except KeyError, IndexError:
                 pub.sendMessage('query.del_select.not_exist', self._documentID)
                 
-    def configure_condition(self, column, operator, valueOrColumn, conditionNo):
+
+    def configure_condition(self, column, operator, valueOrColumn, conditionNo, type):
         """Adds a condition to the query definition. It will first check if it exists"""
-        
+        try:
+            if self.conditions[conditionNo]:
+                for j in self.conditions[conditionNo]:
+                    if column == j[0]:
+                        i = self.conditions[conditionNo].index(j)
+                        if con_type == 'daterange':
+                            pass #condition = self.daterange_condition()
+                        self.conditions[conditionNo][i]
+                        pub.sendMessage('query.condition.added', self._documentID, conditionNo, column)
+                        break
+        except KeyError:
+            self.conditions[conditionNo] = [(column, type, )]
+            pub.sendMessage('query.condition.added', self._documentID, conditionNo, column)       
         
 
     def remove_condition(self, conditionNo, column):
@@ -210,7 +231,7 @@ class Query(Document):
             
     def remove_join(self, ):
         """Remove a join from the definition"""
-        try
+        pass
         
     def describe_join(self):
         """Describe the join"""
@@ -231,7 +252,4 @@ class Query(Document):
             pub.sendMessage('query.group_by.updated', table, column, self._documentID)
         except KeyError, IndexError:
             pub.sendMessage('query.group_by.unchanged', self._documentID)
-            
-
-
 

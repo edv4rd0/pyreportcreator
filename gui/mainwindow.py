@@ -19,8 +19,8 @@ class Application(wx.App):
         #menu events
         self.Bind(wx.EVT_MENU, self.OnClose, self.menu.menuFileQuit)
         ## bind file/profile events
+        self.Bind(wx.EVT_MENU, self.profile_new, self.menu.menuFileNewProject)
         self.Bind(wx.EVT_MENU, self.profile_open, self.menu.menuFileOpen)
-        self.Bind(wx.EVT_MENU, self.profile_save, self.menu.menuFileSave)
         self.Bind(wx.EVT_MENU, self.profile_save_as, self.menu.menuFileSaveAs)
         ##help menu
         self.Bind(wx.EVT_MENU, self.about_dialog, self.menu.menuHelpAbout)
@@ -34,6 +34,11 @@ class Application(wx.App):
     def OnClose(self, evt):
         """Exits application"""
         self.frame.Close()
+
+    def profile_new(self, evt):
+        """Ask user to save, close project. Start new project."""
+        #open dialog --> clicks yes --> profile object destroyed, all views holding profile info destroyed and replaced with default. 
+        pass
 
     def profile_open(self, evt):
         """Used open file dialog box to allow user to select a file, then load it into the profile class. """

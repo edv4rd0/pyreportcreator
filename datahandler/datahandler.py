@@ -2,8 +2,8 @@ import sqlalchemy
 from sqlalchemy import MetaData
 from sqlalchemy.engine import reflection
 from sqlalchemy import Table, Column, String, Integer, ForeignKey
-from urllib import quote_plus as urlquote
 from sqlalchemy import create_engine
+from urllib import quote_plus as urlquote
 
 xstr = lambda s: s or ""
 
@@ -109,7 +109,7 @@ class DataHandler(object):
 
     @classmethod
     def get_columns(cls, connID, tableName):
-        """Return a list of column names"""
+        """Return a list of column names. type is returned also, so the GUI can know which controls to use"""
         return [(c.name, c.type) for c in cls.metaData[connID].tables[tableName].columns]
 
     @classmethod
@@ -123,4 +123,12 @@ class DataHandler(object):
         """Returns column object based on three supplied identifying strings"""
         col = cls.dataObjects[connID][tableName].columns[colName]
         col_type = cls.metaData[connID][tableName].columns[colName].type
-        return (col, col_type)
+        return (col, col_type) #type is returned also, so the GUI can know which controls to use
+
+
+def destroy_all_freaking_things():
+    """This is a scary, undoable, wipe stuff from memory it better be saved - function. Yeah."""
+    ConnectionManager.dataConnections = dict()
+    DataHandler.metaData = dict()
+    DataHandler.dataObjects = dict()
+    pub.sendMessage('destroyed.data')

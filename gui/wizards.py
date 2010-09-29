@@ -2,43 +2,9 @@ from wx import wizard as wiz
 import wx
 import os.path
 import string
-from pyreportcreator.datahandler import datahandler
-#TODO: Cleanup all print statements
+from pyreportcreator.datahandler import connectioninterface
 
-def establish_sqlite_connection(address):
-    """Establish an SQLite connection."""
-    
-    print "trying to establish a connection"
-    print address
-    import sys
-    i = ""
-    if sys.platform != "win32":
-        try:
-            i = string.rindex(address, "/")
-            print i
-            print "\n" 
-        except ValueError:
-            print ValueError
-    else:
-        try:
-            i = string.rindex(address, "\\")
-        except ValueError:
-            return ValueError
-    print i
-    name = address[i:]
-    address = address[:i+1]
-    connID = datahandler.ConnectionManager.CreateNewDataConnection(u"sqlite", address, name)
-    if connID != False:
-        if datahandler.DataHandler.add(connID):
-            pass                
-        else:
-            print "fail"
-            return False
-    else:
-        print "connection failed "+ address + " " + name
-        return False
 
-#-------------------------------------------------------#
 
 class TitlePage(wiz.PyWizardPage):
     """Page for wizard, allows user to select database type to connect to."""
@@ -57,7 +23,6 @@ class TitlePage(wiz.PyWizardPage):
         self.textExplain = wx.StaticText(self, -1, "Please select your database type")
         
         # choices (radio buttons)
-        # Cleanup: make first button actually be selected and not just look like it is.
         self.rbDBChoice_mysql = wx.RadioButton(self, -1, 'MySQL - Connect to a MySQL database', (10, 10), style=wx.RB_GROUP)
         self.rbDBChoice_postgresql = wx.RadioButton(self, -1, 'PostgreSQL - Connect to a PostgreSQL database', (10, 10))
         self.rbDBChoice_sqlite = wx.RadioButton(self, -1, 'SQLite 3 - Connect to an SQLite 3 database', (10, 10))
@@ -157,19 +122,19 @@ class SQLitePage(wiz.PyWizardPage):
 
 class DetailsPage(wiz.PyWizardPage):
     """MySQL or Postgresql configuration page"""
-
     def __init__(self, parent, title):
-
+        import wx.lib.masked as masked #for maksed edit ctrls
+        
         wiz.PyWizardPage.__init__(self, parent)
         self.next = self.prev = None
-		
+
         vBoxSizerTop = wx.BoxSizer( wx.VERTICAL ) #top level box sizer
         
         fgsConnConf = wx.FlexGridSizer( 2, 2, 0, 0 )
 	fgsConnConf.SetFlexibleDirection( wx.BOTH )
 	fgsConnConf.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 		
-	self.m_bitmap1 = wx.StaticBitmap( self, wx.ID_ANY, wx.Bitmap( u"../../../Downloads/logo_mysql_sun_a.gif", wx.BITMAP_TYPE_ANY ), wx.DefaultPosition, wx.DefaultSize, 0 )
+	self.m_bitmap1 = wx.StaticBitmap( self, wx.ID_ANY, wx.Bitmap( u"gui/graphics/logo_mysql.gif", wx.BITMAP_TYPE_ANY ), wx.DefaultPosition, wx.DefaultSize, 0 )
 	fgsConnConf.Add( self.m_bitmap1, 0, wx.ALL, 5 )
 		
 	self.stHeading = wx.StaticText( self, wx.ID_ANY, u"Configure Database Connection", wx.DefaultPosition, wx.DefaultSize, 0 )
@@ -182,19 +147,20 @@ class DetailsPage(wiz.PyWizardPage):
 	
 	self.tcServerAddress = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 300,-1 ), 0 )
 	fgsConnConf.Add( self.tcServerAddress, 0, wx.ALL, 5 )
-		
+
+        #Port label
 	self.stPort = wx.StaticText( self, wx.ID_ANY, u"Port", wx.DefaultPosition, wx.DefaultSize, 0 )
 	self.stPort.Wrap( -1 )
 	fgsConnConf.Add( self.stPort, 0, wx.ALL, 5 )
-		
-	self.tcPort = wx.TextCtrl( self, wx.ID_ANY, u"3306", wx.DefaultPosition, wx.DefaultSize, 0 )
-	self.tcPort.SetMaxLength( 4 ) 
+        #Port masked ctrl
+        self.tcPort = masked.TextCtrl(self, -1, u"3066", mask="#{4}")
 	fgsConnConf.Add( self.tcPort, 0, wx.ALL, 5 )
-		
+
+        #Database Name label
 	self.stDatabaseName = wx.StaticText( self, wx.ID_ANY, u"Database Name", wx.DefaultPosition, wx.DefaultSize, 0 )
 	self.stDatabaseName.Wrap( -1 )
 	fgsConnConf.Add( self.stDatabaseName, 0, wx.ALL, 5 )
-		
+        #database name textctrl
 	self.tcDatabaseName = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 300,-1 ), 0 )
 	fgsConnConf.Add( self.tcDatabaseName, 0, wx.ALL, 5 )
 		
@@ -226,9 +192,8 @@ class DetailsPage(wiz.PyWizardPage):
 	vBoxSizerTop.Add( sbsUserCred, 1, wx.EXPAND, 5 )
 		
 	self.SetSizer( vBoxSizerTop )
-
- 
-
+        
+        
     def SetNext(self, next):
 
         self.next = next
@@ -238,12 +203,20 @@ class DetailsPage(wiz.PyWizardPage):
         self.prev = prev
 
     def GetNext(self):
-
+        
         return self.next
 
     def GetPrev(self):
 
         return self.prev
+
+    def IsCompleted(self):
+        """Check each widget to see if it has been completed or not."""
+        if self.tcServerAddress.IsEmpty() or self.tcDatabaseName.IsEmpty() or self.tcUserName.IsEmpty():
+            return False
+        else:
+            return True
+
 
 #-------------------------------------------------------#
 
@@ -258,8 +231,7 @@ class FinishedPage(wiz.PyWizardPage):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.sizer)
         self.titleText = wx.StaticText(self, -1, title)
-        self.titleText.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
-        
+        self.titleText.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))  
         
         self.sizer.Add(self.titleText, 0, wx.ALIGN_CENTRE | wx.ALL, 5)
         self.sizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.ALL, 5)
@@ -351,17 +323,90 @@ class WizardNewDataSource(object):
         wizard.GetPageAreaSizer().Add(self.titlePage)
 
         #bind events
-        self.sqlitePage.Bind(wiz.EVT_WIZARD_PAGE_CHANGING, self.on_changing_sqlite)
+        self.titlePage.Bind(wiz.EVT_WIZARD_PAGE_CHANGING, self.OnPageChanged)
+        self.sqlitePage.Bind(wiz.EVT_WIZARD_PAGE_CHANGING, self.OnChangingSqlite)
+        self.detailsPage.Bind(wiz.EVT_WIZARD_PAGE_CHANGING, self.OnDetailsPageChanging)
         #self.sqlitePage.Bind(wx.EVT_TEXT(id, func))
+
+        #-------------bind text change events to form validation code---------------
+        self.detailsPage.tcUserName.Bind(wx.EVT_TEXT, self.OnChangeValue)
+        self.detailsPage.tcServerAddress.Bind(wx.EVT_TEXT, self.OnChangeValue)
+        self.detailsPage.tcDatabaseName.Bind(wx.EVT_TEXT, self.OnChangeValue)
+        self.sqlitePage.tcFilePath.Bind(wx.EVT_TEXT, self.OnSQLiteValueChange)
+        
         if wizard.RunWizard(self.titlePage):
             print "success"
         else:
             print "cancelled"
 
-    def on_changing_sqlite(self, evt):
+    def OnPageChanged(self, evt):
+        """When the next button is clicked on the first page, the next button get's disabled."""
+        if evt.GetDirection() == True:
+            self.DisableNext()
+        else:
+            self.EnableNext()
+            
+    def OnChangeValue(self, evt):
+        """Check if widgets are now all valid and then activate the next button or disable"""
+        
+        if self.detailsPage.IsCompleted() == True:
+            self.EnableNext()
+        else:
+            self.DisableNext()
+
+    def OnChangingSqlite(self, evt):
         page = evt.GetPage()
-        if page.tcFilePath.IsEmpty() == True:
+        if evt.GetDirection() == True:
+            if page.tcFilePath.IsEmpty() == True:
+                evt.Veto()
+            else:
+                self.connValues['address'] = page.tcFilePath.GetValue()
+                establish_sqlite_connection(self.connValues['address'])
+        else:
+            self.EnableNext()
+
+    def OnDetailsPageChanging(self, evt):
+        """Enable/disable buttons and establish connections"""
+        if evt.GetDirection() == True:
+            if evt.GetPage().IsCompleted() == True:
+                self.OnDetailsPageDone()
+            else:
+                evt.Veto()
+        else:
+            self.EnableNext()
+            
+    def OnDetailsPageDone(self):
+        """Processes a mysql or postgresql connection"""
+        page = evt.GetPage()
+        if page.IsEmpty:
             evt.Veto()
         else:
             self.connValues['address'] = page.tcFilePath.GetValue()
             establish_sqlite_connection(self.connValues['address'])
+
+    def OnSQLiteValueChange(self, evt):
+        """Check if form valid then enable next or disable it"""
+        if self.sqlitePage.IsCompleted() == True:
+            self.EnableNext()
+        else:
+            self.DisableNext()
+
+    def DisableNext(self): 
+        """Disable the button on the wizard with the given ID. 
+        Returns True if the button ID was found, false if not""" 
+        try: 
+            nextBtn = wx.FindWindowById(wx.ID_FORWARD)
+        except Exception,e: 
+            return False 
+        wx.CallAfter(nextBtn.Enable, False) 
+        return True
+    
+    def EnableNext(self): 
+        """Enable the button on the wizard with the given ID. 
+        Returns True if the button ID was found, false if not""" 
+        try: 
+            nextBtn = wx.FindWindowById(wx.ID_FORWARD)
+        except Exception,e: 
+            return False 
+        wx.CallAfter(nextBtn.Enable, True) 
+        return True
