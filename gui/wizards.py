@@ -1,7 +1,6 @@
 from wx import wizard as wiz
 import wx
 import os.path
-import string
 from pyreportcreator.datahandler import connectioninterface
 
 
@@ -117,6 +116,13 @@ class SQLitePage(wiz.PyWizardPage):
         dialog = wx.FileDialog(self, "Choose a database file...", os.getcwd(), "", "*", wx.OPEN | wx.HIDE_READONLY)
         if dialog.ShowModal() == wx.ID_OK:
             self.tcFilePath.SetValue(dialog.GetPath())
+
+    def IsCompleted(self):
+        """Check if page is complete"""
+        if self.tcFilePath.IsEmpty() == True:
+            return False
+        else:
+            return True
 
 #-------------------------------------------------------#
 
@@ -317,7 +323,7 @@ class WizardNewDataSource(object):
         self.sqlitePage.SetPrev(self.titlePage)
         self.detailsPage.SetPrev(self.titlePage)
         self.detailsPage.SetNext(self.finalPage)
-        self.sqlitePage.SetNext(self.finalPage)
+        self.sqlitePage.SetNext(self.failPage)
         #fail page and alternate orders to be defined during runtime
 
         wizard.GetPageAreaSizer().Add(self.titlePage)
@@ -361,7 +367,12 @@ class WizardNewDataSource(object):
                 evt.Veto()
             else:
                 self.connValues['address'] = page.tcFilePath.GetValue()
-                establish_sqlite_connection(self.connValues['address'])
+                if connectioninterface.establish_sqlite_connection(self.connValues['address']) == True:
+                    page.SetNext(self.finalPage)
+                    page.GetNext()
+                else:
+                    page.SetNext(self.failPage)
+                    page.GetNext()
         else:
             self.EnableNext()
 
@@ -377,12 +388,19 @@ class WizardNewDataSource(object):
             
     def OnDetailsPageDone(self):
         """Processes a mysql or postgresql connection"""
-        page = evt.GetPage()
-        if page.IsEmpty:
-            evt.Veto()
-        else:
-            self.connValues['address'] = page.tcFilePath.GetValue()
-            establish_sqlite_connection(self.connValues['address'])
+        self.connValues['user'] = self.detailsPage.tcUserName.GetValue()
+        self.connValues['password'] = self.detailsPage.tcPasswordUserName.GetValue()
+        self.connValues['address'] = self.detailsPage.tcServerAddress.GetValue()
+        self.connValues['dbName'] = self.detailsPage.tcDatabaseName.GetValue()
+        self.connValues['port'] = self.detailsPage.tcPort.GetValue()
+        if self.connValues['port'] in ('', 0):
+            self.connValues['port'] = None
+            if connectioninterface.establish_other_connection(self.connValues['type'], self.connValues['dbName'], self.connValues['address'], self.connValues['port'], self.connValues['user'], self.connValues['password']) == True:
+                page.SetNext(self.finalPage)
+                page.GetNext()
+            else:
+                page.SetNext(self.failPage)
+                page.GetNext()
 
     def OnSQLiteValueChange(self, evt):
         """Check if form valid then enable next or disable it"""

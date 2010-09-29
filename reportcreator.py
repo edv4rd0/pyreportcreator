@@ -1,5 +1,5 @@
 #Application Launcher
-from pyreportcreator.profile import datahandler
+from pyreportcreator.datahandler import datahandler
 from pyreportcreator.profile import profile
 from pyreportcreator.gui import mainwindow
 
