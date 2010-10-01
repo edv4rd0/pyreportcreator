@@ -1,18 +1,28 @@
+"""
+This module contains classes for the building blocks of a class definition.
+These are used by the Query class for defining the query.
+
+"""
+#-------------------------------------------------------------
+
 class Condition(object):
-    """Defines a condition"""
+    """
+    Defines a condition (a la, column LIKE '%term')
+    """
     condID = None
     parent = None
     field1 = ""
     field2 = tuple()
     operator = ""
-    prev = None
+    prevID = None
+    prevObj = None
     joiningBool = None
     
-    def __init__(self, parent = None, prev = None):
+    def __init__(self, condID, parent = None, prev = None):
         self.parent = parent
-        self.prev = prev
-
-    def set_id(self, id):
+        if prev != None:
+            self.prevObj = prev
+            self.prevID = prev.condID
         self.condID = id
 
     def configure_condition(self, field1, field2, condition, join):
@@ -31,20 +41,29 @@ class Condition(object):
 #-------------------------------------------------------------
 
 class ConditionSet(list):
-    """Defines a set of conditions. It's a container for related conditions which are seperated using OR, AND and NOT."""
+    """
+    Defines a set of conditions. It's a container for related conditions which are seperated using OR, AND and NOT.
+    """
     parent = None
-    prev = None
+    prevID = None
+    prevObj = None
     boolVal = None
     condID = None
     def __init__(self, condID, parent = None, prev = None, boolVal = None):
-        """Initializes the set. Basically, if everything is None it;s the first set."""
+        """
+        Initializes the set. Basically, if everything is None it's the first set.
+        """
         super( ConditionSet, self ).__init__()
         self.parent = parent
-        self.prev = prev
         self.condID = condID
+        if prev != None:
+            self.prevObj = prev
+            self.prevID = prev.condID
     
     def add_child_member(self, item):
-        """This method appends a member condition or child set to the set"""
+        """
+        This method appends a member condition or child set to the set.
+        """
         for i in self:
             if item.prev == i[1].prev:
                 i[1].prev = item.condID
@@ -99,19 +118,29 @@ def find_set(parentID, theset):
     """
     for i in theset:
         if i[0] == parentID:
-            return
+            return i[1]
+        elif isinstance(i[1], ConditionSet):
+            j = find_set(parentID, i[1])
+            if j != False:
+                return j
+    return False
         
 def ConditionFactory(type, parentObj = None, parentID = None, prev = None, boolVal = None):
     """
     Creates conditions and sets
     """
     if type == "set":
-        if parentObj not None:
-            parent
+        if parentObj != None:
+            parentObj.add_child_member(ConditionSet(parentID, prev, boolVal))
+            return True
         else:
             return ConditionSet(parentID, prev, boolVal)
     elif type == "condition":
-        if parent not None:
-            
+        if parentObj != None:
+            parentObj.add_child_member(Condition(parentID, prev, boolVal))
+            return True
         else:
             return Condition(parentID, prev, boolVal)
+
+a = ConditionSet(1)
+print isinstance(a, list)

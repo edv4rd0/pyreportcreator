@@ -1,4 +1,6 @@
 from pubsub import pub #PubSub implements a Publisher - Subscriber pattern for the application
+import query
+
 #OK, query object's condition expression consists of conditions which each specify their parent and left sibling (except the leftmost, which is set to Null
 # ThisAllows multiple nested sets
 
@@ -96,16 +98,16 @@ class Document(object):
 
 class Query(Document):
     """Defines a query document"""
-
     # for concatenating operators
+    
     O_AND = "inclusive"
     O_OR = "inclusive"
     O_NOT = "exclusive"
     #data definition
     distinct = False
     selectItems = dict()
-    conditions = dict() #Dict of list of tuples. Each key is a different
-    # 'set' of related conditions. Think of there being an OR between each one.
+    counter = None
+    conditions = None
     order_by = tuple() #single tuple of (table, column, direction)
     joins = dict() #firstjoin => join info, secondJoin => join info
     engineID = 0
@@ -118,7 +120,9 @@ class Query(Document):
         sub.subscribe(add_condition, 'document.query.condition.add')
         sub.subscribe(edit_condition, 'document.query.condition.edit')
         sub.subscribe(add_join, 'document.query.join.add')
-        
+        #initialize condition id counter
+        self.counter = query.Counter()
+        self.conditions = query.ConditionSet(counter.uid())
 
     def change_name(self, newName):
         """Change name of query"""
