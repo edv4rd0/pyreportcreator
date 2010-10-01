@@ -1,5 +1,6 @@
 from pubsub import pub #PubSub implements a Publisher - Subscriber pattern for the application
-
+#OK, query object's condition expression consists of conditions which each specify their parent and left sibling (except the leftmost, which is set to Null
+# ThisAllows multiple nested sets
 
 class Profile(object):
     """A profile object. This stores query, report and data connection objects"""
@@ -83,12 +84,12 @@ class Document(object):
 
     def change_made(self):
         """This allows items like save buttons on toolbars to realise it now needs to be saved"""
-        state = _self._STATE_ALTERED
+        state = self._STATE_ALTERED
         pub.sendMessage('document.state.altered', self._documentID)
 
     def was_saved(self):
         """This allows items like toolbars to register that it doesn't need saving"""
-        state = __STATE_SAVED
+        state = self.__STATE_SAVED
         pub.sendMessage('document.state.saved', self._documentID)
 
 #-----------------------------------------------------------------#
