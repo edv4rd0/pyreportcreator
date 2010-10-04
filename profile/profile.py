@@ -146,14 +146,12 @@ class Query(Document):
             self.change_made()
             pub.sendMessage('query.add_select.success', table, column, self._documentID)
 
-
     def check_for_dependent_join(self, table):
         """Checks for any dependent joins"""
         for i in self.join.keys():
             if table in i:
                 return True
         return False
-
 
     def remove_select_item(self, table, column, force = False):
         """Remove a select item from the query.

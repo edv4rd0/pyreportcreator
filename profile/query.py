@@ -5,6 +5,7 @@ These are used by the Query class for defining the query.
 """
 #-------------------------------------------------------------
 
+
 class Condition(object):
     """
     Defines a condition (a la, column LIKE '%term')
@@ -16,13 +17,12 @@ class Condition(object):
     operator = ""
     prevID = None
     prevObj = None
+    nextID = None
+    nextObj = None
     joiningBool = None
     
-    def __init__(self, condID, parent = None, prev = None):
+    def __init__(self, condID, parent = None):
         self.parent = parent
-        if prev != None:
-            self.prevObj = prev
-            self.prevID = prev.condID
         self.condID = id
 
     def configure_condition(self, field1, field2, condition, join):
@@ -44,9 +44,13 @@ class ConditionSet(list):
     """
     Defines a set of conditions. It's a container for related conditions which are seperated using OR, AND and NOT.
     """
+    firstID = None
+    firstObj = None
     parent = None
     prevID = None
     prevObj = None
+    nextID
+    nextObj = None
     boolVal = None
     condID = None
     def __init__(self, condID, parent = None, prev = None, boolVal = None):
@@ -64,10 +68,15 @@ class ConditionSet(list):
         """
         This method appends a member condition or child set to the set.
         """
-        for i in self:
-            if item.prev == i[1].prev:
-                i[1].prev = item.condID
-                break
+        if size(self) > 0 and self.firstID != item.nextID:
+            for i in self:
+                if item.nextID == i[1].nextID:
+                    i[1].nextID = item.condID
+                    i[1].nextObj = item
+                    break
+        if item.nextID == self.firstID:
+            self.firstID == item.condID
+            self.firstObj == item
         self.append((item.condID, item))
         return True
 
@@ -111,6 +120,8 @@ class ConditionSet(list):
     def remove_self(self):
         self.parent.remove_child(id)
 
+#-------------------------------------------------
+
 
 def find_set(parentID, theset):
     """
@@ -142,5 +153,3 @@ def ConditionFactory(type, parentObj = None, parentID = None, prev = None, boolV
         else:
             return Condition(parentID, prev, boolVal)
 
-a = ConditionSet(1)
-print isinstance(a, list)
