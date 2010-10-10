@@ -11,7 +11,8 @@ class Condition(object):
     Defines a condition (a la, column LIKE '%term')
     """
     condID = None
-    parent = None
+    parentObj = None
+    parentID = None
     field1 = ""
     field2 = tuple()
     operator = ""
@@ -22,8 +23,10 @@ class Condition(object):
     joiningBool = None
     
     def __init__(self, condID, parent = None, bool = None):
-        self.parent = parent
-        self.condID = id
+        if parent != None:
+            self.parentObj = parent
+            self.parentID = self.parentObj.condID
+        self.condID = condID
         self.joiningBool = None
 
     def configure_condition(self, field1, field2, condition, join):
@@ -47,7 +50,8 @@ class ConditionSet(list):
     """
     firstID = None
     firstObj = None
-    parent = None
+    parentObj = None
+    parentID = None
     prevID = None
     prevObj = None
     nextID = None
@@ -59,7 +63,9 @@ class ConditionSet(list):
         Initializes the set. Basically, if everything is None it's the first set.
         """
         super( ConditionSet, self ).__init__()
-        self.parent = parent
+        if parent != None:
+            self.parentObj = parent
+            self.parentID = self.parentObj.condID
         self.condID = condID
         if prev != None:
             self.prevObj = prev
@@ -88,17 +94,27 @@ class ConditionSet(list):
         """
         Update next, first and prev pointers
         """
-        if item.parentObj.firstID == item.condID:
-            item.nextObj.prevID = None
-            item.nextObj.prevObj = None
-            item.parentObj.firstID = item.nextID
-            item.parentObj.firstObj = item.nextObj
+        if item.parentObj != None:
+            if item.parentObj.firstID == item.condID:
+                item.nextObj.prevID = None
+                item.nextObj.prevObj = None
+                item.parentObj.firstID = item.nextID
+                item.parentObj.firstObj = item.nextObj
+            else:
+                if item.nextObj != None:
+                    item.nextObj.prevID = item.prevID
+                    item.nextObj.prevObj = item.prevObj
+                if item.prevObj != None:
+                    item.prevObj.nextID = item.nextID
+                    item.prevObj.nextObj = item.nextObj
         else:
-            item.nextObj.prevID = item.prevID
-            item.nextObj.prevObj = item.prevObj
-            item.prevObj.nextID = item.nextID
-            item.prevObj.nextObj = item.nextObj
-    
+            if item.nextObj != None:
+                item.nextObj.prevID = item.prevID
+                item.nextObj.prevObj = item.prevObj
+            if item.prevObj != None:
+                item.prevObj.nextID = item.nextID
+                item.prevObj.nextObj = item.nextObj
+            
     def remove_child(self, id):
         """
         Remove a child. Even if a set.

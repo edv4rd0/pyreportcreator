@@ -33,13 +33,16 @@ class ConditionTest(unittest.TestCase):
         Test whether upon adding a second condition to a condition set the prev and next IDs get updated
         and the firstID gets changed. The condition's place is not set in this test. (defaults to first)
         """
+        print self.conditionset
         query.condition_factory('condition', self.conditionset, self.counter)
         self.counter +=1
         query.condition_factory('condition', self.conditionset, self.counter)
+        print self.conditionset
         self.assertEqual(self.conditionset.firstID, self.conditionset[1].condID)
         #one added second should be first (rule: prev == None, they are first
         self.assertEqual(self.conditionset[0].prevID, self.conditionset[1].condID)
         self.assertEqual(self.conditionset[1].nextID, self.conditionset[0].condID)
+        print self.conditionset
 
     def test_prev_next_continuity_on_add_with_place(self):
         """
