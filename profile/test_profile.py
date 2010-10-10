@@ -71,6 +71,18 @@ class TestQueryObject(unittest.TestCase):
     Test the query class
     """
 
+    def dummy_sub_item_del_fail(self, tbl, col, documentID):
+        self.assertTrue(tbl)
+        self.assertTrue(col)
+        self.assertTrue(documentID)
+        self.handled = True
+
+    def dummy_sub_item_del_win(self, tbl, col, documentID):
+        self.assertTrue(tbl)
+        self.assertTrue(col)
+        self.assertTrue(documentID)
+        self.handled = True
+
     def dummy_sub_handler(self, name, documentID):
         self.assertTrue(name)
         self.assertTrue(documentID)
@@ -78,8 +90,15 @@ class TestQueryObject(unittest.TestCase):
 
     def setUp(self):
         pub.subscribe(self.dummy_sub_handler, 'document.name_change')
+        pub.subscribe(self.dummy_sub_item_del_fail, 'query.del_select.not_exist')
+        pub.subscribe(self.dummy_sub_item_del_win, 'query.del_select.success')
         self.testObj = profile.Query(1,1)
         self.handled = False
+        #self.assertEqual(len(self.testObj.selectItems.keys()), 0)
+
+    def tearDown(self):
+        unittest.TestCase.setUp(self)
+        self.testObj = None
 
     def test_query_initialization(self):
         """
@@ -102,14 +121,18 @@ class TestQueryObject(unittest.TestCase):
         Tets whether select items can be added
         """
         self.testObj.add_select_item('tablename', 'columnname')
+        print "first",self.testObj.selectItems
         self.assertTrue(self.testObj.selectItems['tablename'])
+        self.assertEqual(len(self.testObj.selectItems.keys()), 1)
 
     def test_add_duplicate_select_item(self):
         """
         Check that duplicate select items being added are handled nicely and data is not screwed up
         """
+        self.assertTrue(self.testObj.selectItems['tablename'])
         self.testObj.add_select_item('tablename', 'columnname')
-        self.testObj.add_select_item('tablename', 'columnname')
+        print "dup",self.testObj.selectItems
+        self.assertTrue(self.testObj.selectItems['tablename'])
         self.assertEqual(len(self.testObj.selectItems['tablename']), 1)
 
     def test_add_column_from_second_table(self):
@@ -118,9 +141,32 @@ class TestQueryObject(unittest.TestCase):
         """
         self.testObj.add_select_item('tablename', 'columnname')
         self.testObj.add_select_item('secondtable', 'columnname')
+        print "2ndTable",self.testObj.selectItems
         #join config must be handled
         
         self.assertEqual(len(self.testObj.selectItems.keys()), 2)
+
+    def test_remove_select_item(self):
+        """
+        Test removing the last select item
+        """
+        self.testObj.add_select_item('tablename', 'columnname')
+        self.assertTrue(self.testObj.selectItems['tablename'])
+        self.assertEqual(len(self.testObj.selectItems.keys()), 2)
+        #OK, now remove it
+        self.testObj.remove_select_item('tablename', 'columnname')
+        self.assertEqual(len(self.testObj.selectItems.keys()), 0)
+        
+        
+    def test_remove_select_item_not_exist_table(self):
+        """
+        Test removing an item where table doesn't exist
+        """
+
+    def test_remove_select_item_not_exist_column(self):
+        """
+        Test removing an item where the table actually exists but the column doesn't.
+        """
 
 if __name__ == '__main__':
     unittest.main()

@@ -49,7 +49,7 @@ class ConditionSet(list):
     parent = None
     prevID = None
     prevObj = None
-    nextID
+    nextID = None
     nextObj = None
     boolVal = None
     condID = None

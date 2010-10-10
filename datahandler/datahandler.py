@@ -1,5 +1,5 @@
 import sqlalchemy
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, exc
 from sqlalchemy.engine import reflection
 from sqlalchemy import Table, Column, String, Integer, ForeignKey
 from sqlalchemy import create_engine
@@ -13,26 +13,25 @@ class ConnectionManager(object):
     dataConnections = dict() #holds all data connections
     
     @classmethod
-    def CreateNewDataConnection(cls, databaseType, address, dbname = None, user = None, password = None, port = None, driver = None, dbID = None):
+    def create_new_data_connection(cls, databaseType, address, dbname = None, user = None, password = None, port = None, driver = None, dbID = None):
         """Create connection string then initialize connection object"""
-        
+        connectionString = ""
         if databaseType == u'sqlite':
             if driver:
                 #Loads pysqlite2 first if installed, must be able to override this
                 connectionString = "sqlite+"+driver+":///"+address+xstr(dbname) #CHECK: relative and absolute paths
             else:
                 connectionString = "sqlite:///"+address+xstr(dbname) #CHECK: relative and absolute paths
-                
-        if databaseType != u'sqlite':
+        else:
             if user:
                 if driver and port:
                     connectionString = databaseType+"+"+driver+"://:"+user+":"+urlquote(xstr(password))+"@"+address+":"+port+"/"+dbname
                 elif driver:
                     connectionString = databaseType+"+"+driver+"://:"+user+":"+urlquote(xstr(password))+"@"+address+"/"+dbname
                 elif driver == None and port:
-                    connectionString = databaseType+"://:"+user+":"+urlquote(xstr(password))+"@"+address+":"+port+"/"+dbname
+                    connectionString = databaseType+"://"+user+":"+urlquote(xstr(password))+"@"+address+":"+port+"/"+dbname
                 else:
-                    databaseType+"://"+address+"/"+dbname
+                    connectionString = databaseType+"://"+user+":"+urlquote(xstr(password))+"@"+address+"/"+dbname
             else:
                 if driver and port:
                     connectionString = databaseType+"+"+driver+"://:"+address+":"+port+"/"+dbname
@@ -52,15 +51,15 @@ class ConnectionManager(object):
         else:
             cls.dataConnections[dbID] = (create_engine(connectionString, echo = True)) #create new engine
         #TODO: turn off 'echo = True' before shipping
-        try:
-            testConnection = cls.dataConnections[dbID].connect()
-            testConnection.close()
-            print "Success" #TODO: remove this
-            return dbID
-        except:
-            del cls.dataConnections[dbID]
-            print "Failure" #TODO Remove this
-            return False
+
+        testConnection = cls.dataConnections[dbID].connect()
+        testConnection.close()
+        print "Success" #TODO: remove this
+        return dbID
+       # except:
+        #    del cls.dataConnections[dbID]
+         #   print "Failure" #TODO Remove this
+          #  return False
 
 
 class DataHandler(object):
@@ -79,6 +78,36 @@ class DataHandler(object):
         except:
             return False
             #TODO: Actually raise errors (will have to update calling code)
+
+    @classmethod
+    def check_relations(cls, insp, t1, t2):
+        """
+        Check if there is a relationship between the two columns and return a list of dicts and a boolean if so.
+        The boolean specifies whether the relation is a One to One (True) or a One to Many (False)
+        @Params:
+        t1, t2 are strings of the table names
+        """
+        relations = []
+        try:
+            for i in insp.get_foreign_keys(t1):
+                if i['referred_table'] == t2:
+                    relations.append({'local_table': t1, 'local_columns': i['constrained_columns'], 'foreign_table': t2, 'foreign_columns': i['referred_columns']})
+            for i in insp.get_foreign_keys(t2):
+                if i['referred_table'] == t1:
+                    relations.append({'local_table': t2, 'local_columns': i['constrained_columns'], 'foreign_table': t1, 'foreign_columns': i['referred_columns']})
+        except exc.NoSuchTableError:
+            return False
+        if len(relations) == 1:
+            #check for a one to one relationship (unique constraint on foreign key)
+            indexes = insp.get_indexes(relations[0]['foreign_table'])
+            oneToOne = False
+            for i in indexes:
+                if i['unique'] == True:
+                    if relations[0]['foreign_columns'] in i['column_names']:
+                        oneToOne = True
+            return (relations, oneToOne)
+        else:
+            return False
 
     @classmethod
     def add_data_objects(cls, connID):
@@ -110,7 +139,7 @@ class DataHandler(object):
     @classmethod
     def get_columns(cls, connID, tableName):
         """Return a list of column names. type is returned also, so the GUI can know which controls to use"""
-        return [(c.name, c.type) for c in cls.metaData[connID].tables[tableName].columns]
+        return [(c.name, c.type, c.primary_key) for c in cls.metaData[connID].tables[tableName].columns]
 
     @classmethod
     def get_table_object(cls, tableName, connID):
@@ -132,3 +161,17 @@ def destroy_all_freaking_things():
     DataHandler.metaData = dict()
     DataHandler.dataObjects = dict()
     pub.sendMessage('destroyed.data')
+
+def return_relationship_info(databaseID, table1, table2):
+    """
+    Instantiate a schema introspection object and scan for relationships
+    @Param:
+    database is a sqlalchemy engine object
+    
+    """
+    try:
+        insp = reflection.Inspector.from_engine(ConnectionManager.dataConnections[databaseID])
+    except KeyError: #database doesn't exist
+        return False
+    
+    return DataHandler.check_relations(insp, table1, table2)

@@ -147,11 +147,10 @@ class Query(Document):
             for t in self.selectItems.keys(): #the keys are table names
                 result = datahandler.return_relationship_info(self.engineID, t, table)
                 if result != False:
-                    
                     joinInfo[(t, table)]
-                    pub.sendMessage('query.compose_join', join = joinInfo
+                    pub.sendMessage('query.compose_join', join = joinInfo, documentiD = self._documentID)
                 else:
-                    pub.sendMessage('query.compose_join', self._documentID
+                    pub.sendMessage('query.compose_join', documentID = self._documentID)
                     
         return relations
 
@@ -179,46 +178,54 @@ class Query(Document):
         else:
             if len(self.selectItems.keys()) == 1:
                 check = self.check_for_relations(table, 1)
-            self.selectItems[table] = [column]
+            self.selectItems[table] = list()
+            self.selectItems[table].append(column)
             self.change_made()
             pub.sendMessage('query.add_select.success', column = (table, column), documentID = self._documentID)
 
     def check_for_dependent_join(self, table):
         """Checks for any dependent joins"""
-        for i in self.join.keys():
+        for i in self.joins.keys():
             if table in i:
                 return True
         return False
 
     def remove_select_item(self, table, column, force = False):
-        """Remove a select item from the query.
-        This must check to see if removing it would render a join statement useless."""
-        if table in self.selectItems.keys():
-            if column in self.selectItems and len(self.selectItems) is 1:
-                if check_for_dependent_join(table) is True:
+        """
+        Remove a select item from the query.
+        This must check to see if removing it would render a join statement useless.
+        This must also remove the table entry if there are no longer any columns.
+        """
+        try:
+            if len(self.selectItems[table]) is 1:
+                if self.check_for_dependent_join(table) is True:
                     if f == False:
-                        pub.sendMessage('query.del_select.join_exists_error', table, column, self._documentID)
+                        pub.sendMessage('query.del_select.join_exists_error', tbl = table, col = column, documentID = self._documentID)
                     else:
                         try:
-                            self.selectItems[table].remove(column)
+                            del self.selectItems[table] #it's the last column, remove table
                             self.change_made()
-                            pub.sendMessage('query.del_select.success', table, column, self._documentID)
-                        except KeyError, IndexError:
-                            pub.sendMessage('query.del_select.not_exist', self._documentID)
+                            pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self._documentID)
+                        except KeyError:
+                            pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
                 else:
                     try:
-                        self.selectItems[table].remove(column)
+                        del self.selectItems[table]
                         self.change_made()
-                        pub.sendMessage('query.del_select.success', table, column, self._documentID)
+                        pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self._documentID)
                     except KeyError, IndexError:
-                        pub.sendMessage('query.del_select.not_exist', self._documentID)
-            try:
-                self.selectItems[table].remove(column)
-                pub.sendMessage('query.del_select.success', table, column, self._documentID)
-                self.change_made()
-            except KeyError, IndexError:
-                pub.sendMessage('query.del_select.not_exist', self._documentID)
-
+                        pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
+            elif len(self.selectItems[table]) > 1:
+                try:
+                    self.selectItems[table].remove(column)
+                    pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self._documentID)
+                    self.change_made()
+                except IndexError:
+                    pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
+        except KeyError:
+            pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
+            return
+        
     def configure_condition(self, column, operator, valueOrColumn, conditionNo, type):
         """Adds a condition to the query definition. It will first check if it exists"""
         try:
@@ -251,7 +258,7 @@ class Query(Document):
         except IndexError:
             pub.sendMessage('query.condition.completely_removed', self._documentID)
 
-            
+
     def add_join(self, leftTable, joiningTable, type, tableValue, joiningValue, opr):
         """
         Add a join to the query definition.
