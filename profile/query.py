@@ -84,41 +84,30 @@ class ConditionSet(list):
         self.append(item)
         return True
 
-    def remove_child_condition(self, item):
+    def update_pointers(self, item):
         """
-        remove a child condition
+        Update next, first and prev pointers
         """
-        itemIndex = self.index(item)
-        for j in self:
-            if id == j.prevID:
-                j.prevID = i[1].prev
-                break
-            self.remove(i)
-            return True
-
-    def remove_child_set(self, item):
-        """
-        Remove a child set
-        """
-        itemIndex = self.index(i)
-        for j in self:
-            if id == j[1].prev:
-                j[1].prev = i[1].prev
-                break
-        self.remove(i)
-        return True
+        if item.parentObj.firstID == item.condID:
+            item.nextObj.prevID = None
+            item.nextObj.prevObj = None
+            item.parentObj.firstID = item.nextID
+            item.parentObj.firstObj = item.nextObj
+        else:
+            item.nextObj.prevID = item.prevID
+            item.nextObj.prevObj = item.prevObj
+            item.prevObj.nextID = item.nextID
+            item.prevObj.nextObj = item.nextObj
     
     def remove_child(self, id):
         """
         Remove a child. Even if a set.
         """
         for i in self:
-            if id == i.condID and isinstance(i, Condition):
-                remove_child_condition(i)
-                return True
-            if id == i.condID and isinstance(i, ConditionSet):
-                remove_child_set(i)
-                return True
+            if id == i.condID:
+                self.update_pointers(i)
+                index = self.index(i)
+                del self[index]
 
     def remove_self(self):
         self.parent.remove_child(id)
