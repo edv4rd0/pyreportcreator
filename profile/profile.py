@@ -123,7 +123,6 @@ class Query(Document):
     order_by = dict() #dict of {'table': ('column', 'direction')}
     joins = dict() #firstjoin => join info, secondJoin => join info
     engineID = 0
-    
 
     def __init__(self, documentID, engineID, name = "Untitled Query"):
         """This initializes the query object from some supplied definitions"""

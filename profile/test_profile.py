@@ -123,7 +123,7 @@ class TestQueryObject(unittest.TestCase):
         self.testObj.add_select_item('tablename', 'columnname')
         print "first",self.testObj.selectItems
         self.assertTrue(self.testObj.selectItems['tablename'])
-        self.assertEqual(self.testObj.selectItems['tablename'].index('columnname'))
+        self.assertEqual(self.testObj.selectItems['tablename'].index('columnname'), 0)
 
     def test_add_duplicate_select_item(self):
         """
@@ -146,16 +146,15 @@ class TestQueryObject(unittest.TestCase):
         
         self.assertEqual(len(self.testObj.selectItems.keys()), 2)
 
-    def test_remove_select_item(self):
+    def test_remove_last_select_item(self):
         """
         Test removing the last select item
         """
-        self.testObj.add_select_item('tablename', 'columnname')
         self.assertTrue(self.testObj.selectItems['tablename'])
         self.assertEqual(len(self.testObj.selectItems.keys()), 2)
         #OK, now remove it
         self.testObj.remove_select_item('tablename', 'columnname')
-        self.assertEqual(len(self.testObj.selectItems.keys()), 0)
+        self.assertError(self.testObj.selectItems['tablename'])
         
         
     def test_remove_select_item_not_exist_table(self):
