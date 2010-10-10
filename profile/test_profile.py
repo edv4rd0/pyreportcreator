@@ -166,6 +166,13 @@ class TestQueryObject(unittest.TestCase):
         """
         Test removing an item where the table actually exists but the column doesn't.
         """
+    def test_add_first_condition(self):
+        """
+        Test whether a simple condition can be added to the condition set
+        """
+        startCounterValue = self.testObj.counter
+        self.assertEqual(self.testObj.conditions.firstObj, None)
+
 
 if __name__ == '__main__':
     unittest.main()

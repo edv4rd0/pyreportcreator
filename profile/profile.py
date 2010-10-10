@@ -225,38 +225,20 @@ class Query(Document):
             pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
             return
         
-    def configure_condition(self, column, operator, valueOrColumn, conditionNo, type):
-        """Adds a condition to the query definition. It will first check if it exists"""
-        try:
-            if self.conditions[conditionNo]:
-                for j in self.conditions[conditionNo]:
-                    if column == j[0]:
-                        i = self.conditions[conditionNo].index(j)
-                        if con_type == 'daterange':
-                            pass #condition = self.daterange_condition()
-                        self.conditions[conditionNo][i]
-                        pub.sendMessage('query.condition.added', self._documentID, conditionNo, column)
-                        break
-        except KeyError:
-            self.conditions[conditionNo] = [(column, type, )]
-            pub.sendMessage('query.condition.added', self._documentID, conditionNo, column)       
+    def configure_condition(self, condType = None column = None, operator = None, valueOrColumn = None,
+                            conditionID = None, parentID = None):
+        """
+        Adds a condition to the query definition. It will first check if it exists
+        """
+        if conditionID == None: #New condition
+            if parentID == None:
+                #top level condition, parentID == 0
+                query.condition_factory(type = 'condition', parentObj = self.conditions, parentID = 0, prev = None)
+        
         
 
-    def remove_condition(self, conditionNo, column):
+    def remove_condition(self, conditionNo):
         """Removes condition from query definition"""
-        try:
-            if len(self.conditions[conditionNo]) == 1:
-                self.conditions.remove(self.conditions[conditionNo])
-                pub.sendMessage('query.condition.completely_removed', self._documentID)
-            else:
-                for j in self.conditions[conditionNo]:
-                    if column == j[0]:
-                        self.conditions[conditionNo].remove(j)
-                        break
-                pub.sendMessage('query.condition.removed', self._documentID, conditionNo, column)
-        except IndexError:
-            pub.sendMessage('query.condition.completely_removed', self._documentID)
-
 
     def add_join(self, leftTable, joiningTable, type, tableValue, joiningValue, opr):
         """

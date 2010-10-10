@@ -21,9 +21,10 @@ class Condition(object):
     nextObj = None
     joiningBool = None
     
-    def __init__(self, condID, parent = None):
+    def __init__(self, condID, parent = None, bool = None):
         self.parent = parent
         self.condID = id
+        self.joiningBool = None
 
     def configure_condition(self, field1, field2, condition, join):
         """
@@ -68,16 +69,19 @@ class ConditionSet(list):
         """
         This method appends a member condition or child set to the set.
         """
-        if size(self) > 0 and self.firstID != item.nextID:
+        if len(self) > 0 and self.firstID != item.nextID:
             for i in self:
-                if item.nextID == i[1].nextID:
-                    i[1].nextID = item.condID
-                    i[1].nextObj = item
+                if item.nextID == i.nextID:
+                    i.nextID = item.condID
+                    i.nextObj = item
                     break
-        if item.nextID == self.firstID:
+        elif len(self) > 0 and item.nextID == self.firstID:
             self.firstID == item.condID
             self.firstObj == item
-        self.append((item.condID, item))
+        elif len(self) == 0:
+            self.firstID = item.condID
+            self.firstObj = item
+        self.append(item)
         return True
 
     def remove_child_condition(self, item):
@@ -86,8 +90,8 @@ class ConditionSet(list):
         """
         itemIndex = self.index(item)
         for j in self:
-            if id == j[1].prev:
-                j[1].prev = i[1].prev
+            if id == j.prevID:
+                j.prevID = i[1].prev
                 break
             self.remove(i)
             return True
@@ -103,17 +107,16 @@ class ConditionSet(list):
                 break
         self.remove(i)
         return True
-
-
+    
     def remove_child(self, id):
         """
         Remove a child. Even if a set.
         """
         for i in self:
-            if id == i[0] and isinstance(i[1],Condition):
+            if id == i.condID and isinstance(i, Condition):
                 remove_child_condition(i)
                 return True
-            if id == i[0] and isinstance(i[1], ConditionSet):
+            if id == i.condID and isinstance(i, ConditionSet):
                 remove_child_set(i)
                 return True
 
@@ -128,15 +131,15 @@ def find_set(parentID, theset):
     This method iterates through the sets recursively until it find the correct parent
     """
     for i in theset:
-        if i[0] == parentID:
-            return i[1]
-        elif isinstance(i[1], ConditionSet):
-            j = find_set(parentID, i[1])
+        if i.condID == parentID:
+            return i
+        elif isinstance(i, ConditionSet):
+            j = find_set(parentID, i)
             if j != False:
                 return j
     return False
         
-def ConditionFactory(type, parentObj = None, parentID = None, prev = None, boolVal = None):
+def condition_factory(type, parentObj = None, parentID = None, prev = None, boolVal = None):
     """
     Creates conditions and sets
     """
