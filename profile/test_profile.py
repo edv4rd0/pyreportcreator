@@ -123,7 +123,7 @@ class TestQueryObject(unittest.TestCase):
         self.testObj.add_select_item('tablename', 'columnname')
         print "first",self.testObj.selectItems
         self.assertTrue(self.testObj.selectItems['tablename'])
-        self.assertEqual(len(self.testObj.selectItems.keys()), 1)
+        self.assertEqual(self.testObj.selectItems['tablename'].index('columnname'))
 
     def test_add_duplicate_select_item(self):
         """
