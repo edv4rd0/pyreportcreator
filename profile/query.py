@@ -22,10 +22,13 @@ class Condition(object):
     nextObj = None
     joiningBool = None
     
-    def __init__(self, condID, parent = None, bool = None):
+    def __init__(self, condID, parent = None, prev = None, bool = None):
         if parent != None:
             self.parentObj = parent
             self.parentID = self.parentObj.condID
+        if prev != None:
+            self.prevObj = prev
+            self.prevID = prev.condID
         self.condID = condID
         self.joiningBool = None
 
@@ -75,15 +78,23 @@ class ConditionSet(list):
         """
         This method appends a member condition or child set to the set.
         """
-        if len(self) > 0 and self.firstID != item.nextID:
-            for i in self:
-                if item.nextID == i.nextID:
-                    i.nextID = item.condID
-                    i.nextObj = item
-                    break
-        elif len(self) > 0 and item.nextID == self.firstID:
-            self.firstID == item.condID
-            self.firstObj == item
+        if len(self) > 0:
+            if item.prevObj != None:
+                item.prevID = item.prevObj.condID
+                if item.prevObj.nextObj != None:
+                    item.nextID = item.prevObj.nextID
+                    item.nextObj = item.prevObj.nextObj
+                    item.nextObj.prevID = item.condID
+                    item.nextObj.prevObj = item    
+                item.prevObj.nextID = item.condID
+                item.prevObj.nextOBj = item
+            elif item.prevID == None: #prev == none, means it's now first in sequence
+                self.firstObj.prevID = item.condID
+                self.firstObj.prevObj = item
+                item.nextObj = self.firstObj
+                item.nextID = self.firstID
+                self.firstObj = item
+                self.firstID = item.condID
         elif len(self) == 0:
             self.firstID = item.condID
             self.firstObj = item

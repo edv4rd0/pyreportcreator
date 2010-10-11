@@ -35,6 +35,7 @@ class ConditionTest(unittest.TestCase):
         """
         print self.conditionset
         query.condition_factory('condition', self.conditionset, self.counter)
+        self.assertEqual(self.conditionset.firstID, self.conditionset[0].condID)
         self.counter +=1
         query.condition_factory('condition', self.conditionset, self.counter)
         print self.conditionset
@@ -43,6 +44,20 @@ class ConditionTest(unittest.TestCase):
         self.assertEqual(self.conditionset[0].prevID, self.conditionset[1].condID)
         self.assertEqual(self.conditionset[1].nextID, self.conditionset[0].condID)
         print self.conditionset
+
+    def test_prev_next_continuity_add_child_member(self):
+        """
+        Test whether upon adding a second condition to a condition set the prev and next IDs get updated
+        and the firstID gets changed. The condition's place is set in this test.
+
+        THIS TESTS THE add_child_member() METHOD DIRECTLY
+        """
+        self.conditionset.add_child_member(query.Condition(self.counter, self.conditionset))
+        self.counter +=1
+        self.conditionset.add_child_member(query.Condition(self.counter, self.conditionset, self.conditionset.firstObj))
+        self.assertEqual(self.conditionset.firstID, self.conditionset[0].condID)
+        self.assertEqual(self.conditionset[1].prevID, self.conditionset[0].condID)
+        self.assertEqual(self.conditionset[0].nextID, self.conditionset[1].condID)
 
     def test_prev_next_continuity_on_add_with_place(self):
         """
