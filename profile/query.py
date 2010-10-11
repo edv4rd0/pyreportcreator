@@ -22,7 +22,7 @@ class Condition(object):
     nextObj = None
     joiningBool = None
     
-    def __init__(self, condID, parent = None, prev = None, bool = None):
+    def __init__(self, condID, parent = None, prev = None, joinBool = None):
         if parent != None:
             self.parentObj = parent
             self.parentID = self.parentObj.condID
@@ -30,7 +30,7 @@ class Condition(object):
             self.prevObj = prev
             self.prevID = prev.condID
         self.condID = condID
-        self.joiningBool = None
+        self.joiningBool = joinBool
 
     def configure_condition(self, field1, field2, condition, join):
         """
@@ -135,6 +135,8 @@ class ConditionSet(list):
                 self.update_pointers(i)
                 index = self.index(i)
                 del self[index]
+                return True
+        return False
 
     def remove_self(self):
         self.parent.remove_child(id)
@@ -155,20 +157,20 @@ def find_set(parentID, theset):
                 return j
     return False
         
-def condition_factory(type, parentObj = None, parentID = None, prev = None, boolVal = None):
+def condition_factory(type, condID, parentObj = None, prev = None, boolVal = None):
     """
     Creates conditions and sets
     """
     if type == "set":
         if parentObj != None:
-            parentObj.add_child_member(ConditionSet(parentID, prev, boolVal))
+            parentObj.add_child_member(ConditionSet(condID, parentObj, prev, boolVal))
             return True
         else:
-            return ConditionSet(parentID, prev, boolVal)
+            return ConditionSet(condID, parentObj, prev, boolVal)
     elif type == "condition":
         if parentObj != None:
-            parentObj.add_child_member(Condition(parentID, prev, boolVal))
+            parentObj.add_child_member(Condition(condID, parentObj, prev, boolVal))
             return True
         else:
-            return Condition(parentID, prev, boolVal)
+            return Condition(condID, parentObj, prev, boolVal)
 

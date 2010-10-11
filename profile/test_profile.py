@@ -150,17 +150,19 @@ class TestQueryObject(unittest.TestCase):
         """
         Test removing the last select item
         """
+        self.assertFalse(self.handled)
         self.assertTrue(self.testObj.selectItems['tablename'])
         self.assertEqual(len(self.testObj.selectItems.keys()), 2)
         #OK, now remove it
         self.testObj.remove_select_item('tablename', 'columnname')
-        self.assertError(self.testObj.selectItems['tablename'])
+        self.assertTrue(self.handled)
         
         
     def test_remove_select_item_not_exist_table(self):
         """
         Test removing an item where table doesn't exist
         """
+        
 
     def test_remove_select_item_not_exist_column(self):
         """

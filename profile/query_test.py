@@ -16,15 +16,17 @@ class ConditionTest(unittest.TestCase):
         """
         Test whether a simple condition can be added to the condition set
         """
-        query.condition_factory('condition', self.conditionset, self.counter)
+        query.condition_factory('condition', self.counter, self.conditionset)
         self.assertTrue(self.conditionset[0])
+        self.assertIsInstance(self.conditionset.firstObj, query.Condition)
+        self.assertIsInstance(self.conditionset[0], query.Condition)
+        self.assertEqual(self.conditionset.firstObj.condID, self.counter)
 
     def test_firstID_is_set(self):
         """
         Test whether the conditionset updates it's pointer to the first condition in the conditionset
         """
-        query.condition_factory('condition', self.conditionset, self.counter)
-        print self.conditionset
+        query.condition_factory('condition', self.counter, self.conditionset)
         self.assertEqual(self.conditionset.firstID, self.conditionset[0].condID)
         self.assertNotEqual(self.conditionset.firstObj, None)
 
@@ -33,17 +35,14 @@ class ConditionTest(unittest.TestCase):
         Test whether upon adding a second condition to a condition set the prev and next IDs get updated
         and the firstID gets changed. The condition's place is not set in this test. (defaults to first)
         """
-        print self.conditionset
-        query.condition_factory('condition', self.conditionset, self.counter)
+        query.condition_factory('condition', self.counter, self.conditionset)
         self.assertEqual(self.conditionset.firstID, self.conditionset[0].condID)
         self.counter +=1
-        query.condition_factory('condition', self.conditionset, self.counter)
-        print self.conditionset
+        query.condition_factory('condition', self.counter, self.conditionset)
         self.assertEqual(self.conditionset.firstID, self.conditionset[1].condID)
         #one added second should be first (rule: prev == None, they are first
         self.assertEqual(self.conditionset[0].prevID, self.conditionset[1].condID)
         self.assertEqual(self.conditionset[1].nextID, self.conditionset[0].condID)
-        print self.conditionset
 
     def test_prev_next_continuity_add_child_member(self):
         """
@@ -64,9 +63,9 @@ class ConditionTest(unittest.TestCase):
         Test whether upon adding a second condition to a condition set the prev and next IDs get updated
         and the firstID gets changed. The condition's place is set in this test.
         """
-        query.condition_factory('condition', self.conditionset, self.counter)
+        query.condition_factory('condition', self.counter, self.conditionset)
         self.counter +=1
-        query.condition_factory('condition', self.conditionset, self.counter, self.conditionset.firstObj)
+        query.condition_factory('condition', self.counter, self.conditionset, self.conditionset.firstObj)
         self.assertEqual(self.conditionset.firstID, self.conditionset[0].condID)
         self.assertEqual(self.conditionset[1].prevID, self.conditionset[0].condID)
         self.assertEqual(self.conditionset[0].nextID, self.conditionset[1].condID)
@@ -75,9 +74,9 @@ class ConditionTest(unittest.TestCase):
         """
         This test simply tests that the remove method does remove the child
         """
-        query.condition_factory('condition', self.conditionset, self.counter)
+        query.condition_factory('condition', self.counter, self.conditionset)
         self.counter +=1
-        query.condition_factory('condition', self.conditionset, self.counter)
+        query.condition_factory('condition', self.counter, self.conditionset)
         #check index exists
         self.assertTrue(self.conditionset[1])
         #remove
@@ -91,11 +90,10 @@ class ConditionTest(unittest.TestCase):
         """
         Test whether upon deleteing a child the pointers to prev/next get updated
         """
-        print self.conditionset
-        query.condition_factory('condition', self.conditionset, self.counter)
+        query.condition_factory('condition', self.counter, self.conditionset)
         remainingChild = self.conditionset[0] #will check it has updated
         self.counter +=1
-        query.condition_factory('condition', self.conditionset, self.counter, self.conditionset.firstObj)
+        query.condition_factory('condition', self.counter, self.conditionset, self.conditionset.firstObj)
         self.assertEqual(self.conditionset.firstID, self.conditionset[0].condID)
         self.assertEqual(self.conditionset[1].prevID, self.conditionset[0].condID)
         self.assertEqual(self.conditionset[0].nextID, self.conditionset[1].condID)
@@ -119,16 +117,17 @@ class ConditionTest(unittest.TestCase):
         """
         Test the parent set finder. It uses an id.
         """
-        query.condition_factory('condition', self.conditionset, self.counter)
+        query.condition_factory('condition', self.counter, self.conditionset)
         self.counter +=1
-        query.condition_factory('set', self.conditionset, self.counter)
+        query.condition_factory('set', self.counter, self.conditionset)
+        #print self.conditionset
         subSetID = self.counter
         self.counter +=1
         subset = query.find_set(subSetID, self.conditionset)
-        query.condition_factory('set', subset, self.counter)
+        query.condition_factory('set', self.counter, subset)
         subSubSetID = self.counter
         self.counter +=1
-        query.condition_factory('condition', self.conditionset, self.counter, self.conditionset.firstObj)
+        query.condition_factory('condition', self.counter, self.conditionset, self.conditionset.firstObj)
         result = query.find_set(subSubSetID, self.conditionset) #checks for a set inside a set which is inside a master set
         self.assertEqual(result.condID, subSubSetID)
         

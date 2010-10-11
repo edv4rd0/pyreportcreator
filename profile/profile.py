@@ -225,7 +225,7 @@ class Query(Document):
             pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
             return
         
-    def configure_condition(self, condType = None column = None, operator = None, valueOrColumn = None,
+    def configure_condition(self, condType = None, column = None, operator = None, valueOrColumn = None,
                             conditionID = None, parentID = None):
         """
         Adds a condition to the query definition. It will first check if it exists
@@ -234,8 +234,6 @@ class Query(Document):
             if parentID == None:
                 #top level condition, parentID == 0
                 query.condition_factory(type = 'condition', parentObj = self.conditions, parentID = 0, prev = None)
-        
-        
 
     def remove_condition(self, conditionNo):
         """Removes condition from query definition"""
