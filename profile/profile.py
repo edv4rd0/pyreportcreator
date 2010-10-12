@@ -149,8 +149,7 @@ class Query(Document):
                     joinInfo[(t, table)]
                     pub.sendMessage('query.compose_join', join = joinInfo, documentiD = self._documentID)
                 else:
-                    pub.sendMessage('query.compose_join', documentID = self._documentID)
-                    
+                    pub.sendMessage('query.compose_join', documentID = self._documentID)                    
         return relations
 
     def devise_join(self, localColumns, foreignColumns, localTable, foreignTable):
@@ -159,8 +158,7 @@ class Query(Document):
         """
         if len(foreign_columns) == 1 and len(localColumns) == 1:
             foreignType = get_type(self.engineID, foreignTable, foreignColumns[0])
-            localType = get_type(self.engineID, localTable, localColumns[0])
-            
+            localType = get_type(self.engineID, localTable, localColumns[0])        
 
     def add_select_item(self, table, column):
         """
@@ -168,8 +166,9 @@ class Query(Document):
         check how the user wants to join the two tables.
         """
         if table in self.selectItems.keys():
-            if column not in self.selectItems[table]:
-                self.selectItems[table].append(column)
+            if column not in [c[0] for c in self.selectItems[table]]:
+                self.selectItems[table].append([column, 0])
+                assert(self.selectItems[table].index([column, 0]) == 0)
                 self.change_made()
                 pub.sendMessage('query.add_select.success', column = (table, column), documentID = self._documentID)
             else:
@@ -178,7 +177,7 @@ class Query(Document):
             if len(self.selectItems.keys()) == 1:
                 check = self.check_for_relations(table, 1)
             self.selectItems[table] = list()
-            self.selectItems[table].append(column)
+            self.selectItems[table].append([column, 0])
             self.change_made()
             pub.sendMessage('query.add_select.success', column = (table, column), documentID = self._documentID)
 
@@ -216,27 +215,40 @@ class Query(Document):
                         pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
             elif len(self.selectItems[table]) > 1:
                 try:
-                    self.selectItems[table].remove(column)
-                    pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self._documentID)
-                    self.change_made()
+                    for i in self.selectItems[table]:
+                        if i in self.selectItems[table]:
+                            if i[0] == column:
+                                index = self.selectItems[table].index(i)
+                                self.selectItems[table].pop(index)
+                                pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self._documentID)
+                                self.change_made()
                 except IndexError:
                     pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
         except KeyError:
             pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
-            return
+            return None
         
     def configure_condition(self, condType = None, column = None, operator = None, valueOrColumn = None,
                             conditionID = None, parentID = None):
+        pass
+
+    def add_condition(self, parent = None, prev = None):
         """
         Adds a condition to the query definition. It will first check if it exists
         """
-        if conditionID == None: #New condition
-            if parentID == None:
-                #top level condition, parentID == 0
-                query.condition_factory(type = 'condition', parentObj = self.conditions, parentID = 0, prev = None)
+        self.counter
+        if parent == None:
+            #top level condition, parentID == 0
+            query.condition_factory('condition', self.counter, self.conditions, prev)
+            self.counter += 1
+            return
+        else:
+            query.condition_factory('condition', self.counter, parent, prev)
+            self.counter += 1
 
-    def remove_condition(self, conditionNo):
+    def remove_condition(self, condition):
         """Removes condition from query definition"""
+        condition.remove_self()
 
     def add_join(self, leftTable, joiningTable, type, tableValue, joiningValue, opr):
         """
@@ -277,7 +289,7 @@ class Query(Document):
         except:
             pub.sendMessage('query.add_join.failure', self._documentID) 
             return False
-        
+
     def describe_join(self):
         """
         Describe the join
@@ -292,14 +304,15 @@ class Query(Document):
         else:
             return "There is no join."
         
-    def group(self, column, table):
+    def group(self, table, column):
         """Set up GROUP BY on a particular column"""
         try:
-            self.group_by = self.selectValues[table][column]
-            pub.sendMessage('query.group_by.updated', table, column, self._documentID)
-        except KeyError, IndexError:
-            pub.sendMessage('query.group_by.unchanged', self._documentID)
-
+            for c in self.selectItems[table]:
+                if c[0] == column:
+                    c[1] = 1
+                    pub.sendMessage('query.group_by.updated', group = (table, column), documentID = self._documentID)
+        except KeyError:
+            return False
 #-----------------------------------------------------------------#
 
 class Report(Document):

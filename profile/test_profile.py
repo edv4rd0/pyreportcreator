@@ -120,18 +120,19 @@ class TestQueryObject(unittest.TestCase):
         """
         Tets whether select items can be added
         """
+        self.testObj.selectItems = dict()
         self.testObj.add_select_item('tablename', 'columnname')
         print "first",self.testObj.selectItems
         self.assertTrue(self.testObj.selectItems['tablename'])
-        self.assertEqual(self.testObj.selectItems['tablename'].index('columnname'), 0)
-
+        self.assertEqual(self.testObj.selectItems['tablename'][0], ['columnname', 0])
+        self.assertEqual(self.testObj.selectItems['tablename'].index(['columnname', 0]), 0)
+        
     def test_add_duplicate_select_item(self):
         """
         Check that duplicate select items being added are handled nicely and data is not screwed up
         """
         self.assertTrue(self.testObj.selectItems['tablename'])
         self.testObj.add_select_item('tablename', 'columnname')
-        print "dup",self.testObj.selectItems
         self.assertTrue(self.testObj.selectItems['tablename'])
         self.assertEqual(len(self.testObj.selectItems['tablename']), 1)
 
@@ -175,6 +176,16 @@ class TestQueryObject(unittest.TestCase):
         startCounterValue = self.testObj.counter
         self.assertEqual(self.testObj.conditions.firstObj, None)
 
+    def test_add_group_on(self):
+        """
+        Test adding a group on.
+        """
+        self.testObj.add_select_item('tablename', 'columnname')
+        self.assertTrue(self.testObj.selectItems['tablename'])
+        self.assertEqual(self.testObj.selectItems['tablename'].index(['columnname', 0]), 0)
+        self.assertEqual(self.testObj.selectItems['tablename'][0][1], 0)
+        self.testObj.group('tablename','columnname')
+        self.assertEqual(self.testObj.selectItems['tablename'][0][1], 1)
 
 if __name__ == '__main__':
     unittest.main()

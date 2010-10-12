@@ -45,6 +45,9 @@ class Condition(object):
         self.condition = condition
         self.joiningBool == join
 
+    def remove_self(self):
+        self.parentObj.remove_child(self.condID)
+
 #-------------------------------------------------------------
 
 class ConditionSet(list):
@@ -139,7 +142,7 @@ class ConditionSet(list):
         return False
 
     def remove_self(self):
-        self.parent.remove_child(id)
+        self.parentObj.remove_child(self.condID)
 
 #-------------------------------------------------
 
