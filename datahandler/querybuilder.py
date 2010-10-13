@@ -31,7 +31,7 @@ def get_condition(condition, engineID):
         field2 = build_query(condition.field2)
         if field2 == False:
             return False
-    else: 
+    else:
         return False
     #compile condition:
     if condition.operator == "==":
@@ -54,7 +54,20 @@ def get_condition(condition, engineID):
         SQLACondition = ~field1.between_(field2[0], field2[1])
     else:
         return False
-    return (SQLACondition, condition.boolVal)
+    return SQLACondition
+
+def concatenator(conditions, index = 0):
+    if index == 0:
+        try:
+            return and_(conditions[0][1], concatenator(conditions, 1))
+        except:
+            return conditions[0][1]
+    elif index > 0:
+        try:
+            index2 = index + 1
+            return conditions, concatenator(conditions, index2)
+        except:
+            return conditions[index][1]
 
 
 def concatenate_where_conditions(condObj, engineID):
@@ -82,15 +95,13 @@ def concatenate_where_conditions(condObj, engineID):
             return False
         if startObj.nextObj != None:
             secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
-    try:        
-        if result[1] != None:
-            SQLAWhere = result[0] secondPart
-        elif result[1] == "&":
-            SQLAWhere = & result[0] secondPart
-        elif result[1] == "|":
-            SQLAWhere = | result[0] secondPart
-        elif result[1] == "~":
-            SQLAWhere = ~result[0] secondPart
+    try:
+       if result[0] == "and":
+            return and_(result[1] secondPart)
+        elif result[0] == "|":
+            return | result[1] secondPart
+        elif result[0] == "~":
+            return ~result[1] secondPart
         else:
             return result[1] secondPart
     except IndexError:
@@ -110,9 +121,9 @@ def build_query(self, query):
         else: #it's a subquery
             subquery = build_query(query.selectItems[t])
             columns.append(subquery.label(query.selectItems[t]._name)) #a scalar select
-            
-    SQLAQuery = select(columns).where(concatenate_where_conditions(query.condition.firstObj, query.engineID)
+    
+    SQLAQuery = select(columns)
+    if len(query.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
+        SQLAQuery = SQLAQuery.where(concatenate_where_conditions(query.condition.firstObj, query.engineID))
     
     return SQLAquery
-
-

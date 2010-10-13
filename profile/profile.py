@@ -11,7 +11,6 @@ def get_type(connID, table, column):
     type = datahandler.MetaData.return_type(connID, table, column)
     return type
 
-
 #------------------------------------------------------
 
 class Profile(object):
@@ -227,10 +226,6 @@ class Query(Document):
         except KeyError:
             pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
             return None
-        
-    def configure_condition(self, condType = None, column = None, operator = None, valueOrColumn = None,
-                            conditionID = None, parentID = None):
-        pass
 
     def add_condition(self, parent = None, prev = None):
         """
@@ -316,13 +311,18 @@ class Query(Document):
 #-----------------------------------------------------------------#
 
 class Report(Document):
-    """Abstract document class"""
+    """
+    This is a class defining the report document.
+    This is the data definition for storing what goes in the report.
+    """
     __STATE_SAVED = 'saved'
     __STATE_NEW = 'new'
     __STATE_ALTERED = 'altered'
     state = __STATE_NEW
     _name = ""
     _documentID = 0
+    
+    
     def __init__(self, documentID, name = ""):
         self._documentID = documentID
         self._name = name

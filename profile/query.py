@@ -20,9 +20,8 @@ class Condition(object):
     prevObj = None
     nextID = None
     nextObj = None
-    joiningBool = None
     
-    def __init__(self, condID, parent = None, prev = None, joinBool = None):
+    def __init__(self, condID, parent = None, prev = None):
         if parent != None:
             self.parentObj = parent
             self.parentID = self.parentObj.condID
@@ -30,9 +29,8 @@ class Condition(object):
             self.prevObj = prev
             self.prevID = prev.condID
         self.condID = condID
-        self.joiningBool = joinBool
 
-    def configure_condition(self, field1, field2, condition, join):
+    def configure_condition(self, field1, field2, condition):
         """
         Configure condition.
         @Params:
@@ -43,7 +41,18 @@ class Condition(object):
         self.field1 = field1
         self.field2 = field2
         self.condition = condition
-        self.joiningBool == join
+
+    def move(self, newParent):
+        """Move condition to a new parent"""
+        temp = self
+        self.remove_child(self.condID)
+        temp.prevObj = None
+        temp.prevID = None
+        temp.nextObj = None
+        temp.nextID = None
+        temp.parentObj = newParent
+        temp.parentID = newParent.condID
+        newParent.add_child_member(temp)
 
     def remove_self(self):
         self.parentObj.remove_child(self.condID)
@@ -64,7 +73,7 @@ class ConditionSet(list):
     nextObj = None
     boolVal = None
     condID = None
-    def __init__(self, condID, parent = None, prev = None, boolVal = None):
+    def __init__(self, condID, parent = None, prev = None, boolVal = 'and':
         """
         Initializes the set. Basically, if everything is None it's the first set.
         """
@@ -76,6 +85,7 @@ class ConditionSet(list):
         if prev != None:
             self.prevObj = prev
             self.prevID = prev.condID
+        self.boolVal = boolVal
     
     def add_child_member(self, item):
         """
