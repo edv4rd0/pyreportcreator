@@ -4,6 +4,21 @@ from sqlalchemy import select
 from sqlalchemy.sql import and_, or_, not_
 from pyreportcreator.profile import profile
 
+class ClauseException(Exception):
+    """Raise this if there is an error in building the where clause"""
+    def __init__(self, var = "Where Clause Fail"):
+        self.var = var
+
+class ConditionException(Exception):
+    """If there is a failure in building a condition this is raised"""
+    def __init__(self, var = "Condition Fail"):
+        self.var = var
+
+class NoConditionsException(Exception):
+    """If there are no conditions set at all this is raised"""
+    def __init__(self, var = "No conditions set"):
+        self.var = var
+
 def run_report(report):
     queries = dict()
     for query in report.queries:
@@ -32,9 +47,9 @@ def get_condition(condition):
     elif isinstance(condition.field2, profile.Query):
         field2 = build_query(condition.field2)
         if field2 == False:
-            return False
+            raise ConditionException()
     else:
-        return False
+        raise ConditionException()
     #compile condition:
     if condition.operator == "==":
         SQLACondition = field1==field2
@@ -55,11 +70,11 @@ def get_condition(condition):
     elif condition.operator == "NOT BETWEEN":
         SQLACondition = ~field1.between_(field2[0], field2[1])
     else:
-        raise TypeError
+        raise ConditionException()
     return SQLACondition
 
 
-def return_where_conditions(condObj):
+def return_where_conditions(condObj, first = False):
     """
     Build the where condition.
 
@@ -72,63 +87,41 @@ def return_where_conditions(condObj):
     iterate over and concatenate all of the conditions. As such,
     it is started with condObj = query.condition.firstObj.
     """
+    if first == True:
+        try:
+            if condObj.boolVal == 'and':
+                return and_(return_where_conditions(condObj.firstObj)), return_where_conditions(condObj.nextObj) #put brackets around a condition 'set'
+        except AttributeError:
+            try:
+                return return_where_conditions(condObj.firstObj))
+            except AttributeError:
+                raise NoConditionsException()
+            except ConditionException:
+                raise ClauseException() #We have to fail, because otherwise we will be running an improperly built query
+        except ConditionException:
+            raise ClauseException()
 
     if isinstance(condObj, list): #if the thing is a condition set
-        if condObj.boolVal == 'and':
-            try:
+        try:
+            if condObj.boolVal == 'and':
                 return and_(return_where_conditions(condObj.firstObj)), return_where_conditions(condObj.nextObj) #put brackets around a condition 'set'
-            except AttributeError:
-                try:
-                    return and_(return_where_conditions(condObj.firstObj))
-                except TypeError:
-                    nextObj = condObj.firstObj.nextObj
-                    while True:
-                        try:
-                            return return_where(nextObj)
-                        except TypeError:
-                            nextObj = nextObj.nextObj
-                            continue
-            except TypeError:
-                
-                
-        if result == False:
-            return False #failure
-        if condObj.nextObj != None:
-            secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
-            if secondPart == False:
-                return result
-            else:
-                return result, secondPart
-        return result
+        except AttributeError:
+            try:
+                return return_where_conditions(condObj.firstObj))
+            except ConditionException:
+                raise ClauseException() #We have to fail, because otherwise we will be running an improperly built query
+        except ConditionException:
+            raise ClauseException()
     else:
-        result = get_condition(startObj, engineID)
-        if result == False:
-            return False
-        if startObj.nextObj != None:
-            secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
-    except IndexError:
-        print "index error:"
-        return False
-    try:
         try:
-            if condSet[ind] != False:
-                return condSet[ind], return_where_conditions(condobj)
-            else:
-                return return_where(condSet, i, False)
-        except TypeError:
-            while True:
-                i += 1
-                try:
-                    return return_where(condSet, i, False)
-                except TypeError:
-                    continue
-
-    except AttributeError:
-        try:
-            cond = get_condition(condObj)
-            return cond
-        else:
-            
+            return get_condition(condObj), return_where_conditions(condObj.nextObj)
+        except AttributeError:
+            try:
+                return get_condition(condObj)
+            except ConditionException:
+                raise ClauseException()
+        except ConditionException:
+            raise ClauseException
 
 
 def build_query(self, query):
