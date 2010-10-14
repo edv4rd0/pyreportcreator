@@ -1,5 +1,7 @@
 import datahandler
 import sqlalchemy
+from sqlalchemy import select
+from sqlalchemy.sql import and_, or_, not_
 from pyreportcreator.profile import profile
 
 def run_report(report):
@@ -8,7 +10,7 @@ def run_report(report):
         queries[query.engineID, query._name] = build_query(query)
     #will have to sort out some means of reading it line by line into a csv file
 
-def get_condition(condition, engineID):
+def get_condition(condition):
     """
     This accepts an object of class Condition (my own) and turns
     it into an SQLAlchemy condition which the SQL Expression
@@ -56,18 +58,42 @@ def get_condition(condition, engineID):
         return False
     return SQLACondition
 
-def concatenator(conditions, index = 0):
-    if index == 0:
+def return_where_conditions(cond
+
+def return_where_set(condSet, first = True):
+    """
+    Build the where condition
+    """
+    if first == True:
+        if get_condition(condSet.firstObj, False) is False:
+            raise TypeError
+        else:
+            try:
+                return and_(return_where_conditions(condObj.firstObj), return_where(condSet, i, False))
+            except IndexError:
+                if condSet[ind] != False:
+                    return condSet[ind]
+                else:
+                    raise TypeError
+    try:
         try:
-            return and_(conditions[0][1], concatenator(conditions, 1))
-        except:
-            return conditions[0][1]
-    elif index > 0:
-        try:
-            index2 = index + 1
-            return conditions, concatenator(conditions, index2)
-        except:
-            return conditions[index][1]
+            if condSet[ind] != False:
+                return condSet[ind], return_where(condSet, i, False)
+            else:
+                return return_where(condSet, i, False)
+        except TypeError:
+            while True:
+                i += 1
+                try:
+                    return return_where(condSet, i, False)
+                except TypeError:
+                    continue
+    except IndexError:
+        if condSet[ind] != False:
+            return condSet[ind]
+        else:
+            raise TypeError
+
 
 
 def concatenate_where_conditions(condObj, engineID):
@@ -82,28 +108,23 @@ def concatenate_where_conditions(condObj, engineID):
     it is started with condObj = query.condition.firstObj.
     """
     if isinstance(condObj, list): #if the thing is a condition set
-        result = (concatenate_where_conditions(condObj.firstObj, engineID)) #put brackets around a condition 'set'
+        if condObj.boolVal == 'and':
+            result = and_(concatenate_where_conditions(condObj.firstObj, engineID)) #put brackets around a condition 'set'
         if result == False:
             return False #failure
         if condObj.nextObj != None:
-            sedondPart = concatenate_where_conditions(condObj.nextObj, engineID)
-            if result == False:
-                return False #failure
+            secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
+            if secondPart == False:
+                return result
+            else:
+                return result, secondPart
+        return result
     else:
         result = get_condition(startObj, engineID)
         if result == False:
             return False
         if startObj.nextObj != None:
             secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
-    try:
-       if result[0] == "and":
-            return and_(result[1] secondPart)
-        elif result[0] == "|":
-            return | result[1] secondPart
-        elif result[0] == "~":
-            return ~result[1] secondPart
-        else:
-            return result[1] secondPart
     except IndexError:
         print "index error:"
         return False
