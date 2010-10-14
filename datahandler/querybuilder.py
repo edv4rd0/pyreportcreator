@@ -55,11 +55,11 @@ def get_condition(condition):
     elif condition.operator == "NOT BETWEEN":
         SQLACondition = ~field1.between_(field2[0], field2[1])
     else:
-        return False
+        raise TypeError
     return SQLACondition
 
 
-def return_where_conditions(condObj, first = False):
+def return_where_conditions(condObj):
     """
     Build the where condition.
 
@@ -72,21 +72,25 @@ def return_where_conditions(condObj, first = False):
     iterate over and concatenate all of the conditions. As such,
     it is started with condObj = query.condition.firstObj.
     """
-    if first == True:
-        if get_condition(condObj.firstObj, False) is False:
-            raise TypeError
-        else:
-            try:
-                return and_(return_where_conditions(condObj.firstObj), return_where(condSet))
-            except IndexError:
-                if condSet[ind] != False:
-                    return condSet[ind]
-                else:
-                    raise TypeError
 
     if isinstance(condObj, list): #if the thing is a condition set
         if condObj.boolVal == 'and':
-            result = and_(return_where_conditions(condObj.firstObj)) #put brackets around a condition 'set'
+            try:
+                return and_(return_where_conditions(condObj.firstObj)), return_where_conditions(condObj.nextObj) #put brackets around a condition 'set'
+            except AttributeError:
+                try:
+                    return and_(return_where_conditions(condObj.firstObj))
+                except TypeError:
+                    nextObj = condObj.firstObj.nextObj
+                    while True:
+                        try:
+                            return return_where(nextObj)
+                        except TypeError:
+                            nextObj = nextObj.nextObj
+                            continue
+            except TypeError:
+                
+                
         if result == False:
             return False #failure
         if condObj.nextObj != None:
@@ -108,7 +112,7 @@ def return_where_conditions(condObj, first = False):
     try:
         try:
             if condSet[ind] != False:
-                return condSet[ind], return_where(condSet, i, False)
+                return condSet[ind], return_where_conditions(condobj)
             else:
                 return return_where(condSet, i, False)
         except TypeError:
@@ -118,11 +122,13 @@ def return_where_conditions(condObj, first = False):
                     return return_where(condSet, i, False)
                 except TypeError:
                     continue
-    except IndexError:
-        if condSet[ind] != False:
-            return condSet[ind]
+
+    except AttributeError:
+        try:
+            cond = get_condition(condObj)
+            return cond
         else:
-            raise TypeError
+            
 
 
 def build_query(self, query):
