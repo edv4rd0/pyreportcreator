@@ -74,7 +74,7 @@ def get_condition(condition):
     return SQLACondition
 
 
-def return_where_conditions(condObj, first = False):
+def return_where_conditions(condObj):
     """
     Build the where condition.
 
@@ -87,19 +87,6 @@ def return_where_conditions(condObj, first = False):
     iterate over and concatenate all of the conditions. As such,
     it is started with condObj = query.condition.firstObj.
     """
-    if first == True:
-        try:
-            if condObj.boolVal == 'and':
-                return and_(return_where_conditions(condObj.firstObj)), return_where_conditions(condObj.nextObj) #put brackets around a condition 'set'
-        except AttributeError:
-            try:
-                return return_where_conditions(condObj.firstObj))
-            except AttributeError:
-                raise NoConditionsException()
-            except ConditionException:
-                raise ClauseException() #We have to fail, because otherwise we will be running an improperly built query
-        except ConditionException:
-            raise ClauseException()
 
     if isinstance(condObj, list): #if the thing is a condition set
         try:
