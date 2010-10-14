@@ -58,23 +58,53 @@ def get_condition(condition):
         return False
     return SQLACondition
 
-def return_where_conditions(cond
 
-def return_where_set(condSet, first = True):
+def return_where_conditions(condObj, first = False):
     """
-    Build the where condition
+    Build the where condition.
+
+    This function concatenates sqlalchemy columns and subqueries
+    together. It also converts string representations of operators
+    into SQLAlchemy operators
+    @params:
+    condObj is a condition object. It's either an instance of
+    Condition or ConditionSet. This is a recursive function to
+    iterate over and concatenate all of the conditions. As such,
+    it is started with condObj = query.condition.firstObj.
     """
     if first == True:
-        if get_condition(condSet.firstObj, False) is False:
+        if get_condition(condObj.firstObj, False) is False:
             raise TypeError
         else:
             try:
-                return and_(return_where_conditions(condObj.firstObj), return_where(condSet, i, False))
+                return and_(return_where_conditions(condObj.firstObj), return_where(condSet))
             except IndexError:
                 if condSet[ind] != False:
                     return condSet[ind]
                 else:
                     raise TypeError
+
+    if isinstance(condObj, list): #if the thing is a condition set
+        if condObj.boolVal == 'and':
+            result = and_(return_where_conditions(condObj.firstObj)) #put brackets around a condition 'set'
+        if result == False:
+            return False #failure
+        if condObj.nextObj != None:
+            secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
+            if secondPart == False:
+                return result
+            else:
+                return result, secondPart
+        return result
+    else:
+        result = get_condition(startObj, engineID)
+        if result == False:
+            return False
+        if startObj.nextObj != None:
+            secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
+    except IndexError:
+        print "index error:"
+        return False
     try:
         try:
             if condSet[ind] != False:
@@ -94,40 +124,6 @@ def return_where_set(condSet, first = True):
         else:
             raise TypeError
 
-
-
-def concatenate_where_conditions(condObj, engineID):
-    """
-    This function concatenates sqlalchemy columns and subqueries
-    together. It also converts string representations of operators
-    into SQLAlchemy operators
-    @params:
-    condObj is a condition object. It's either an instance of
-    Condition or ConditionSet. This is a recursive function to
-    iterate over and concatenate all of the conditions. As such,
-    it is started with condObj = query.condition.firstObj.
-    """
-    if isinstance(condObj, list): #if the thing is a condition set
-        if condObj.boolVal == 'and':
-            result = and_(concatenate_where_conditions(condObj.firstObj, engineID)) #put brackets around a condition 'set'
-        if result == False:
-            return False #failure
-        if condObj.nextObj != None:
-            secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
-            if secondPart == False:
-                return result
-            else:
-                return result, secondPart
-        return result
-    else:
-        result = get_condition(startObj, engineID)
-        if result == False:
-            return False
-        if startObj.nextObj != None:
-            secondPart = concatenate_where_conditions(condObj.nextObj, engineID)
-    except IndexError:
-        print "index error:"
-        return False
 
 def build_query(self, query):
     """
