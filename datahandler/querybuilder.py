@@ -94,7 +94,7 @@ def return_where_conditions(condObj):
                 return and_(return_where_conditions(condObj.firstObj)), return_where_conditions(condObj.nextObj) #put brackets around a condition 'set'
         except AttributeError:
             try:
-                return return_where_conditions(condObj.firstObj))
+                return return_where_conditions(condObj.firstObj)
             except ConditionException:
                 raise ClauseException() #We have to fail, because otherwise we will be running an improperly built query
         except ConditionException:
@@ -111,20 +111,19 @@ def return_where_conditions(condObj):
             raise ClauseException
 
 
-def build_query(self, query):
+def build_query(query):
     """
     Builds query by creating all objects based on the unicode 
     string descriptors stored in the query object
     """
     columns = []
     for t in query.selectItems.keys():
-        if isinstance(query.selectItems[t], string):
-            for c in query.selectItems[t]:
-                columns.append(datahandler.DataHandler.get_column_object(t, query.engineID, c))
-        else: #it's a subquery
+        if isinstance(query.selectItems[t], profile.Query):
             subquery = build_query(query.selectItems[t])
             columns.append(subquery.label(query.selectItems[t]._name)) #a scalar select
-    
+        else:
+            for c in query.selectItems[t]:
+                columns.append(datahandler.DataHandler.get_column_object(t, query.engineID, c))
     SQLAQuery = select(columns)
     if len(query.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
         SQLAQuery = SQLAQuery.where(concatenate_where_conditions(query.condition.firstObj, query.engineID))

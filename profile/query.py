@@ -73,7 +73,7 @@ class ConditionSet(list):
     nextObj = None
     boolVal = None
     condID = None
-    def __init__(self, condID, parent = None, prev = None, boolVal = 'and':
+    def __init__(self, condID, parent = None, prev = None, boolVal = 'and'):
         """
         Initializes the set. Basically, if everything is None it's the first set.
         """

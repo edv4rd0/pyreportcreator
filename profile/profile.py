@@ -167,7 +167,7 @@ class Query(Document):
         if table in self.selectItems.keys():
             if column not in [c[0] for c in self.selectItems[table]]:
                 self.selectItems[table].append([column, 0])
-                assert(self.selectItems[table].index([column, 0]) == 0)
+                #assert(self.selectItems[table].index([column, 0]) == 0)
                 self.change_made()
                 pub.sendMessage('query.add_select.success', column = (table, column), documentID = self._documentID)
             else:

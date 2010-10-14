@@ -7,7 +7,7 @@ class QueryBuilderTest(unittest.TestCase):
     """Test building an SQLAlchemy query from a profile object"""
 
     def setUp(self):
-        self.connID = datahandler.ConnectionManager.add_new_data_connection(databaseType = 'mysql', address = 'localhost', dbname = 'store', user = 'pytest', password = 'P@ssw0rd')
+        self.connID = datahandler.ConnectionManager.create_new_data_connection(databaseType = 'mysql', address = 'localhost', dbname = 'store', user = 'pytest', password = 'P@ssw0rd')
         #build simple, basic single table query
         self.queryObjSimple = profile.Query(1, self.connID, "Test Query")
         self.queryObjSimple.add_select_item('tblproduct', 'productID')
