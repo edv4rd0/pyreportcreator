@@ -39,6 +39,13 @@ class DatahandlerTest(unittest.TestCase):
         relations = datahandler.DataHandler.check_relations(self.insp, 'tblproduct', 'tblinvoicelines')
         self.assertIsInstance(relations, list)
         self.assertIsInstance(relations[0], dict)
+
+    def test_get_columns(self):
+        """
+        Check that columns are retrieved
+        """
+        columns = list()
+        
         
 
 if __name__ == '__main__':

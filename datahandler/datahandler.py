@@ -151,8 +151,8 @@ class DataHandler(object):
     def get_column_object(cls, tableName, connID, colName):
         """Returns column object based on three supplied identifying strings"""
         col = cls.dataObjects[connID][tableName].columns[colName]
-        col_type = cls.metaData[connID][tableName].columns[colName].type
-        return (col, col_type) #type is returned also, so the GUI can know which controls to use
+        #col_type = cls.metaData[connID][tableName].columns[colName].type
+        return col #type is returned also, so the GUI can know which controls to use
 
 
 def destroy_all_freaking_things():

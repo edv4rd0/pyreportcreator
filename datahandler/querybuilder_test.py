@@ -8,6 +8,7 @@ class QueryBuilderTest(unittest.TestCase):
 
     def setUp(self):
         self.connID = datahandler.ConnectionManager.create_new_data_connection(databaseType = 'mysql', address = 'localhost', dbname = 'store', user = 'pytest', password = 'P@ssw0rd')
+        datahandler.DataHandler.add(self.connID)
         #build simple, basic single table query
         self.queryObjSimple = profile.Query(1, self.connID, "Test Query")
         self.queryObjSimple.add_select_item('tblproduct', 'productID')
@@ -20,6 +21,10 @@ class QueryBuilderTest(unittest.TestCase):
         Test a simple, single table query with no conditions.
         """
         query = querybuilder.build_query(self.queryObjSimple)
+        result = datahandler.ConnectionManager.dataConnections[self.connID].execute(query)
+        for i in result:
+            print i
+        
         #self.assertIsInstance(query__str__(), sqlalchemy
 
 if __name__ == '__main__':

@@ -123,9 +123,9 @@ def build_query(query):
             columns.append(subquery.label(query.selectItems[t]._name)) #a scalar select
         else:
             for c in query.selectItems[t]:
-                columns.append(datahandler.DataHandler.get_column_object(t, query.engineID, c))
+                columns.append(datahandler.DataHandler.get_column_object(t, query.engineID, c[0]))
     SQLAQuery = select(columns)
     if len(query.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
         SQLAQuery = SQLAQuery.where(concatenate_where_conditions(query.condition.firstObj, query.engineID))
     
-    return SQLAquery
+    return SQLAQuery

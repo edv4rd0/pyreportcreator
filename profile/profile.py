@@ -128,7 +128,8 @@ class Query(Document):
         super(Query, self).__init__(documentID, name)
         self.conditions = query.ConditionSet(0)
         self.counter = 1 #condition id 0 reserved for top condition set
-
+        self.engineID = engineID
+        
     def change_name(self, newName):
         """Change name of query"""
         self._name = newName
