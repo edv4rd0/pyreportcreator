@@ -52,11 +52,11 @@ def get_condition(condition, engineID):
         raise ConditionException()
     #compile condition:
     if condition.operator == "==":
-        SQLACondition = field1==field2
+        return field1==field2
     elif condition.operator == ">":
-        SQLACondition = field1>field2
+        return field1>field2
     elif condition.operator == "<":
-        SQLACondition = field1<field2
+        return field1<field2
     elif condition.operator == "NOT":
         SQLACondition = field1.not_(field2)
     elif condition.operator == "NOT IN":
@@ -66,12 +66,11 @@ def get_condition(condition, engineID):
     elif condition.operator == "IS IN":
         SQLACondition = field1.in_(field2)
     elif condition.operator == "BETWEEN":
-        SQLACondition = field1.between_(field2[0], field2[1])
+        return field1.between_(field2[0], field2[1])
     elif condition.operator == "NOT BETWEEN":
-        SQLACondition = ~field1.between_(field2[0], field2[1])
+        return ~field1.between_(field2[0], field2[1])
     else:
         raise ConditionException()
-    return SQLACondition
 
 
 def return_where_conditions(condObj, engineID):
