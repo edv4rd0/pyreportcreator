@@ -6,21 +6,18 @@ These are used by the Query class for defining the query.
 #-------------------------------------------------------------
 
 
-class Condition(object):
+class AbstractCondition(object):
     """
-    Defines a condition (a la, column LIKE '%term')
+    Defines an abstract class for condition elements to inherit from
     """
     condID = None
     parentObj = None
     parentID = None
-    field1 = ""
-    field2 = tuple()
-    operator = None
     prevID = None
     prevObj = None
     nextID = None
     nextObj = None
-    
+
     def __init__(self, condID, parent = None, prev = None):
         if parent != None:
             self.parentObj = parent
@@ -29,6 +26,17 @@ class Condition(object):
             self.prevObj = prev
             self.prevID = prev.condID
         self.condID = condID
+
+class Condition(AbstractCondition):
+    """
+    Defines a condition (a la, column LIKE '%term')
+    """
+    field1 = ""
+    field2 = tuple()
+    operator = None
+    
+    def __init__(self, condID, parent = None, prev = None):
+        AbstractCondition.__init__(self, condID, parent, prev)
 
     def configure_condition(self, field1, field2, condition):
         """
@@ -59,39 +67,28 @@ class Condition(object):
 
 #-------------------------------------------------------------
 
-class ConditionSet(list):
+class ConditionSet(AbstractCondition):
     """
     Defines a set of conditions. It's a container for related conditions which are seperated using OR, AND and NOT.
     """
     firstID = None
     firstObj = None
-    parentObj = None
-    parentID = None
-    prevID = None
-    prevObj = None
-    nextID = None
-    nextObj = None
     boolVal = None
-    condID = None
+    conditions = list()
+
     def __init__(self, condID, parent = None, prev = None, boolVal = 'and'):
         """
         Initializes the set. Basically, if everything is None it's the first set.
         """
-        super( ConditionSet, self ).__init__()
-        if parent != None:
-            self.parentObj = parent
-            self.parentID = self.parentObj.condID
-        self.condID = condID
-        if prev != None:
-            self.prevObj = prev
-            self.prevID = prev.condID
+        AbstractCondition.__init__(self, condID, parent, prev)
         self.boolVal = boolVal
+        self.conditions = []
     
     def add_child_member(self, item):
         """
         This method appends a member condition or child set to the set.
         """
-        if len(self) > 0:
+        if len(self.conditions) > 0:
             if item.prevObj != None:
                 item.prevID = item.prevObj.condID
                 if item.prevObj.nextObj != None:
@@ -108,10 +105,10 @@ class ConditionSet(list):
                 item.nextID = self.firstID
                 self.firstObj = item
                 self.firstID = item.condID
-        elif len(self) == 0:
+        elif len(self.conditions) == 0:
             self.firstID = item.condID
             self.firstObj = item
-        self.append(item)
+        self.conditions.append(item)
         return True
 
     def update_pointers(self, item):
@@ -143,11 +140,11 @@ class ConditionSet(list):
         """
         Remove a child. Even if a set.
         """
-        for i in self:
+        for i in self.conditions:
             if id == i.condID:
                 self.update_pointers(i)
-                index = self.index(i)
-                del self[index]
+                index = self.conditions.index(i)
+                del self.conditions[index]
                 return True
         return False
 
@@ -161,7 +158,7 @@ def find_set(parentID, theset):
     """
     This method iterates through the sets recursively until it find the correct parent
     """
-    for i in theset:
+    for i in theset.conditions:
         if i.condID == parentID:
             return i
         elif isinstance(i, ConditionSet):
