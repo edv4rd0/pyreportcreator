@@ -25,7 +25,7 @@ def run_report(report):
         queries[query.engineID, query._name] = build_query(query)
     #will have to sort out some means of reading it line by line into a csv file
 
-def get_condition(condition):
+def get_condition(condition, engineID):
     """
     This accepts an object of class Condition (my own) and turns
     it into an SQLAlchemy condition which the SQL Expression
@@ -42,7 +42,7 @@ def get_condition(condition):
             field2 = condition.field2[1]
         else:
             field2 = (condition.field2[1], condition.field2[2]) #two values, for a BETWEEN statement
-    elif isinstance(condition.field2, string):
+    elif isinstance(condition.field2, str):
         field2 = condition.field2
     elif isinstance(condition.field2, profile.Query):
         field2 = build_query(condition.field2)
@@ -74,7 +74,7 @@ def get_condition(condition):
     return SQLACondition
 
 
-def return_where_conditions(condObj):
+def return_where_conditions(condObj, engineID):
     """
     Build the where condition.
 
@@ -91,20 +91,22 @@ def return_where_conditions(condObj):
     if isinstance(condObj, list): #if the thing is a condition set
         try:
             if condObj.boolVal == 'and':
-                return and_(return_where_conditions(condObj.firstObj)), return_where_conditions(condObj.nextObj) #put brackets around a condition 'set'
+                return and_(return_where_conditions(condObj.firstObj, engineID)), return_where_conditions(condObj.nextObj, engineID) #put brackets around a condition 'set'
+            elif condObj.boolVal == 'or':
+                return or_(return_where_conditions(condObj.firstObj, engineID)), return_where_conditions(condObj.nextObj)
         except AttributeError:
             try:
-                return return_where_conditions(condObj.firstObj)
+                return return_where_conditions(condObj.firstObj, engineID)
             except ConditionException:
                 raise ClauseException() #We have to fail, because otherwise we will be running an improperly built query
         except ConditionException:
             raise ClauseException()
     else:
         try:
-            return get_condition(condObj), return_where_conditions(condObj.nextObj)
+            return get_condition(condObj, engineID), return_where_conditions(condObj.nextObj, engineID)
         except AttributeError:
             try:
-                return get_condition(condObj)
+                return get_condition(condObj, engineID)
             except ConditionException:
                 raise ClauseException()
         except ConditionException:
@@ -126,6 +128,6 @@ def build_query(query):
                 columns.append(datahandler.DataHandler.get_column_object(t, query.engineID, c[0]))
     SQLAQuery = select(columns)
     if len(query.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
-        SQLAQuery = SQLAQuery.where(concatenate_where_conditions(query.condition.firstObj, query.engineID))
+        SQLAQuery = SQLAQuery.where(return_where_conditions(query.conditions, query.engineID))
     
     return SQLAQuery

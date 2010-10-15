@@ -15,7 +15,18 @@ class QueryBuilderTest(unittest.TestCase):
         self.queryObjSimple.add_select_item('tblproduct', 'name')
         self.queryObjSimple.add_select_item('tblproduct', 'ISBN')
         self.queryObjSimple.add_select_item('tblproduct', 'price')
-
+        #Single table query with conditions
+        self.queryObjConditions = profile.Query(1, self.connID, "Test Query")
+        self.queryObjConditions.add_select_item('tblproduct', 'productID')
+        self.queryObjConditions.add_select_item('tblproduct', 'name')
+        self.queryObjConditions.add_select_item('tblproduct', 'ISBN')
+        self.queryObjConditions.add_select_item('tblproduct', 'price')
+        ## We will access the objects directly - profile Query object interface not up to it
+        query.condition_factory('set', 1, self.queryObjConditions.conditions, None, 'or')
+        query.condition_factory('condition', 2, query.find_set(1, self.queryObjConditions.conditions))
+        query.condition_factory('condition', 3, query.find_set(1, self.queryObjConditions.conditions))
+        query.find_set(1, self.queryObjConditions.conditions).firstObj.configure_condition(('tblproduct', 'price'), 5, '>')
+        query.find_set(1, self.queryObjConditions.conditions).firstObj.configure_condition(('tblproduct', 'productID'), 2, '==')
     def test_build_single_table_query(self):
         """
         Test a simple, single table query with no conditions.
@@ -24,8 +35,18 @@ class QueryBuilderTest(unittest.TestCase):
         result = datahandler.ConnectionManager.dataConnections[self.connID].execute(query)
         for i in result:
             print i
+
+    def test_build_single_table_with_conditions(self):
+        """
+        test a simple, single table query with conditions
+        """
+        print self.queryObjConditions.conditions
+        query = querybuilder.build_query(self.queryObjConditions)
+        result = datahandler.ConnectionManager.dataConnections[self.connID].execute(query)
+        for i in result:
+            print i
+
         
-        #self.assertIsInstance(query__str__(), sqlalchemy
 
 if __name__ == '__main__':
     unittest.main()

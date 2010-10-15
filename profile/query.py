@@ -182,8 +182,8 @@ def condition_factory(type, condID, parentObj = None, prev = None, boolVal = Non
             return ConditionSet(condID, parentObj, prev, boolVal)
     elif type == "condition":
         if parentObj != None:
-            parentObj.add_child_member(Condition(condID, parentObj, prev, boolVal))
+            parentObj.add_child_member(Condition(condID, parentObj, prev))
             return True
         else:
-            return Condition(condID, parentObj, prev, boolVal)
+            return Condition(condID, parentObj, prev)
 
