@@ -58,13 +58,13 @@ def get_condition(condition, engineID):
     elif condition.operator == "<":
         return field1<field2
     elif condition.operator == "NOT":
-        SQLACondition = field1.not_(field2)
+        return field1.not_(field2)
     elif condition.operator == "NOT IN":
-        SQLACondition = ~field1.in_(field2)
+        return ~field1.in_(field2)
     elif condition.operator == "LIKE":
-        SQLACondition = field1.like_("%"+field2)
+        return field1.like_("%"+field2)
     elif condition.operator == "IS IN":
-        SQLACondition = field1.in_(field2)
+        return field1.in_(field2)
     elif condition.operator == "BETWEEN":
         return field1.between_(field2[0], field2[1])
     elif condition.operator == "NOT BETWEEN":
@@ -90,12 +90,19 @@ def return_where_conditions(condObj, engineID):
     if isinstance(condObj, list): #if the thing is a condition set
         try:
             if condObj.boolVal == 'and':
-                return and_(return_where_conditions(condObj.firstObj, engineID)), return_where_conditions(condObj.nextObj, engineID) #put brackets around a condition 'set'
+                v = return_where_conditions(condObj.firstObj, engineID)
+                return and_(*v), return_where_conditions(condObj.nextObj, engineID) #put brackets around a condition 'set'
             elif condObj.boolVal == 'or':
-                return or_(return_where_conditions(condObj.firstObj, engineID)), return_where_conditions(condObj.nextObj, engineID)
+                v = return_where_conditions(condObj.firstObj, engineID)
+                return or_(*v), return_where_conditions(condObj.nextObj, engineID)
         except AttributeError:
             try:
-                return return_where_conditions(condObj.firstObj, engineID)
+                if condObj.boolVal == 'and':
+                    a = return_where_conditions(condObj.firstObj, engineID)
+                    return and_(*a)
+                elif condObj.boolVal == 'or':
+                    a = return_where_conditions(condObj.firstObj, engineID)
+                    return or_(*a)
             except ConditionException:
                 raise ClauseException() #We have to fail, because otherwise we will be running an improperly built query
         except ConditionException:
@@ -128,5 +135,4 @@ def build_query(query):
     SQLAQuery = select(columns)
     if len(query.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
         SQLAQuery = SQLAQuery.where(return_where_conditions(query.conditions, query.engineID))
-    
     return SQLAQuery
