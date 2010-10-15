@@ -24,10 +24,13 @@ class QueryBuilderTest(unittest.TestCase):
         ## We will access the objects directly - profile Query object interface not up to it
         #query.condition_factory('set', 1, self.queryObjConditions.conditions, None, 'or')
         self.queryObjConditions.conditions.boolVal = 'or'
-        query.condition_factory('condition', 2, query.find_set(0, self.queryObjConditions.conditions))
-        query.condition_factory('condition', 3, query.find_set(0, self.queryObjConditions.conditions))
-        query.find_set(1, self.queryObjConditions.conditions).firstObj.configure_condition(('tblproduct', 'price'), 5, '>')
-        query.find_set(1, self.queryObjConditions.conditions).firstObj.configure_condition(('tblproduct', 'productID'), 2, '==')
+        query.condition_factory('condition', 2, self.queryObjConditions.conditions)
+        query.condition_factory('condition', 3, self.queryObjConditions.conditions)
+        #query.find_set(0, self.queryObjConditions.conditions).firstObj.configure_condition(('tblproduct', 'price'), 5, '>')
+        #query.find_set(0, self.queryObjConditions.conditions).firstObj.configure_condition(('tblproduct', 'productID'), 2, '==')
+        self.queryObjConditions.conditions.firstObj.configure_condition(('tblproduct', 'price'), 5, '>')
+        self.queryObjConditions.conditions.firstObj.nextObj.configure_condition(('tblproduct', 'price'), 5, '>')
+        
     def test_build_single_table_query(self):
         """
         Test a simple, single table query with no conditions.
@@ -37,11 +40,19 @@ class QueryBuilderTest(unittest.TestCase):
         for i in result:
             print i
 
+    def test_get_condition(self):
+        """
+        test the condition builder
+        """
+        print self.queryObjConditions.conditions.firstObj.operator
+        querybuilder.get_condition(self.queryObjConditions.conditions.firstObj, self.connID)
+
     def test_build_single_table_with_conditions(self):
         """
         test a simple, single table query with conditions
         """
         print self.queryObjConditions.conditions
+        print self.queryObjConditions.conditions.firstObj.field2
         query = querybuilder.build_query(self.queryObjConditions)
         result = datahandler.ConnectionManager.dataConnections[self.connID].execute(query)
         for i in result:

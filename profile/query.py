@@ -15,7 +15,7 @@ class Condition(object):
     parentID = None
     field1 = ""
     field2 = tuple()
-    operator = ""
+    operator = None
     prevID = None
     prevObj = None
     nextID = None
@@ -40,7 +40,7 @@ class Condition(object):
         """
         self.field1 = field1
         self.field2 = field2
-        self.condition = condition
+        self.operator = condition
 
     def move(self, newParent):
         """Move condition to a new parent"""

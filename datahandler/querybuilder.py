@@ -42,12 +42,12 @@ def get_condition(condition, engineID):
             field2 = condition.field2[1]
         else:
             field2 = (condition.field2[1], condition.field2[2]) #two values, for a BETWEEN statement
-    elif isinstance(condition.field2, str):
-        field2 = condition.field2
     elif isinstance(condition.field2, profile.Query):
         field2 = build_query(condition.field2)
         if field2 == False:
             raise ConditionException()
+    elif condition.field2 != None:
+        field2 = condition.field2
     else:
         raise ConditionException()
     #compile condition:
@@ -93,7 +93,7 @@ def return_where_conditions(condObj, engineID):
             if condObj.boolVal == 'and':
                 return and_(return_where_conditions(condObj.firstObj, engineID)), return_where_conditions(condObj.nextObj, engineID) #put brackets around a condition 'set'
             elif condObj.boolVal == 'or':
-                return or_(return_where_conditions(condObj.firstObj, engineID)), return_where_conditions(condObj.nextObj)
+                return or_(return_where_conditions(condObj.firstObj, engineID)), return_where_conditions(condObj.nextObj, engineID)
         except AttributeError:
             try:
                 return return_where_conditions(condObj.firstObj, engineID)
