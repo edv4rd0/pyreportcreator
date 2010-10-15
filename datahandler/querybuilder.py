@@ -2,7 +2,7 @@ import datahandler
 import sqlalchemy
 from sqlalchemy import select
 from sqlalchemy.sql import and_, or_, not_
-from pyreportcreator.profile import profile
+from pyreportcreator.profile import profile, query
 
 class ClauseException(Exception):
     """Raise this if there is an error in building the where clause"""
@@ -87,7 +87,7 @@ def return_where_conditions(condObj, engineID):
     it is started with condObj = query.condition.firstObj.
     """
 
-    if isinstance(condObj, list): #if the thing is a condition set
+    if isinstance(condObj, query.ConditionSet): #if the thing is a condition set
         try:
             if condObj.boolVal == 'and':
                 v = return_where_conditions(condObj.firstObj, engineID)
@@ -133,6 +133,6 @@ def build_query(query):
             for c in query.selectItems[t]:
                 columns.append(datahandler.DataHandler.get_column_object(t, query.engineID, c[0]))
     SQLAQuery = select(columns)
-    if len(query.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
+    if len(query.conditions.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
         SQLAQuery = SQLAQuery.where(return_where_conditions(query.conditions, query.engineID))
     return SQLAQuery
