@@ -161,14 +161,15 @@ class TestQueryObject(unittest.TestCase):
         
     def test_remove_select_item_not_exist_table(self):
         """
-        Test removing an item where table doesn't exist
+        Test removing an item where table doesn't exist (should never have to do this)
         """
         
 
     def test_remove_select_item_not_exist_column(self):
         """
-        Test removing an item where the table actually exists but the column doesn't.
+        Test removing an item where the table actually exists but the column doesn't. (should never have to do this)
         """
+        
     def test_add_first_condition(self):
         """
         Test whether a simple condition can be added to the condition set
@@ -186,6 +187,10 @@ class TestQueryObject(unittest.TestCase):
         self.assertEqual(self.testObj.selectItems['tablename'][0][1], 0)
         self.testObj.group('tablename','columnname')
         self.assertEqual(self.testObj.selectItems['tablename'][0][1], 1)
+
+    def test_add_join(self):
+        """ Test adding a join"""
+        
 
 if __name__ == '__main__':
     unittest.main()

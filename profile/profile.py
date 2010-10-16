@@ -252,19 +252,23 @@ class Query(Document):
         @params: leftTable is the table name of the left, or main table.
                 joiningTable is the table being joined onto leftTable.
                 type: the type of join chosen 'left' or 'inner'
+                tableValue: the column or value connected with the left table
+                joiningValue: the column or value connected with the jooining table
+                opr: the operator ('==', etc)
         """
         try:
             if (leftTable, joiningTable) in self.joins.keys():
-                self.joins[(leftTable, joiningTable)] = (type, tableValue, joiningValue, opr)
+                self.joins[(leftTable, joiningTable)] = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr]
             elif (joiningTable, leftTable) in self.joins.keys():
                 del self.joins[(joiningTable, leftTable)]
-                self.joins[(leftTable, joiningTable)] = (type, tableValue, joiningValue, opr)
+                self.joins[(leftTable, joiningTable)] = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr]
             else:
-                self.joins[(leftTable, joiningTable)] = (type, tableValue, joiningValue, opr)
-            pub.sendMessage('query.add_join.success', self._documentID, leftTable, joiningTable)
+                self.joins[(leftTable, joiningTable)] = (type, (leftTable, tableValue), (joiningTable, joiningValue), opr)
+            pub.sendMessage('query.add_join.success', documentID, self._documentID, join = (leftTable, joiningTable))
+            self.change_made()
             return True
         except:
-            pub.sendMessage('query.add_join.failure', self._documentID) 
+            pub.sendMessage('query.add_join.failure', documentID = self._documentID) 
             return False
 
 
@@ -283,7 +287,7 @@ class Query(Document):
                 return True #nothing changed
             return True
         except:
-            pub.sendMessage('query.add_join.failure', self._documentID) 
+            pub.sendMessage('query.remove_join.failure', documentID = self._documentID) 
             return False
 
     def describe_join(self):
@@ -307,6 +311,7 @@ class Query(Document):
                 if c[0] == column:
                     c[1] = 1
                     pub.sendMessage('query.group_by.updated', group = (table, column), documentID = self._documentID)
+                    self.change_made()
         except KeyError:
             return False
 #-----------------------------------------------------------------#

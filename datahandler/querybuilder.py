@@ -19,6 +19,12 @@ class NoConditionsException(Exception):
     def __init__(self, var = "No conditions set"):
         self.var = var
 
+class JoinException(Exception):
+    """If the join is not fully configured, raise this exception."""
+    def __init__(self, var = "Join not configured correctly"):
+        self.var = var
+
+
 def run_report(report):
     queries = dict()
     for query in report.queries:
@@ -132,7 +138,24 @@ def build_query(query):
         else:
             for c in query.selectItems[t]:
                 columns.append(datahandler.DataHandler.get_column_object(t, query.engineID, c[0]))
-    SQLAQuery = select(columns)
+    try:
+        i = []
+        for j in query.joins:
+            i.append(j)
+        #check join type
+        leftTable = datahandler.DataHandler.get_table_object(i[0][1][0], query.engineID)
+        rightTable = datahandler.DataHandler.get_table_object(i[0][2][0], query.engineID)
+        leftCol = datahandler.DataHandler.get_column_object(i[0][1][0], query.engineID, i[0][1][1])
+        rightCol = datahandler.DataHandler.get_column_object(i[0][2][0], query.engineID, i[0][2][1])
+        if i[0] == 'left':
+            if i[3] == '==':
+                SQLAQuery = select(columns, from_obj = [leftTable.outerjoin(joinTable, leftCol==rightCol)])
+        elif i[0] == 'inner':
+            if i[3] == '==':
+                SQLAQuery = select(columns, from_obj = [leftTable.join(joinTable, leftCol==rightCol)])                
+    except IndexError:
+        SQLAQuery = select(columns)
+
     if len(query.conditions.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
         SQLAQuery = SQLAQuery.where(return_where_conditions(query.conditions, query.engineID))
     return SQLAQuery
