@@ -115,7 +115,7 @@ class SetEditor(QueryCondEditor, wx.Panel):
         self.SetBackgroundColour('#C9C0BB')
 	self.setSizer = wx.BoxSizer( wx.VERTICAL )
 	fgSizer3 = wx.FlexGridSizer( 1, 7, 0, 0 )
-        fgSizer3.AddGrowableCol( 4,1 )
+        fgSizer3.AddGrowableCol( 4,0 )
 	fgSizer3.SetFlexibleDirection( wx.HORIZONTAL )
 	fgSizer3.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 	
@@ -254,13 +254,13 @@ class QueryPanel(wx.Panel):
     def add_condition(self):
         """Add element to set of conditions"""
         c = ConditionEditor(self, 6)
-        self.bSizer1.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
+        self.bSizer1.Insert(0, c.topSizer, 0, wx.EXPAND | wx.ALL)
         self.Layout()
 
     def add_set(self):
         """Add element to set of conditions"""
         c = SetEditor(self, 6)
-        self.bSizer1.Insert(1, c.topSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT)
+        self.bSizer1.Insert(0, c, 0, wx.EXPAND | wx.LEFT | wx.RIGHT)
         self.Layout()	
         
 class TestFrame( wx.Frame ):
