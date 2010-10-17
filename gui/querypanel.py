@@ -5,6 +5,59 @@ import wx.lib.inspection
 
 
 
+
+class WhereEditor(object):
+    """
+    This is the class containing everything else needed in the where clause of the query.
+    """
+    parent = None
+    panel = None
+    logicChoices = [ u"all", u"any" ]
+    
+    def __init__(self, parent):
+        """Setup"""
+        self.parent = parent
+        self.panel = wx.Panel( parent, -1, style = wx.TAB_TRAVERSAL | wx.SUNKEN_BORDER)
+        self.panel.SetBackgroundColour('#C9C0BB')
+        
+	self.topSizer = wx.BoxSizer( wx.VERTICAL )
+
+	fgSizer3 = wx.FlexGridSizer( 1, 6, 0, 0 )
+        fgSizer3.AddGrowableCol( 4,1 )
+	fgSizer3.SetFlexibleDirection( wx.HORIZONTAL )
+	fgSizer3.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+	
+	self.stDesc1 = wx.StaticText( parent, wx.ID_ANY, u"Match", wx.DefaultPosition, wx.DefaultSize, 0 )
+	self.stDesc1.Wrap( -1 )
+	fgSizer3.Add( self.stDesc1, 0, wx.ALL, 5 )
+	
+	self.choiceLogic = wx.Choice( parent, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.logicChoices, 0 )
+	self.choiceLogic.SetSelection( 0 )
+	fgSizer3.Add( self.choiceLogic, 0, wx.ALL, 5 )
+	
+	self.stDesc2 = wx.StaticText( parent, wx.ID_ANY, u"of the following conditions:", wx.DefaultPosition, wx.DefaultSize, 0 )
+	self.stDesc2.Wrap( -1 )
+	fgSizer3.Add( self.stDesc2, 0, wx.ALL, 5 )
+
+        fgSizer3.Add((0, 0), 1, wx.EXPAND)
+	# Control Buttons
+	self.btnAdd = wx.Button( parent, wx.ID_ANY, u"+", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
+	fgSizer3.Add( self.btnAdd, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
+	
+	self.btnSub = wx.Button( parent, wx.ID_ANY, u"...", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
+        fgSizer3.Add( self.btnSub, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
+	
+	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND, 5 )
+        self.topSizer.Add( self.panel, 1, wx.ALL | wx.EXPAND, 5)
+	#self.panel.SetAutoLayout(True)
+	#self.panel.SetSizer(self.topSizer)
+	#self.parent.Layout()
+
+        #bind events
+        #self.btnAdd.Bind(wx.EVT_BUTTON, self.add_element)
+    
+
+    
 class QueryCondEditor(object):
     """
     This is the abstract class for the editor for query conditions
@@ -32,6 +85,7 @@ class QueryCondEditor(object):
         """Add a sub element to conditions"""
         pass
     
+
 
 class SetEditor(QueryCondEditor, wx.Panel):
     logicChoices = [ u"all", u"any" ]
@@ -72,19 +126,21 @@ class SetEditor(QueryCondEditor, wx.Panel):
         fgSizer3.Add( self.btnSub, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
 	
 	self.setSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND, 5 )
-        self.btnAdd.Bind(wx.EVT_BUTTON, self.add_sub_element)
+        self.btnAdd.Bind(wx.EVT_BUTTON, self.add_element)
 	self.SetAutoLayout(True)
 	self.SetSizer(self.setSizer)
 	self.Layout()
 
     def add_element(self, evt):
         """Add element to set of conditions"""
-        pass
+        c = ConditionEditor(self, 6)
+        self.setSizer.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
+        self.Layout()
 
     def add_sub_element(self, evt):
         """Add a sub element to conditions"""
         c = ConditionEditor(self, 6)
-        self.setSizer.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
+        #self.setSizer.Add(SetEditor(, 0, wx.EXPAND | wx.ALL)
         self.Layout()
 
 
@@ -188,9 +244,8 @@ class TestFrame( wx.Frame ):
         wx.Frame.__init__(self, parent, id, title)
         panel = wx.Panel(self, -1)
         vbox = wx.BoxSizer(wx.VERTICAL)
-        subPanel = QueryPanel(panel)
-        subPanel.SetBackgroundColour('#C9C0BB')
-        vbox.Add(subPanel, 1, wx.EXPAND | wx.ALL, 20)
+        whereEditor = WhereEditor(panel)
+        vbox.Add(whereEditor.topSizer, 1, wx.EXPAND | wx.ALL, 20)
         
         panel.SetAutoLayout(True)
         panel.SetSizer(vbox)
