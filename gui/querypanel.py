@@ -17,8 +17,7 @@ class WhereEditor(object):
     def __init__(self, parent):
         """Setup"""
         self.parent = parent
-        self.panel = wx.Panel( parent, -1, style = wx.TAB_TRAVERSAL | wx.SUNKEN_BORDER)
-        self.panel.SetBackgroundColour('#C9C0BB')
+        self.panel = QueryPanel(parent)
         
 	self.topSizer = wx.BoxSizer( wx.VERTICAL )
 
@@ -49,12 +48,6 @@ class WhereEditor(object):
 	
 	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND, 5 )
         self.topSizer.Add( self.panel, 1, wx.ALL | wx.EXPAND, 5)
-	self.panel.SetAutoLayout(True)
-	#self.panel.SetSizer(self.topSizer)
-	#self.parent.Layout()
-
-        #bind events
-        #self.btnAdd.Bind(wx.EVT_BUTTON, self.add_element)
     
 
     
@@ -225,16 +218,13 @@ class ConditionEditorControl(object):
 
 class QueryPanel(wx.Panel):
     """The panel for a query editor"""
-    editors = []
 
     def __init__( self, parent ):
 	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
-
+        self.SetBackgroundColour('#C9C0BB')
 
 	bSizer1 = wx.BoxSizer( wx.VERTICAL )
-        bSizer1.Add(SetEditor(self, 1),  1,  wx.ALL| wx.EXPAND, 5)
         self.SetSizer( bSizer1 )
-        
 	self.Layout()
         
 	
