@@ -3,8 +3,29 @@ import wx
 #from pubsub import pub
 import wx.lib.inspection
 
+class WhereController(object):
+    """
+    This class handles the gui events etc relating to the where clause
+    """
+    wherePanel = None
+    
+    def __init__(self):
+        """Initialize stuff so events can be monitored"""
+        
+        frame = TestFrame(None, -1, '')
+        self.wherePanel = frame.whereEditor
+        #bind to events
+        self.wherePanel.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
+        self.wherePanel.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
 
+    def add_condition(self, evt):
+        """Add condition to top level"""
+        self.wherePanel.add_condition()
 
+    def add_set(self, evt):
+        """Add condition set to top level"""
+        self.wherePanel.add_set()
+        
 
 class WhereEditor(object):
     """
@@ -18,7 +39,6 @@ class WhereEditor(object):
         """Setup"""
         self.parent = parent
         self.panel = QueryPanel(parent)
-        
 	self.topSizer = wx.BoxSizer( wx.VERTICAL )
 
 	fgSizer3 = wx.FlexGridSizer( 1, 6, 0, 0 )
@@ -48,8 +68,12 @@ class WhereEditor(object):
 	
 	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND, 5 )
         self.topSizer.Add( self.panel, 1, wx.ALL | wx.EXPAND, 5)
-    
 
+    def add_condition(self):
+        self.panel.add_condition()
+
+    def add_set(self):
+        self.panel.add_set()
     
 class QueryCondEditor(object):
     """
@@ -223,19 +247,30 @@ class QueryPanel(wx.Panel):
 	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
         self.SetBackgroundColour('#C9C0BB')
 
-	bSizer1 = wx.BoxSizer( wx.VERTICAL )
-        self.SetSizer( bSizer1 )
+	self.bSizer1 = wx.BoxSizer( wx.VERTICAL )
+        self.SetSizer( self.bSizer1 )
 	self.Layout()
-        
-	
+
+    def add_condition(self):
+        """Add element to set of conditions"""
+        c = ConditionEditor(self, 6)
+        self.bSizer1.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
+        self.Layout()
+
+    def add_set(self):
+        """Add element to set of conditions"""
+        c = SetEditor(self, 6)
+        self.bSizer1.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
+        self.Layout()	
         
 class TestFrame( wx.Frame ):
+    
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title)
         panel = wx.Panel(self, -1)
         vbox = wx.BoxSizer(wx.VERTICAL)
-        whereEditor = WhereEditor(panel)
-        vbox.Add(whereEditor.topSizer, 1, wx.EXPAND | wx.ALL, 20)
+        self.whereEditor = WhereEditor(panel)
+        vbox.Add(self.whereEditor.topSizer, 1, wx.EXPAND | wx.ALL, 20)
         
         panel.SetAutoLayout(True)
         panel.SetSizer(vbox)
@@ -248,8 +283,16 @@ class TestFrame( wx.Frame ):
 def editor_factory(parent, parentSizer, listOfEditors):
     pass
 
+class Application(wx.App):
 
-app = wx.App()
-wx.lib.inspection.InspectionTool().Show()
-TestFrame(None, -1, '')
+    def __init__(self):
+        wx.App.__init__(self)
+
+        #init objects
+        self.controller = WhereController()
+
+app = Application()
+#wx.lib.inspection.InspectionTool().Show()
+
+
 app.MainLoop()
