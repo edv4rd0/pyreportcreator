@@ -260,7 +260,7 @@ class QueryPanel(wx.Panel):
     def add_set(self):
         """Add element to set of conditions"""
         c = SetEditor(self, 6)
-        self.bSizer1.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
+        self.bSizer1.Insert(1, c.topSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT)
         self.Layout()	
         
 class TestFrame( wx.Frame ):
