@@ -49,7 +49,7 @@ class WhereEditor(object):
 	
 	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND, 5 )
         self.topSizer.Add( self.panel, 1, wx.ALL | wx.EXPAND, 5)
-	#self.panel.SetAutoLayout(True)
+	self.panel.SetAutoLayout(True)
 	#self.panel.SetSizer(self.topSizer)
 	#self.parent.Layout()
 
