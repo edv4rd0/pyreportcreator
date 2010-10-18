@@ -1,6 +1,6 @@
 """Test code for a query editor"""
 import wx
-#from pubsub import pub
+from pubsub import pub
 import wx.lib.inspection
 
 class WhereController(object):
@@ -19,8 +19,10 @@ class WhereController(object):
         #bind to events
         self.whereEditor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.whereEditor.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
-        
 
+        #pubsub subscriptions
+        pub.subscribe(self.add_child_condition, 'where.insert.condition')
+        
     def add_condition(self, evt):
         """Add condition to top level"""
         c = ConditionEditor(self.wherePanel, 6)
@@ -30,14 +32,16 @@ class WhereController(object):
 
     def add_set(self, evt):
         """Add condition set to top level"""
-        self.whereEditor.add_set()
+        s = SetEditor(self.wherePanel, 6)
+        self.wherePanel.add_set(s)
 
     def add_child_set(self, object):
         pass
         
-    def add_child_condition(self, object):
+    def add_child_condition(self, queryID, sizer):
         """Handles a message from pubsub"""
-        pass
+        if queryID == 0:
+            pass
 
 
 class WhereEditor(object):
@@ -84,11 +88,6 @@ class WhereEditor(object):
 	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND, 5 )
         self.topSizer.Add( self.panel, 1, wx.ALL | wx.EXPAND, 5)
 
-    def add_condition(self):
-        self.panel.add_condition()
-
-    def add_set(self):
-        self.panel.add_set()
     
 class QueryCondEditor(object):
     """
@@ -106,15 +105,6 @@ class QueryCondEditor(object):
         """
         self.parent = parent
         self.indentation = indentation
-
-    def add_element(self, evt):
-        """Add element to set of conditions"""
-        pass
-
-    def add_sub_element(self, evt):
-        """Add a sub element to conditions"""
-        pass
-    
 
 
 class SetEditor(QueryCondEditor, wx.Panel):
@@ -185,7 +175,6 @@ class ConditionEditor(QueryCondEditor):
     
     operations = ['contains', 'equals', 'is in', 'not in', 'does not contain', 'not equal to']
     date__opr = ['between', 'equals', 'not equal to', 'not between']
-
     
     def __init__(self, parent, id, indentation = 0):
         """Initialise editor interface"""
@@ -227,10 +216,6 @@ class ConditionEditor(QueryCondEditor):
 	self.topSizer.Add( self.btnSub, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
         
             
-    def compile_values(self):
-        """Grab the value of each control and return it"""
-        pass
-
     def init_value_contains(self):
         """Set up value contains field"""
         self.paramWidget = wx.TextCtrl(self.parent, -1, size = (200, -1))
@@ -249,6 +234,7 @@ class ConditionEditorControl(object):
     condition = None
     condType = None
     editor = None
+    conditionValues = []
     
     def __init__(self, conView):
         #self.id = id #this will get replaced by the condition ID
@@ -268,10 +254,15 @@ class ConditionEditorControl(object):
         #Must check type of column/field1 to determine what widgets to load
 
     def add_condition(self, evt):
-        """This handles the connection and sends a message with the object"""
-        obj = evt.GetObject()
-        print obj
+        """This handles the event and sends a message with the object"""
+        pub.sendMessage('where.insert.condition', queryID = 0, sizer = self.editor.topSizer)
 
+    def update_condition(self, evt):
+        """
+        This method is called in the event of the value of one of the condition widgets changing.
+        It sends a pubsub request which is picked up by the query object and it then will alter the model
+        """
+        pass
 
 class QueryPanel(wx.Panel):
     """The panel for a query editor"""
@@ -289,10 +280,9 @@ class QueryPanel(wx.Panel):
         self.bSizer1.Insert(0, condSizer, 0, wx.EXPAND | wx.ALL)
         self.Layout()
 
-    def add_set(self):
+    def add_set(self, condSet):
         """Add element to set of conditions"""
-        c = SetEditor(self, 6)
-        self.bSizer1.Insert(0, c, 0, wx.EXPAND | wx.LEFT | wx.RIGHT)
+        self.bSizer1.Insert(0, condSet, 0, wx.EXPAND | wx.LEFT | wx.RIGHT)
         self.Layout()
         
 class TestFrame( wx.Frame ):
