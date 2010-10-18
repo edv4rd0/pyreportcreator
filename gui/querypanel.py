@@ -14,8 +14,9 @@ class WhereController(object):
     def __init__(self):
         """Initialize stuff so events can be monitored"""
         
-        frame = TestFrame(None, -1, '')
-        self.whereEditor = frame.whereEditor
+        self.frame = TestFrame(None, -1, '')
+        
+        self.whereEditor = self.frame.whereEditor
         self.wherePanel = self.whereEditor.panel
         #bind to events
         self.whereEditor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
@@ -23,12 +24,12 @@ class WhereController(object):
 
         #pubsub subscriptions
         pub.subscribe(self.add_sibling_condition, 'where.insert.condition')
+        pub.subscribe(self.remove_condition, 'where.remove.condition')
         pub.subscribe(self.add_child_condition, 'where.set_insert.condition')
         
     def add_condition(self, evt):
         """Add condition to top level"""
         c = ConditionEditor(self.wherePanel, 6)
-        self.elementControllers.append(ConditionEditorControl(c))
         
         self.wherePanel.topSizer.Insert(0, c.topSizer, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.Layout()
@@ -37,36 +38,34 @@ class WhereController(object):
         """Add condition set to top level"""
 
         s = SetEditor(self.wherePanel, 6)
-        self.elementControllers.append(SetEditorControl(s))
         self.wherePanel.topSizer.Insert(0, s, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.Layout()
         
     def add_child_set(self, object):
         pass
+
+    def remove_condition(self, queryID, panel, condSizer):
+        """Remove a condition editor from the containing sizer"""
+        szItem = panel.topSizer.GetItem(condSizer)
+        #index = panel.topSizer.GetChildren().index(szItem)
+        condSizer.DeleteWindows()
+        panel.topSizer.Remove(condSizer)
+        panel.topSizer.Layout()
         
     def add_sibling_condition(self, queryID, sizer, parentSizer, panel, ind):
         """Handles a message from pubsub"""
         if queryID == 0:
             #get sizer and index
             
-            szItem = parentSizer.GetItem(sizer)
-            #print szItem.GetSizer()
-            print szItem
             szItem = panel.topSizer.GetItem(sizer)
-            print szItem.GetSizer()
-            print szItem
+
             index = panel.topSizer.GetChildren().index(szItem)
             
-            index +=1
+            index += 1 #insert below element
         
-            #insert below element
             #setup Editor
             c = ConditionEditor(panel, 6, ind)
-            self.elementControllers.append(ConditionEditorControl(c))
-            #if len(panel.topSizer.GetChildren()) > index:
             panel.topSizer.Insert( index, c.topSizer, 0, wx.EXPAND | wx.ALL)
-            #else:
-                
             panel.Layout()
             self.wherePanel.Layout()
             
@@ -75,13 +74,10 @@ class WhereController(object):
         if queryID == 0:
             #setup Editor
             c = ConditionEditor(panel, 6, ind)
-            self.elementControllers.append(ConditionEditorControl(c))
             
             parentSizer.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
             panel.Layout()
             self.wherePanel.Layout()
-            
-            
             
 
 class WhereEditor(object):
@@ -155,6 +151,8 @@ class SetEditor(QueryCondEditor, wx.Panel):
         """Initialise the set"""
         QueryCondEditor.__init__(self, parent, id, indentation)
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL)
+        
+        
         self.SetBackgroundColour('#C9C0BB')
 	self.topSizer = wx.BoxSizer( wx.VERTICAL )
 	fgSizer3 = wx.FlexGridSizer( 1, 7, 1, 1 )
@@ -187,9 +185,13 @@ class SetEditor(QueryCondEditor, wx.Panel):
 	
 	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND)
 
-	self.SetAutoLayout(True)
+	
 	self.SetSizer(self.topSizer)
+        self.SetAutoLayout(True)
 	self.Layout()
+
+        #initialise controller - yeah, weird but good way to handle the killing of the controller
+        self.controller = SetEditorControl(self)
 
     def get_index_in_top_sizer(self):
         self.topSizer.GetItem(self, True)
@@ -203,6 +205,8 @@ class ConditionEditor(QueryCondEditor):
     def __init__(self, parent, id, indentation = 0):
         """Initialise editor interface"""
         QueryCondEditor.__init__(self, parent, id, indentation)
+        
+
 
         self.topSizer = wx.FlexGridSizer( 1, 5, 1, 1 )
 
@@ -211,7 +215,7 @@ class ConditionEditor(QueryCondEditor):
 	self.topSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
         
         hBoxSizer = wx.BoxSizer( wx.HORIZONTAL )
-        hBoxSizer.SetDimension(1,1,200, -1)
+        #hBoxSizer.SetDimension(1,1,200, -1)
         if indentation > 0:
             hBoxSizer.AddSpacer(indentation, -1)
         
@@ -226,7 +230,7 @@ class ConditionEditor(QueryCondEditor):
 	self.choiceOperator.SetSelection( 0 )
 	hBoxSizer.Add( self.choiceOperator, 1,wx.ALL, 5 )
         #add box sizer with first three widgets to grid sizer
-        self.topSizer.Add(hBoxSizer, 1, wx.ALL)
+        self.topSizer.Add(hBoxSizer, 0, wx.ALL)
 	#The param widget(s)
 	self.paramWidget = wx.TextCtrl( parent, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (350, -1), 0)
 	self.topSizer.Add( self.paramWidget, 1, wx.EXPAND| wx.ALL, 5 )
@@ -238,6 +242,9 @@ class ConditionEditor(QueryCondEditor):
 
         self.btnSub = wx.Button( parent, wx.ID_ANY, u"...", wx.DefaultPosition, size = (40, -1))
 	self.topSizer.Add( self.btnSub, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
+
+        #set controller
+        self.controller = ConditionEditorControl(self)
         
             
     def init_value_contains(self):
@@ -301,6 +308,7 @@ class ConditionEditorControl(object):
         self.editor = conView
 
         self.editor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
+        self.editor.btnDel.Bind(wx.EVT_BUTTON, self.remove)
         
     def load_condition(self, condition):
         """
@@ -325,6 +333,11 @@ class ConditionEditorControl(object):
         It sends a pubsub request which is picked up by the query object and it then will alter the model
         """
         pass
+
+    def remove(self, evt):
+        """Remove self"""
+        sizer = self.editor.topSizer
+        pub.sendMessage('where.remove.condition', queryID = 0, panel = self.editor.parent, condSizer = sizer)
 
 class QueryPanel(wx.Panel):
     """The panel for a query editor"""
@@ -357,12 +370,13 @@ class TestFrame( wx.Frame ):
         self.whereEditor = WhereEditor(panel)
         vbox.Add(self.whereEditor.topSizer, 1, wx.EXPAND | wx.ALL, 20)
         
-        panel.SetAutoLayout(True)
+        
         panel.SetSizer(vbox)
+        panel.SetAutoLayout(True)
         panel.Layout()
 	self.Maximize()
         self.Centre()
-        self.Show(True)
+        
 
 
 class Application(wx.App):
@@ -372,6 +386,7 @@ class Application(wx.App):
 
         #init objects
         self.controller = WhereController()
+        self.controller.frame.Show()
 
 app = Application()
 wx.lib.inspection.InspectionTool().Show()
