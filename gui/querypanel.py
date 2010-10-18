@@ -3,6 +3,7 @@ import wx
 from pubsub import pub
 import wx.lib.inspection
 
+
 class WhereController(object):
     """
     This class handles the gui events etc relating to the where clause
@@ -21,7 +22,8 @@ class WhereController(object):
         self.whereEditor.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
 
         #pubsub subscriptions
-        pub.subscribe(self.add_child_condition, 'where.insert.condition')
+        pub.subscribe(self.add_sibling_condition, 'where.insert.condition')
+        pub.subscribe(self.add_child_condition, 'where.set_insert.condition')
         
     def add_condition(self, evt):
         """Add condition to top level"""
@@ -32,17 +34,41 @@ class WhereController(object):
 
     def add_set(self, evt):
         """Add condition set to top level"""
-        s = SetEditor(self.wherePanel, 6)
-        self.wherePanel.add_set(s)
 
+        s = SetEditor(self.wherePanel, 6)
+        
+        self.wherePanel.topSizer.Insert(0, s, 0, wx.EXPAND | wx.ALL)
+        self.wherePanel.Layout()
+        
     def add_child_set(self, object):
         pass
         
-    def add_child_condition(self, queryID, sizer):
+    def add_sibling_condition(self, queryID, sizer, parentSizer):
         """Handles a message from pubsub"""
         if queryID == 0:
-            pass
+            #get sizer and index
+            szItem = parentSizer.GetItem(sizer)
+            index = parentSizer.GetChildren().index(szItem)
+            print index
+            index += 1 #insert below element
+            #setup Editor
+            c = ConditionEditor(self.wherePanel, 6)
+            self.elementControllers.append(ConditionEditorControl(c))
+            
+            parentSizer.Insert( index, c.topSizer, 0, wx.EXPAND | wx.ALL)
+            self.wherePanel.Layout()
 
+    def add_child_condition(self, queryID, parentSizer, ind):
+        if queryID == 0:
+            #setup Editor
+            c = ConditionEditor(self.wherePanel, 6)
+            self.elementControllers.append(ConditionEditorControl(c))
+            
+            parentSizer.Insert( 0, c.topSizer, 0, wx.EXPAND | wx.ALL)
+            
+            self.wherePanel.Layout()
+            
+            
 
 class WhereEditor(object):
     """
@@ -116,7 +142,7 @@ class SetEditor(QueryCondEditor, wx.Panel):
         QueryCondEditor.__init__(self, parent, id, indentation)
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL)
         self.SetBackgroundColour('#C9C0BB')
-	self.setSizer = wx.BoxSizer( wx.VERTICAL )
+	self.topSizer = wx.BoxSizer( wx.VERTICAL )
 	fgSizer3 = wx.FlexGridSizer( 1, 7, 1, 1 )
         fgSizer3.AddGrowableCol( 4,0 )
 	fgSizer3.SetFlexibleDirection( wx.HORIZONTAL )
@@ -145,29 +171,16 @@ class SetEditor(QueryCondEditor, wx.Panel):
 	self.btnSub = wx.Button( self, wx.ID_ANY, u"...", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
         fgSizer3.Add( self.btnSub, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
 	
-	self.setSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND)
-        self.btnAdd.Bind(wx.EVT_BUTTON, self.add_element)
+	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND)
+
 	self.SetAutoLayout(True)
-	self.SetSizer(self.setSizer)
+	self.SetSizer(self.topSizer)
 	self.Layout()
 
     def get_index_in_top_sizer(self):
-        self.setSizer.GetItem(self, True)
+        self.topSizer.GetItem(self, True)
 
-    def add_element(self, evt):
-        """Add element to set of conditions"""
-        ind = self.indentation + 20
-        c = ConditionEditor(self, 6, ind)
-        self.setSizer.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
-        self.Layout()
-        self.parent.Layout()
 
-    def add_sub_element(self, evt):
-        """Add a sub element to conditions"""
-        ind = self.indentation + 20
-        c = ConditionEditor(self, 6, ind)
-        #self.setSizer.Add(SetEditor(, 0, wx.EXPAND | wx.ALL)
-        self.Layout()
 
 
 
@@ -182,7 +195,7 @@ class ConditionEditor(QueryCondEditor):
 
         self.topSizer = wx.FlexGridSizer( 1, 5, 1, 1 )
 
-        self.topSizer.AddGrowableCol( 1, 0 )
+        self.topSizer.AddGrowableCol( 1 )
 	self.topSizer.SetFlexibleDirection( wx.HORIZONTAL )
 	self.topSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
         
@@ -192,19 +205,19 @@ class ConditionEditor(QueryCondEditor):
             hBoxSizer.AddSpacer(indentation, -1)
         
 	self.btnDataItem = wx.Button( parent, wx.ID_ANY, u"Column...", wx.DefaultPosition, wx.DefaultSize, 0 )
-	hBoxSizer.Add( self.btnDataItem, 1, wx.EXPAND | wx.ALL, 5 )
+	hBoxSizer.Add( self.btnDataItem, 0, wx.ALL, 5 )
 	
 	self.stColumn = wx.StaticText(parent, wx.ID_ANY, "Select a column", wx.DefaultPosition, wx.DefaultSize, 0 )
 	self.stColumn.Wrap( -1 )
-	hBoxSizer.Add( self.stColumn, 1, wx.EXPAND |wx.ALL, 5 )
+	hBoxSizer.Add( self.stColumn, 0,wx.ALL, 5 )
 	
 	self.choiceOperator = wx.Choice( parent, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.operations, 0 )
 	self.choiceOperator.SetSelection( 0 )
-	hBoxSizer.Add( self.choiceOperator, 1, wx.ALL, 5 )
+	hBoxSizer.Add( self.choiceOperator, 0,wx.ALL, 5 )
         #add box sizer with first three widgets to grid sizer
         self.topSizer.Add(hBoxSizer, 1, wx.ALL)
 	#The param widget(s)
-	self.paramWidget = wx.TextCtrl( parent, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (-1, -1), 0)
+	self.paramWidget = wx.TextCtrl( parent, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (350, -1), 0)
 	self.topSizer.Add( self.paramWidget, 1, wx.EXPAND| wx.ALL, 5 )
 
         self.btnDel = wx.Button( parent, wx.ID_ANY, u" - ", wx.DefaultPosition, size = (40, -1))
@@ -224,8 +237,43 @@ class ConditionEditor(QueryCondEditor):
         """Handles the on click event on the operations combo box"""
         if self.CBoperator.GetValue() == 'contains':
             self.init_value_contains()
-            
-            
+
+class SetEditorControl(object):
+    """This class implements a row of widgets for specifying a condition"""
+    id = None
+    condition = None
+    condType = None
+    editor = None
+
+    
+    def __init__(self, conView):
+        #self.id = id #this will get replaced by the condition ID
+        #self.condition = None
+        self.editor = conView
+
+        self.editor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
+        
+    def load_condition(self, condition):
+        """
+        This method accepts a condition object and loads it into the widget
+        """
+        self.id = condition.condID
+        self.condition = condition
+        #Now load any elements into appropriate controls
+        
+        #Must check type of column/field1 to determine what widgets to load
+
+    def add_condition(self, evt):
+        """This handles the event and sends a message with the object"""
+        indentation += 30
+        parentSizer = self.editor.topSizer
+        pub.sendMessage('where.set_insert.condition', queryID = 0, parentSizer = parentSizer, ind = indentation)
+
+    def update_choice(self, evt):
+        """
+        This method handles the choice  with values 'any' , 'all' being updated.
+        """
+        pass
     
 
 class ConditionEditorControl(object):
@@ -255,7 +303,10 @@ class ConditionEditorControl(object):
 
     def add_condition(self, evt):
         """This handles the event and sends a message with the object"""
-        pub.sendMessage('where.insert.condition', queryID = 0, sizer = self.editor.topSizer)
+        
+        parentSizer = self.editor.parent.topSizer
+        sizer = self.editor.topSizer
+        pub.sendMessage('where.insert.condition', queryID = 0, sizer = sizer, parentSizer = parentSizer)
 
     def update_condition(self, evt):
         """
@@ -271,18 +322,19 @@ class QueryPanel(wx.Panel):
 	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
         self.SetBackgroundColour('#C9C0BB')
 
-	self.bSizer1 = wx.BoxSizer( wx.VERTICAL )
-        self.SetSizer( self.bSizer1 )
+	self.topSizer = wx.BoxSizer( wx.VERTICAL )
+        self.SetAutoLayout(True)
+        self.SetSizer( self.topSizer )
 	self.Layout()
 
     def add_condition(self, condSizer):
         """Add element to set of conditions"""
-        self.bSizer1.Insert(0, condSizer, 0, wx.EXPAND | wx.ALL)
+        self.topSizer.Insert(0, condSizer, 0, wx.EXPAND | wx.ALL)
         self.Layout()
 
     def add_set(self, condSet):
         """Add element to set of conditions"""
-        self.bSizer1.Insert(0, condSet, 0, wx.EXPAND | wx.LEFT | wx.RIGHT)
+        self.topSizer.Insert(0, condSet, 0, wx.EXPAND | wx.LEFT | wx.RIGHT)
         self.Layout()
         
 class TestFrame( wx.Frame ):
@@ -301,9 +353,6 @@ class TestFrame( wx.Frame ):
         self.Centre()
         self.Show(True)
 
-
-def editor_factory(parent, parentSizer, listOfEditors):
-    pass
 
 class Application(wx.App):
 
