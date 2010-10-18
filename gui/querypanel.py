@@ -30,43 +30,57 @@ class WhereController(object):
         c = ConditionEditor(self.wherePanel, 6)
         self.elementControllers.append(ConditionEditorControl(c))
         
-        self.wherePanel.add_condition(c.topSizer)
-
+        self.wherePanel.topSizer.Insert(0, c.topSizer, 0, wx.EXPAND | wx.ALL)
+        self.wherePanel.Layout()
+        
     def add_set(self, evt):
         """Add condition set to top level"""
 
         s = SetEditor(self.wherePanel, 6)
-        
+        self.elementControllers.append(SetEditorControl(s))
         self.wherePanel.topSizer.Insert(0, s, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.Layout()
         
     def add_child_set(self, object):
         pass
         
-    def add_sibling_condition(self, queryID, sizer, parentSizer):
+    def add_sibling_condition(self, queryID, sizer, parentSizer, panel, ind):
         """Handles a message from pubsub"""
         if queryID == 0:
             #get sizer and index
-            szItem = parentSizer.GetItem(sizer)
-            index = parentSizer.GetChildren().index(szItem)
-            print index
-            index += 1 #insert below element
-            #setup Editor
-            c = ConditionEditor(self.wherePanel, 6)
-            self.elementControllers.append(ConditionEditorControl(c))
             
-            parentSizer.Insert( index, c.topSizer, 0, wx.EXPAND | wx.ALL)
+            szItem = parentSizer.GetItem(sizer)
+            #print szItem.GetSizer()
+            print szItem
+            szItem = panel.topSizer.GetItem(sizer)
+            print szItem.GetSizer()
+            print szItem
+            index = panel.topSizer.GetChildren().index(szItem)
+            
+            index +=1
+        
+            #insert below element
+            #setup Editor
+            c = ConditionEditor(panel, 6, ind)
+            self.elementControllers.append(ConditionEditorControl(c))
+            #if len(panel.topSizer.GetChildren()) > index:
+            panel.topSizer.Insert( index, c.topSizer, 0, wx.EXPAND | wx.ALL)
+            #else:
+                
+            panel.Layout()
             self.wherePanel.Layout()
+            
 
-    def add_child_condition(self, queryID, parentSizer, ind):
+    def add_child_condition(self, queryID, parentSizer, ind, panel):
         if queryID == 0:
             #setup Editor
-            c = ConditionEditor(self.wherePanel, 6)
+            c = ConditionEditor(panel, 6, ind)
             self.elementControllers.append(ConditionEditorControl(c))
             
-            parentSizer.Insert( 0, c.topSizer, 0, wx.EXPAND | wx.ALL)
-            
+            parentSizer.Insert(1, c.topSizer, 0, wx.EXPAND | wx.ALL)
+            panel.Layout()
             self.wherePanel.Layout()
+            
             
             
 
@@ -181,9 +195,6 @@ class SetEditor(QueryCondEditor, wx.Panel):
         self.topSizer.GetItem(self, True)
 
 
-
-
-
 class ConditionEditor(QueryCondEditor):
     
     operations = ['contains', 'equals', 'is in', 'not in', 'does not contain', 'not equal to']
@@ -213,7 +224,7 @@ class ConditionEditor(QueryCondEditor):
 	
 	self.choiceOperator = wx.Choice( parent, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.operations, 0 )
 	self.choiceOperator.SetSelection( 0 )
-	hBoxSizer.Add( self.choiceOperator, 0,wx.ALL, 5 )
+	hBoxSizer.Add( self.choiceOperator, 1,wx.ALL, 5 )
         #add box sizer with first three widgets to grid sizer
         self.topSizer.Add(hBoxSizer, 1, wx.ALL)
 	#The param widget(s)
@@ -265,9 +276,9 @@ class SetEditorControl(object):
 
     def add_condition(self, evt):
         """This handles the event and sends a message with the object"""
-        indentation += 30
+        ind = self.editor.indentation + 30
         parentSizer = self.editor.topSizer
-        pub.sendMessage('where.set_insert.condition', queryID = 0, parentSizer = parentSizer, ind = indentation)
+        pub.sendMessage('where.set_insert.condition', queryID = 0, parentSizer = parentSizer, ind = ind, panel = self.editor)
 
     def update_choice(self, evt):
         """
@@ -304,9 +315,9 @@ class ConditionEditorControl(object):
     def add_condition(self, evt):
         """This handles the event and sends a message with the object"""
         
-        parentSizer = self.editor.parent.topSizer
+        parentSizer = self.editor.topSizer
         sizer = self.editor.topSizer
-        pub.sendMessage('where.insert.condition', queryID = 0, sizer = sizer, parentSizer = parentSizer)
+        pub.sendMessage('where.insert.condition', queryID = 0, sizer = sizer, parentSizer = parentSizer, panel = self.editor.parent, ind = self.editor.indentation)
 
     def update_condition(self, evt):
         """
