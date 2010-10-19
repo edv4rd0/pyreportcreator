@@ -47,10 +47,11 @@ class WhereController(object):
     def remove_condition(self, queryID, panel, condSizer):
         """Remove a condition editor from the containing sizer"""
         szItem = panel.topSizer.GetItem(condSizer)
-        #index = panel.topSizer.GetChildren().index(szItem)
         condSizer.DeleteWindows()
         panel.topSizer.Remove(condSizer)
-        panel.topSizer.Layout()
+        panel.Layout()
+        self.wherePanel.Layout()
+        
         
     def add_sibling_condition(self, queryID, sizer, parentSizer, panel, ind):
         """Handles a message from pubsub"""
