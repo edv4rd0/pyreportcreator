@@ -27,6 +27,7 @@ class WhereController(object):
         pub.subscribe(self.remove_condition, 'where.remove.condition')
         pub.subscribe(self.add_child_condition, 'where.set_insert.condition')
         pub.subscribe(self.remove_set, 'where.remove.set')
+        pub.subscribe(self.add_sibling_set, 'where.insert.sub_set')
         
     def add_condition(self, evt):
         """Add condition to top level"""
@@ -48,13 +49,17 @@ class WhereController(object):
 
     def remove_condition(self, queryID, panel, condSizer):
         """Remove a condition editor from the containing sizer"""
-        szItem = panel.topSizer.GetItem(condSizer)
-        condSizer.DeleteWindows()
-        panel.topSizer.Remove(condSizer)
-        panel.Layout()
-        self.wherePanel.Layout()
+        if queryID == 0:
+            try:
+                condSizer.DeleteWindows()
+            except AttributeError: #if condSizer is an int (when deleting a set whith children)
+                panel.topSizer.GetItem(condSizer).DeleteWindows()
 
-    def remove_set(self, queryID, parentPanel, panel, condSet):
+            panel.topSizer.Remove(condSizer)
+            panel.Layout()
+            self.wherePanel.Layout()
+
+    def remove_set(self, queryID, parentPanel, panel):
         """
         Remove a query set from the where condition.
         This must check for any child conditions.
@@ -65,10 +70,19 @@ class WhereController(object):
           - update the panel
         @Params:
         parentPanel: the panel of the parent condition set, or the top QueryPanel
-        panel: the actual panel to me removed from the view
-        condSet: the object which we must remove
+        panel: the actual panel to be removed from the view
         """
-        pass
+        if queryID == 0:
+            children = [j for j in panel.topSizer.GetChildren()]
+            for i in children[1:]:
+                index = panel.topSizer.GetChildren().index(i)
+                self.remove_condition(queryID, panel, index)
+
+            panel.topSizer.DeleteWindows()
+            panel.Destroy()
+            parentPanel.Layout()
+
+            
         
     def add_sibling_condition(self, queryID, sizer, panel, ind):
         """Handles a message from pubsub"""
@@ -192,13 +206,16 @@ class SetEditor(QueryCondEditor, wx.Panel):
         self.SetBackgroundColour('#C9C0BB')
 	self.topSizer = wx.BoxSizer( wx.VERTICAL )
         #set indentation of element
-        if indentation == 0:
-            fgSizer3 = wx.FlexGridSizer( 1, 7, 1, 1 )
-            fgSizer3.AddGrowableCol( 4,0 )
-        else:
-            fgSizer3 = wx.FlexGridSizer( 1, 8, 1, 1 )
-            fgSizer3.AddGrowableCol( 5,0 )
-            fgSizer3.Add((indentation, -1), 0)
+        #if indentation == 0:
+        #    fgSizer3 = wx.FlexGridSizer( 1, 7, 1, 1 )
+        #    fgSizer3.AddGrowableCol( 4,0 )
+        #else:
+        #    fgSizer3 = wx.FlexGridSizer( 1, 8, 1, 1 )
+        #    fgSizer3.AddGrowableCol( 5,0 )
+        #    fgSizer3.Add((indentation, -1), 0)
+        # Commented out: no arbitrary indentation in this version
+        fgSizer3 = wx.FlexGridSizer( 1, 6, 1, 1 )
+        fgSizer3.AddGrowableCol( 4,0 )
 
         #define rest of presentation
 	fgSizer3.SetFlexibleDirection( wx.HORIZONTAL )
@@ -223,9 +240,10 @@ class SetEditor(QueryCondEditor, wx.Panel):
 	
 	self.btnAdd = wx.Button( self, wx.ID_ANY, u"+", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
 	fgSizer3.Add( self.btnAdd, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
-	
-	self.btnSub = wx.Button( self, wx.ID_ANY, u"...", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
-        fgSizer3.Add( self.btnSub, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
+
+	#NOTE: Not going to support huge levels of sub sonditions in this version
+	#self.btnSub = wx.Button( self, wx.ID_ANY, u"...", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
+        #fgSizer3.Add( self.btnSub, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
 	
 	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND)
 
@@ -249,7 +267,7 @@ class ConditionEditor(QueryCondEditor):
     def __init__(self, parent, id, indentation = 0):
         """Initialise editor interface"""
         QueryCondEditor.__init__(self, parent, id, indentation)
-        
+        parent.ClearBackground()
         #We are not going to have hugely deep nested conditions in this version
         if indentation == 0:
             self.topSizer = wx.FlexGridSizer( 1, 5, 1, 1 )
@@ -311,6 +329,7 @@ class SetEditorControl(object):
         self.editor = conView
 
         self.editor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
+        self.editor.btnDel.Bind(wx.EVT_BUTTON, self.remove_set)
         
     def load_condition(self, condition):
         """
@@ -328,11 +347,18 @@ class SetEditorControl(object):
         parentSizer = self.editor.topSizer
         pub.sendMessage('where.set_insert.condition', queryID = 0, parentSizer = parentSizer, ind = ind, panel = self.editor)
 
+    def remove_set(self, evt):
+        """
+        Remove set and contained widgets
+        """
+        pub.sendMessage('where.remove.set', queryID = 0, parentPanel = self.editor.parent, panel = self.editor)
+
     def update_choice(self, evt):
         """
         This method handles the choice  with values 'any' , 'all' being updated.
         """
         pass
+    
     
 
 class ConditionEditorControl(object):
