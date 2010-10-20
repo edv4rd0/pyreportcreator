@@ -23,6 +23,7 @@ class DataItemsDialog(wx.Dialog):
         #dummy data
         r = self.treeDataItems.AddRoot("text")
         t = self.treeDataItems.AppendItem(r, "Table")
+        self.treeDataItems.SetPyData(t, "table")
         self.treeDataItems.AppendItem(t, "column")
         #help(self.treeDataItems)
         #select items buttons
@@ -62,7 +63,8 @@ class DataItemsDialogController(object):
 
     def add(self, evt):
         selectedItem = self.dlg.treeDataItems.GetSelection()
-        print selectedItem
+        if self.dlg.treeDataItems.GetPyData(selectedItem) == 'table':
+            print "YO!"
 #---------------------------------------------------------
 
 
