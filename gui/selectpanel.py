@@ -85,22 +85,19 @@ class SelectPanel(wx.Panel):
         #self.SetBackgroundColour('#C9C0BB')
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         #select items area
-        self.selectSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.treeDataItems = wx.TreeCtrl(self, size = (-1, 200), style = wx.SUNKEN_BORDER)
         self.lcSelect = wx.ListCtrl(self, size = (-1,200), style = wx.SUNKEN_BORDER)
-        self.selectSizer.Add(self.treeDataItems, 1, wx.EXPAND | wx.ALL, 5)
        
-
+        self.topSizer.Add(self.lcSelect, 1, wx.EXPAND | wx.ALL, 5)
         #select items buttons
-        self.sizerButtons = wx.BoxSizer(wx.VERTICAL)
-        self.btnAddSelect = wx.Button(self, -1, ">", size = (30, -1))
-        self.sizerButtons.Add(self.btnAddSelect, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        self.btnRemoveItem = wx.Button(self, -1, "<", size = (30, -1))
-        self.sizerButtons.Add(self.btnRemoveItem, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
-        self.selectSizer.Add(self.sizerButtons, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.selectSizer.Add(self.lcSelect, 1, wx.EXPAND | wx.ALL, 5)
+        self.sizerButtons = wx.BoxSizer(wx.HORIZONTAL)
+        self.btnRemoveItem = wx.Button(self, -1, "Remove Selected", size = (-1, -1))
+        self.sizerButtons.Add(self.btnRemoveItem, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
         
-        self.topSizer.Add(self.selectSizer, 0, wx.EXPAND)
+        self.btnAddSelect = wx.Button(self, -1, "Add Item...", size = (-1, -1))
+        self.sizerButtons.Add(self.btnAddSelect, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+        
+        
+        self.topSizer.Add(self.sizerButtons, 0, wx.ALIGN_RIGHT)
         
         self.SetAutoLayout(True)
         self.SetSizer( self.topSizer )
