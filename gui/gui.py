@@ -1,4 +1,5 @@
 import wx
+import mainpanel
 
 class MainToolBar(object):
     """defines the main toolbar"""
@@ -50,12 +51,14 @@ class DataPanel(object):
     def __init__(self, fpb):
         """Set up layout"""
         self.panelDataObjects = fpb.AddFoldPanel("Data Objects")
-        #self.treeCtrlDataItems = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
-        self.treeCtrlDataItems = wx.TreeCtrl(self.panelDataObjects, -1)
+        
+        self.treeCtrlDataItems = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
         self.treeCtrlDataItems.AddRoot('root')
         fpb.AddFoldPanelWindow(self.panelDataObjects, self.treeCtrlDataItems)
         # index of data items in treectrl
         self.dataIndex = dict()
+
+        #bind events
 
     def add_database(self, name, connID, address, type):
         """Extract info from meta data object and populate TreeCtrl"""
@@ -98,48 +101,58 @@ class SidePanel(object):
 
 
 class MainFrame ( wx.Frame ):
+    """This is the main frame of the application"""
+    def __init__( self, parent ):
+        wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"Edward's Report Creator", pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+               
+        self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
+           
+        bSizer1 = wx.BoxSizer( wx.HORIZONTAL )
+                
+        self.splitWindow = wx.SplitterWindow( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.SP_3D | wx.SP_BORDER )
+        self.splitWindow.SetMinimumPaneSize(1)
+        #just some presentation related events which need handling
+        self.splitWindow.Bind( wx.EVT_IDLE, self.splitWindowOnIdle )
+        self.splitWindow.Bind(wx.EVT_SPLITTER_DCLICK, self.dclick)
         
-        def __init__( self, parent ):
-                wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"Edward's Report Creator", pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
-                
-                self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
-                
-                bSizer1 = wx.BoxSizer( wx.HORIZONTAL )
-                
-                self.splitWindow = wx.SplitterWindow( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.SP_3D )
-                self.splitWindow.Bind( wx.EVT_IDLE, self.splitWindowOnIdle )
-                
-                self.splitPanelLeft = wx.Panel( self.splitWindow, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
-                bSizer3 = wx.BoxSizer( wx.VERTICAL )
-                
-                self.splitPanelLeft.SetSizer( bSizer3 )
-                self.splitPanelLeft.Layout()
-                bSizer3.Fit( self.splitPanelLeft )
-                #left panel contents added in here
-                self.sidePanel = SidePanel(self.splitPanelLeft, bSizer3)
-                #end left panel contents
-                self.splitPanelRight = wx.Panel( self.splitWindow, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
-                bSizer2 = wx.BoxSizer( wx.VERTICAL )
-                
-                self.mainNoteBook = wx.Notebook( self.splitPanelRight, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0 )
-                
-                bSizer2.Add( self.mainNoteBook, 1, wx.EXPAND |wx.ALL, 5 )
-                
-                self.splitPanelRight.SetSizer( bSizer2 )
-                self.splitPanelRight.Layout()
-                bSizer2.Fit( self.splitPanelRight )
-                self.splitWindow.SplitVertically( self.splitPanelLeft, self.splitPanelRight, 200 )
-                bSizer1.Add( self.splitWindow, 1, wx.EXPAND, 5 )
-                
-                self.SetSizer( bSizer1 )
-                self.Layout()
-                self.mainStatusBar = self.CreateStatusBar( 1, wx.ST_SIZEGRIP, wx.ID_ANY )
-                
-                self.Centre( wx.BOTH )
+        self.splitPanelLeft = wx.Panel( self.splitWindow, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
         
-        def __del__( self ):
-                pass
+        bSizer3 = wx.BoxSizer( wx.VERTICAL )
+               
+        self.splitPanelLeft.SetSizer( bSizer3 )
+        self.splitPanelLeft.Layout()
+        bSizer3.Fit( self.splitPanelLeft )
+        #left panel contents added in here
+        self.sidePanel = SidePanel(self.splitPanelLeft, bSizer3)
+        #end left panel contents
+        self.splitPanelRight = wx.Panel( self.splitWindow, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
+        bSizer2 = wx.BoxSizer( wx.VERTICAL )
+
+        self.splitPanelRight.SetMinSize((600, -1))
+        #The editor ---------------
+        self.mainNoteBook = mainpanel.MainNotebook(self.splitPanelRight)
+        bSizer2.Add( self.mainNoteBook, 1, wx.EXPAND |wx.ALL, 5 )
         
-        def splitWindowOnIdle( self, event ):
-                self.splitWindow.SetSashPosition( 200 )
-                self.splitWindow.Unbind( wx.EVT_IDLE )
+        self.splitPanelRight.SetSizer( bSizer2 )
+        
+        self.splitPanelRight.Layout()
+        bSizer2.Fit( self.splitPanelRight )
+        self.splitWindow.SplitVertically( self.splitPanelLeft, self.splitPanelRight, 200 )
+        bSizer1.Add( self.splitWindow, 1, wx.EXPAND, 5 )
+              
+        self.SetSizer( bSizer1 )
+        self.Layout()
+        self.mainStatusBar = self.CreateStatusBar( 1, wx.ST_SIZEGRIP, wx.ID_ANY )
+               
+        self.Centre( wx.BOTH )
+
+    def dclick(self, evt):
+        """Need to veto the event which closes one window"""
+        evt.Veto()
+        
+    def __del__( self ):
+        pass
+        
+    def splitWindowOnIdle( self, evt):
+        self.splitWindow.SetSashPosition( 200 )
+        self.splitWindow.Unbind( wx.EVT_IDLE )

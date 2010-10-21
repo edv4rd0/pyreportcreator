@@ -65,11 +65,11 @@ class TitlePage(wiz.PyWizardPage):
 class SQLitePage(wiz.PyWizardPage):
     """Page for wizard"""
 
-    def __init__(self, parent, title):
+    def __init__(self, parent, title, control):
 
         wiz.PyWizardPage.__init__(self, parent)
         self.next = self.prev = None
-
+        self.control = control
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.sizer)
         self.stTitle = wx.StaticText(self, -1, title)
@@ -103,7 +103,10 @@ class SQLitePage(wiz.PyWizardPage):
         self.prev = prev
 
     def GetNext(self):
-        
+        if self.control.SQLiteConnectionWorks(self.tcFilePath.GetValue()):
+            self.next = self.control.finalPage
+        else:
+            self.next = self.control.failPage
         return self.next
 
     def GetPrev(self):
@@ -128,12 +131,12 @@ class SQLitePage(wiz.PyWizardPage):
 
 class DetailsPage(wiz.PyWizardPage):
     """MySQL or Postgresql configuration page"""
-    def __init__(self, parent, title):
+    def __init__(self, parent, title, control):
         import wx.lib.masked as masked #for maksed edit ctrls
         
         wiz.PyWizardPage.__init__(self, parent)
         self.next = self.prev = None
-
+        self.control = control
         vBoxSizerTop = wx.BoxSizer( wx.VERTICAL ) #top level box sizer
         
         fgsConnConf = wx.FlexGridSizer( 2, 2, 0, 0 )
@@ -209,7 +212,8 @@ class DetailsPage(wiz.PyWizardPage):
         self.prev = prev
 
     def GetNext(self):
-        
+        if self.control.OnDetailsPageDone(self) == True:
+            self.next = self.control.finalPage
         return self.next
 
     def GetPrev(self):
@@ -313,8 +317,8 @@ class WizardNewDataSource(object):
         wizard = wiz.Wizard(parent, -1, "Add a New Data Source", bitmap)
         #add pages
         self.titlePage = TitlePage(wizard, "Select Your Database Type", self)
-        self.sqlitePage = SQLitePage(wizard, "SQLite Database Config")
-        self.detailsPage = DetailsPage(wizard, "Database Configuration")
+        self.sqlitePage = SQLitePage(wizard, "SQLite Database Config", self)
+        self.detailsPage = DetailsPage(wizard, "Database Configuration", self)
         self.finalPage = FinishedPage(wizard, "Finished!")
         self.failPage = FailPage(wizard, "Failed")
 
@@ -322,7 +326,7 @@ class WizardNewDataSource(object):
         self.titlePage.SetNext(self.detailsPage)
         self.sqlitePage.SetPrev(self.titlePage)
         self.detailsPage.SetPrev(self.titlePage)
-        self.detailsPage.SetNext(self.finalPage)
+        self.detailsPage.SetNext(self.failPage)
         self.sqlitePage.SetNext(self.failPage)
         #fail page and alternate orders to be defined during runtime
 
@@ -362,45 +366,48 @@ class WizardNewDataSource(object):
 
     def OnChangingSqlite(self, evt):
         page = evt.GetPage()
-        if evt.GetDirection() == True:
-            if page.tcFilePath.IsEmpty() == True:
+        if evt.GetDirection():
+            if page.tcFilePath.IsEmpty():
                 evt.Veto()
-            else:
-                self.connValues['address'] = page.tcFilePath.GetValue()
-                if connectioninterface.establish_sqlite_connection(self.connValues['address']) == True:
-                    page.SetNext(self.finalPage)
-                    page.GetNext()
-                else:
-                    page.SetNext(self.failPage)
-                    page.GetNext()
         else:
             self.EnableNext()
 
+    def SQLiteGetDirection(self, filePath):
+        """Make SQLite connection attempt and determine whether it was successful or not"""
+        if connectioninterface.establish_sqlite_connection(filePath) == True:
+            return True
+        else:
+            return False
+
     def OnDetailsPageChanging(self, evt):
         """Enable/disable buttons and establish connections"""
-        if evt.GetDirection() == True:
-            if evt.GetPage().IsCompleted() == True:
-                self.OnDetailsPageDone()
+        if evt.GetDirection():
+            page = evt.GetPage()
+            if page.IsCompleted():
+                pass
             else:
                 evt.Veto()
         else:
             self.EnableNext()
             
     def OnDetailsPageDone(self):
-        """Processes a mysql or postgresql connection"""
+        """
+        Processes a mysql or postgresql connection.
+
+        This is called by DetailsPage and it returns either failPage or finalPage
+        """
         self.connValues['user'] = self.detailsPage.tcUserName.GetValue()
-        self.connValues['password'] = self.detailsPage.tcPasswordUserName.GetValue()
+        self.connValues['password'] = self.detailsPage.tcPass.GetValue()
         self.connValues['address'] = self.detailsPage.tcServerAddress.GetValue()
         self.connValues['dbName'] = self.detailsPage.tcDatabaseName.GetValue()
         self.connValues['port'] = self.detailsPage.tcPort.GetValue()
         if self.connValues['port'] in ('', 0):
             self.connValues['port'] = None
             if connectioninterface.establish_other_connection(self.connValues['type'], self.connValues['dbName'], self.connValues['address'], self.connValues['port'], self.connValues['user'], self.connValues['password']) == True:
-                page.SetNext(self.finalPage)
-                page.GetNext()
+                return True
             else:
-                page.SetNext(self.failPage)
-                page.GetNext()
+                self.failPage.SetPrev(self.detailsPage)
+                return False
 
     def OnSQLiteValueChange(self, evt):
         """Check if form valid then enable next or disable it"""

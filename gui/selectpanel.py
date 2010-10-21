@@ -1,9 +1,15 @@
 """A prototype for the query panel"""
-
+import sys
 import wx
 import wx.lib.inspection
 from pyreportcreator.datahandler import datahandler, querybuilder
 from pyreportcreator.profile import query
+from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
+
+class AutoWidthListCtrl(wx.ListCtrl):
+    def __init__(self, parent):
+        wx.ListCtrl.__init__(self, parent, -1,size = (-1,-1), style= wx. wx.SUNKEN_BORDER)
+        #ListCtrlAutoWidthMixin.__init__(self)
 
 class DataItemsDialog(wx.Dialog):
     """This is the dialog box for users to add new columns to the select from clause"""
@@ -18,7 +24,8 @@ class DataItemsDialog(wx.Dialog):
         sizer.Add(stDescription, 0, wx.ALL, 5)
         self.selectSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.treeDataItems = wx.TreeCtrl(self, size = (-1, -1), style = wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS)
-        self.lcSelect = wx.ListCtrl(self, size = (-1,-1), style = wx.SUNKEN_BORDER)
+        self.lbSelect = wx.ListBox(self, -1, size = (-1, -1), style = wx.SUNKEN_BORDER)
+
         self.selectSizer.Add(self.treeDataItems, 1, wx.EXPAND | wx.ALL, 5)
         #dummy data
         r = self.treeDataItems.AddRoot("text")
@@ -33,7 +40,7 @@ class DataItemsDialog(wx.Dialog):
         self.btnRemoveItem = wx.Button(self, -1, "<", size = (30, -1))
         self.sizerButtons.Add(self.btnRemoveItem, 1, wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_VERTICAL, 5)
         self.selectSizer.Add(self.sizerButtons, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.selectSizer.Add(self.lcSelect, 1, wx.EXPAND | wx.ALL, 5)
+        self.selectSizer.Add(self.lbSelect, 1, wx.EXPAND | wx.ALL, 5)
         sizer.Add(self.selectSizer, 1, wx.EXPAND)
         stTitle = wx.StaticText(self, -1, "Click OK to confirm.")
         sizer.Add(stTitle, 0, wx.ALL, 5)
@@ -46,6 +53,7 @@ class DataItemsDialog(wx.Dialog):
         dialogSizer.Add(self.btnCancel, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         dialogSizer.Add(self.btnOK, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         sizer.Add(dialogSizer, 0, wx.ALIGN_RIGHT)
+        
         self.SetSizer(sizer)
 #---------------------------------------------------------
 class DataItemsDialogController(object):
@@ -82,8 +90,9 @@ class SelectController(object):
         #Button events
         self.selectPanel.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_select_item)
         #ListCtrl events
-        self.selectPanel.lcSelect.Bind(wx.EVT_LIST_ITEM_SELECTED, self.activate_remove_btn)
-        self.selectPanel.lcSelect.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
+        self.selectPanel.lbSelect.Bind(wx.EVT_LIST_ITEM_SELECTED, self.activate_remove_btn)
+        self.selectPanel.lbSelect.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
+        
     def add_select_item(self, evt):
         """This opens a dialog to allow the user to add a select item"""
         if self.check_for_which_database() == False:
@@ -116,13 +125,12 @@ class SelectPanel(wx.Panel):
     def __init__( self, parent ):
         """Initialize panel"""
         
-	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
-        #self.SetBackgroundColour('#C9C0BB')
+	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = (-1,-1), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         #select items area
-        self.lcSelect = wx.ListCtrl(self, size = (-1,200), style = wx.SUNKEN_BORDER)
+        self.lbSelect = wx.ListCtrl(self, size = (-1,200), style = wx.SUNKEN_BORDER)
        
-        self.topSizer.Add(self.lcSelect, 1, wx.EXPAND | wx.ALL, 5)
+        self.topSizer.Add(self.lbSelect, 1, wx.EXPAND | wx.ALL, 5)
         #select items buttons
         self.sizerButtons = wx.BoxSizer(wx.HORIZONTAL)
         self.btnRemoveItem = wx.Button(self, -1, "Remove Selected", size = (-1, -1))
@@ -163,7 +171,3 @@ class Application(wx.App):
         self.controller = SelectController()
         self.controller.frame.Show()
 
-app = Application()
-wx.lib.inspection.InspectionTool().Show()
-
-app.MainLoop()

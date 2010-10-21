@@ -3,6 +3,7 @@ import wx.xrc as xrc
 from wx.lib.wordwrap import wordwrap
 import wizards
 import gui
+import mainpanel
 
 
 class Application(wx.App):
@@ -11,6 +12,10 @@ class Application(wx.App):
         """Bind events to gui."""
  
         self.frame = gui.MainFrame(None)
+
+        #initialize the document editor controller
+        self.documentEditorControl = mainpanel.DocumentEditorController(self.frame.mainNoteBook)
+
         
         # initialize menus and toolbars
         self.menu = gui.MainMenu(self.frame)
