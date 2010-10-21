@@ -4,15 +4,17 @@ from wx.lib.wordwrap import wordwrap
 import wizards
 import gui
 import mainpanel
-
+import sidepanelcontrol
+from pyreportcreator.profile import profile
 
 class Application(wx.App):
+
     
     def OnInit(self):
         """Bind events to gui."""
- 
+        self.profile = profile.Profile()
         self.frame = gui.MainFrame(None)
-
+        self.dataPanelControl = sidepanelcontrol.DataPanelControl(self.frame.sidePanel.dataPanel, self.profile)
         #initialize the document editor controller
         self.documentEditorControl = mainpanel.DocumentEditorController(self.frame.mainNoteBook)
 

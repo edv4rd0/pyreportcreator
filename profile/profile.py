@@ -21,6 +21,22 @@ class Profile(object):
         self.connections = dict()
         self.reports = dict()
 
+        pub.subscribe(self.add_connection, 'dataconnection.save')
+
+    def add_connection(self, connID, type, address, dbName, username, password = None, port = None):
+        """Add connection to Profile"""
+        self.connections[connID] = [type, address, dbName, username, password, port]
+        if self._fileName != "":
+            self.save_profile(self._fileName)
+            
+    def get_name(self, connID):
+        """return database name"""
+        try:
+            name = self.connection[connID][2]
+        except:
+            raise AttributeError
+        return name
+
     def save_query(self, query, queryID):
         """Save query to dictionary with key being the id for the database connection"""
         self.queries[queryID] = query

@@ -212,8 +212,10 @@ class DetailsPage(wiz.PyWizardPage):
         self.prev = prev
 
     def GetNext(self):
-        if self.control.OnDetailsPageDone(self) == True:
-            self.next = self.control.finalPage
+        print "YO"
+        if self.IsCompleted():
+            if self.control.OnDetailsPageDone():
+                self.next = self.control.finalPage
         return self.next
 
     def GetPrev(self):
@@ -372,7 +374,7 @@ class WizardNewDataSource(object):
         else:
             self.EnableNext()
 
-    def SQLiteGetDirection(self, filePath):
+    def SQLiteConnectionWorks(self, filePath):
         """Make SQLite connection attempt and determine whether it was successful or not"""
         if connectioninterface.establish_sqlite_connection(filePath) == True:
             return True
@@ -382,10 +384,11 @@ class WizardNewDataSource(object):
     def OnDetailsPageChanging(self, evt):
         """Enable/disable buttons and establish connections"""
         if evt.GetDirection():
+            print "HO"
             page = evt.GetPage()
-            if page.IsCompleted():
-                pass
-            else:
+            print "damn"
+            if page.IsCompleted() == False:
+                print "fail"
                 evt.Veto()
         else:
             self.EnableNext()
@@ -403,11 +406,11 @@ class WizardNewDataSource(object):
         self.connValues['port'] = self.detailsPage.tcPort.GetValue()
         if self.connValues['port'] in ('', 0):
             self.connValues['port'] = None
-            if connectioninterface.establish_other_connection(self.connValues['type'], self.connValues['dbName'], self.connValues['address'], self.connValues['port'], self.connValues['user'], self.connValues['password']) == True:
-                return True
-            else:
-                self.failPage.SetPrev(self.detailsPage)
-                return False
+        if connectioninterface.establish_other_connection(self.connValues['dbtype'], self.connValues['dbName'], self.connValues['address'], self.connValues['port'], self.connValues['user'], self.connValues['password']) == True:
+            return True
+        else:
+            self.failPage.SetPrev(self.detailsPage)
+            return False
 
     def OnSQLiteValueChange(self, evt):
         """Check if form valid then enable next or disable it"""

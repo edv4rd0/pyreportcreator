@@ -32,7 +32,9 @@ class MainMenu(object):
         self.menuBar.Append( self.menuFile, u"&File" ) 
         # Project menu
         self.menuProject = wx.Menu()
-        self.menuBar.Append( self.menuProject, u"&Project" ) 
+        self.menuBar.Append( self.menuProject, u"&Project" )
+        self.menuProjectNewQuery = wx.MenuItem( self.menuFile, wx.ID_ANY, u"&New Query", wx.EmptyString, wx.ITEM_NORMAL )
+        self.menuProject.AppendItem( self.menuProjectNewQuery )
         # Help menu
         self.menuHelp = wx.Menu()
         self.menuHelpAbout = wx.MenuItem( self.menuHelp, wx.ID_ANY, u"&About", wx.EmptyString, wx.ITEM_NORMAL )
@@ -46,39 +48,14 @@ class MainMenu(object):
 
 class DataPanel(object):
     """This defines the data object panel and it's presentation and logic"""
-    
 
     def __init__(self, fpb):
         """Set up layout"""
         self.panelDataObjects = fpb.AddFoldPanel("Data Objects")
         
         self.treeCtrlDataItems = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
-        self.treeCtrlDataItems.AddRoot('root')
+        self.root = self.treeCtrlDataItems.AddRoot('root')
         fpb.AddFoldPanelWindow(self.panelDataObjects, self.treeCtrlDataItems)
-        # index of data items in treectrl
-        self.dataIndex = dict()
-
-        #bind events
-
-    def add_database(self, name, connID, address, type):
-        """Extract info from meta data object and populate TreeCtrl"""
-        from pyreportcreator.datahandler import datahandler
-        
-        if (connID, name, address, type) in self.dataIndex.keys():
-            pass
-        else:
-            if type == 'sqlite':
-                itemName = name + " : " + "(" + type + ")" + address + name 
-            else:
-                itemName = name + " : " + "(" + type + ")" + address
-                
-            dbNode = self.treeCtrlDataItems.AppendItem(self.treeCtrlDataItems.GetRootItem(), itemName, -1, -1, connID)
-            self.dataIndex[(connID, name, address, type)] = dbNode
-            
-        for t in datahandler.DataHandler.get_tables(connID):
-            tNode = self.treeCtrlDataItems.AppendItem(dbNode, t, -1, -1)
-            for c in datahandler.DataHandler.get_columns(connID, t):
-                self.treeCtrlDataItems.AppendItem(tNode, c, -1, -1)
             
 #-----------------------------------------------------------------------#
 
