@@ -148,11 +148,15 @@ class MainFrame ( wx.Frame ):
 
     def dclick(self, evt):
         """Need to veto the event which closes one window"""
+        if self.splitWindow.GetSashPosition() == 1:
+            self.splitWindow.SetSashPosition(200)
+        else:
+            self.splitWindow.SetSashPosition(1)
         evt.Veto()
         
     def __del__( self ):
         pass
         
     def splitWindowOnIdle( self, evt):
-        self.splitWindow.SetSashPosition( 200 )
-        self.splitWindow.Unbind( wx.EVT_IDLE )
+        self.splitWindow.SetSashPosition(200)
+        self.splitWindow.Unbind(wx.EVT_IDLE)
