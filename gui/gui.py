@@ -1,4 +1,5 @@
 import wx
+import wx.lib.agw.foldpanelbar as fpb
 import mainpanel
 
 class MainToolBar(object):
@@ -47,34 +48,45 @@ class MainMenu(object):
 #----------------------------------------------------------------------------------#
 
 class DataPanel(object):
-    """This defines the data object panel and it's presentation and logic"""
+    """This defines the data object panel and it's presentation"""
 
-    def __init__(self, fpb):
+    def __init__(self, foldb):
         """Set up layout"""
-        self.panelDataObjects = fpb.AddFoldPanel("Data Objects")
+        self.panelDataObjects = foldb.AddFoldPanel("Data Objects")
+
+        self.panel = wx.Panel(self.panelDataObjects, -1, style=wx.SUNKEN_BORDER)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.treeCtrlDataItems = wx.TreeCtrl(self.panelDataObjects, -1, style = wx.TR_HIDE_ROOT)
+        self.panel.SetSizer(self.sizer)
+
+        self.treeCtrlDataItems = wx.TreeCtrl(self.panel, -1, size = (-1,250), style = wx.TR_HIDE_ROOT | wx.EXPAND | wx.ALL | wx.TR_HAS_BUTTONS)
         self.root = self.treeCtrlDataItems.AddRoot('root')
-        fpb.AddFoldPanelWindow(self.panelDataObjects, self.treeCtrlDataItems)
+        self.sizer.Add(self.treeCtrlDataItems, 1, wx.EXPAND, 0)
+        self.sizer.Fit(self.panel)
+        self.sizer.SetSizeHints(self.panel)
+        self.sizer.Layout()
+        
+        foldb.AddFoldPanelWindow(self.panelDataObjects, self.panel, wx.EXPAND | fpb.FPB_ALIGN_WIDTH)
             
 #-----------------------------------------------------------------------#
 
-class SidePanel(object):
+class SidePanel(wx.Panel):
     """Defines the layout of the sidepanel which includes treeviews in foldpanels"""
 
-    def __init__(self, parent, sizer):
-        import wx.lib.agw.foldpanelbar as fpb
-
-        self.fpb = fpb.FoldPanelBar(parent, -1, style = fpb.FPB_HORIZONTAL)
+    def __init__(self, parent):
+        
+        wx.Panel.__init__( self, parent, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL | wx.EXPAND )
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.fpb = fpb.FoldPanelBar(parent, 1, style = fpb.FPB_HORIZONTAL | wx.EXPAND)
         # data object bar
         self.dataPanel = DataPanel(self.fpb) #initialize Data Panel
         # profile objects
         self.panelProfile = self.fpb.AddFoldPanel("Profile Objects")
-        self.treeProfileObjects = wx.TreeCtrl(self.panelProfile, -1, style = wx.TR_HIDE_ROOT)
-        self.fpb.AddFoldPanelWindow(self.panelProfile, self.treeProfileObjects)
-        sizer.Add(self.fpb,1,wx.EXPAND)
-
-        parent.SetSizer(sizer)
+        self.treeProfileObjects = wx.TreeCtrl(self.panelProfile, 1, size = (-1, 250), style = wx.TR_HIDE_ROOT)
+        w2 = self.fpb.AddFoldPanelWindow(self.panelProfile, self.treeProfileObjects, wx.EXPAND | fpb.FPB_ALIGN_WIDTH)
+        self.sizer.Add(self.fpb, 1, wx.EXPAND)
+        #self.sizer.Add(self.panelProfile, 1, wx.EXPAND)
+        self.SetSizer(self.sizer)
 
 
 class MainFrame ( wx.Frame ):
@@ -92,15 +104,8 @@ class MainFrame ( wx.Frame ):
         self.splitWindow.Bind( wx.EVT_IDLE, self.splitWindowOnIdle )
         self.splitWindow.Bind(wx.EVT_SPLITTER_DCLICK, self.dclick)
         
-        self.splitPanelLeft = wx.Panel( self.splitWindow, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
+        self.sidePanel = SidePanel(self.splitWindow)
         
-        bSizer3 = wx.BoxSizer( wx.VERTICAL )
-               
-        self.splitPanelLeft.SetSizer( bSizer3 )
-        self.splitPanelLeft.Layout()
-        bSizer3.Fit( self.splitPanelLeft )
-        #left panel contents added in here
-        self.sidePanel = SidePanel(self.splitPanelLeft, bSizer3)
         #end left panel contents
         self.splitPanelRight = wx.Panel( self.splitWindow, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
         bSizer2 = wx.BoxSizer( wx.VERTICAL )
@@ -114,7 +119,7 @@ class MainFrame ( wx.Frame ):
         
         self.splitPanelRight.Layout()
         bSizer2.Fit( self.splitPanelRight )
-        self.splitWindow.SplitVertically( self.splitPanelLeft, self.splitPanelRight, 200 )
+        self.splitWindow.SplitVertically( self.sidePanel, self.splitPanelRight, 200 )
         bSizer1.Add( self.splitWindow, 1, wx.EXPAND, 5 )
               
         self.SetSizer( bSizer1 )
