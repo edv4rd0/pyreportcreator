@@ -87,7 +87,6 @@ class SelectController(object):
     """
     def __init__(self, view):
         """Initialize and bind to events"""
-        self.frame = TestFrame(None, -1, '')
         self.selectPanel = view
         #Button events
         self.selectPanel.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_select_item)
@@ -98,7 +97,7 @@ class SelectController(object):
     def add_select_item(self, evt):
         """This opens a dialog to allow the user to add a select item"""
         if self.check_for_which_database() == False:
-            dlg = DataItemsDialog(self.frame, -1, "Select Data Items")
+            dlg = DataItemsDialog(wx.GetApp().GetTopWindow(), -1, "Select Data Items")
             control = DataItemsDialogController(dlg)
             dlg.ShowModal()
 
@@ -148,17 +147,6 @@ class SelectPanel(wx.Panel):
         self.SetAutoLayout(True)
         self.SetSizer( self.topSizer )
 	self.Layout()
-
-        
-class TestFrame( wx.Frame ):
-    """Test frame"""
-    def __init__(self, parent, id, title):
-        """Initialize"""
-        wx.Frame.__init__(self, parent, id, title, size = (800, 600))
-        self.panel = SelectPanel(self)
-
-	#self.Maximize()
-        self.Centre()
 
 class QueryToolbook(wx.Toolbook):
     """

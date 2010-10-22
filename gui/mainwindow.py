@@ -47,6 +47,7 @@ class Application(wx.App):
         
     def OnClose(self, evt):
         """Exits application"""
+        del self.documentEditorControl
         self.frame.Close()
 
     def profile_new(self, evt):
