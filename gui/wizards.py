@@ -306,8 +306,10 @@ class FailPage(wiz.PyWizardPage):
 class WizardNewDataSource(object):
     """This wizard handles the process of adding a new datasource to the profile"""
         
-    def __init__(self, parent):
+    def __init__(self, parent, profile):
         """Initialize the wizard"""
+
+        self.profile = profile #this is needed to pass to connection interface for the purposes of checking if connection exists
         #set wizard bitmap
         try:
             bitmap = wx.Image('graphics/some-bitmap', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -376,7 +378,7 @@ class WizardNewDataSource(object):
 
     def SQLiteConnectionWorks(self, filePath):
         """Make SQLite connection attempt and determine whether it was successful or not"""
-        if connectioninterface.establish_sqlite_connection(filePath) == True:
+        if connectioninterface.establish_sqlite_connection(filePath, self.profile) == True:
             return True
         else:
             return False
@@ -384,15 +386,12 @@ class WizardNewDataSource(object):
     def OnDetailsPageChanging(self, evt):
         """Enable/disable buttons and establish connections"""
         if evt.GetDirection():
-            print "HO"
             page = evt.GetPage()
-            print "damn"
             if page.IsCompleted() == False:
-                print "fail"
                 evt.Veto()
         else:
             self.EnableNext()
-            
+
     def OnDetailsPageDone(self):
         """
         Processes a mysql or postgresql connection.
@@ -406,7 +405,7 @@ class WizardNewDataSource(object):
         self.connValues['port'] = self.detailsPage.tcPort.GetValue()
         if self.connValues['port'] in ('', 0):
             self.connValues['port'] = None
-        if connectioninterface.establish_other_connection(self.connValues['dbtype'], self.connValues['dbName'], self.connValues['address'], self.connValues['port'], self.connValues['user'], self.connValues['password']) == True:
+        if connectioninterface.establish_other_connection(self.connValues['dbtype'], self.connValues['dbName'], self.connValues['address'], self.connValues['port'], self.connValues['user'], self.connValues['password'], self.profile) == True:
             return True
         else:
             self.failPage.SetPrev(self.detailsPage)

@@ -23,12 +23,20 @@ class Profile(object):
 
         pub.subscribe(self.add_connection, 'dataconnection.save')
 
-    def add_connection(self, connID, type, address, dbName, username, password = None, port = None):
+    def conn_not_exist(self, dbType, dbName, serverAddress, serverPort = None, dbUser = None, dbPassword = None):
+        """Check whether a database connection exists or not"""
+        for i in self.connections:
+            print self.connections[i], [dbType, serverAddress, dbName, dbUser, dbPassword, serverPort]
+            if self.connections[i] == [dbType, serverAddress, dbName, dbUser, dbPassword, serverPort]:
+                return i
+        return False
+    
+    def add_connection(self, connID, type, address, dbName, username = None, password = None, port = None):
         """Add connection to Profile"""
         self.connections[connID] = [type, address, dbName, username, password, port]
         if self._fileName != "":
             self.save_profile(self._fileName)
-            
+    
     def get_name(self, connID):
         """return database name"""
         try:

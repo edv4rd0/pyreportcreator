@@ -3,7 +3,7 @@ import datahandler
 from pubsub import pub
 import string
 
-def establish_sqlite_connection(address):
+def establish_sqlite_connection(address, profile):
     """Establish an SQLite connection."""
     
     import sys
@@ -22,30 +22,33 @@ def establish_sqlite_connection(address):
             return ValueError
     name = address[i:]
     address = address[:i+1]
-    connID = datahandler.ConnectionManager.CreateNewDataConnection(u"sqlite", address, name)
+    #check if already connected to database
+    dbID = profile.conn_not_exist('sqlite', name, address)
+    if dbID != False:
+        connID = datahandler.ConnectionManager.create_new_data_connection(u"sqlite", address, name, dbID = dbID)
+    else:
+        connID = datahandler.ConnectionManager.create_new_data_connection(u"sqlite", address, name)
     if connID != False:
         if datahandler.DataHandler.add(connID):
             pub.sendMessage('dataconnection.save', connID = connID, type = "sqlite", address = address, dbName = name)
             pub.sendMessage('database.added', connID)
             return True                
         else:
-            print "fail"
             return False
     else:
-        print "connection failed "+ address + " " + name
         return False
 
 #-------------------------------------------------------#
 
-def establish_other_connection(dbType, dbName, serverAddress, serverPort, dbUser, dbPassword):
+def establish_other_connection(dbType, dbName, serverAddress, serverPort, dbUser, dbPassword, profile):
     """Establish a postgresql or mysql connection."""
-    print "Attempting connection\n"
-    print ("dbType", "dbName", "serverAddress", "serverPort", "dbuser", "dbPassword"), "\n"
-    print (dbType, dbName, serverAddress, serverPort, dbUser, dbPassword)
-    
     if serverPort == '    ':
         serverPort = None
-    connID = datahandler.ConnectionManager.create_new_data_connection(databaseType = dbType, address = serverAddress, dbname = dbName, user = dbUser, password = dbPassword, port = serverPort)
+    dbID = profile.conn_not_exist(dbType, dbName, serverAddress, serverPort, dbUser, dbPassword)
+    if dbID != False:
+        connID = datahandler.ConnectionManager.create_new_data_connection(databaseType = dbType, address = serverAddress, dbname = dbName, user = dbUser, password = dbPassword, port = serverPort, dbID = dbID)
+    else:
+        connID = datahandler.ConnectionManager.create_new_data_connection(databaseType = dbType, address = serverAddress, dbname = dbName, user = dbUser, password = dbPassword, port = serverPort)
     if connID != False:
         if datahandler.DataHandler.add(connID):
             pub.sendMessage('dataconnection.save', connID = connID, type = dbType, address = serverAddress, dbName = dbName, username = dbUser, password = dbPassword, port = serverPort)

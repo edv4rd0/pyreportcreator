@@ -76,7 +76,7 @@ class Application(wx.App):
     def add_data_source(self, evt):
         """Runs a select data source wizard and handles any errors raised when adding it
         to the current profile"""
-        wizards.WizardNewDataSource(self.frame)
+        wizards.WizardNewDataSource(self.frame, self.profile)
 
     def about_dialog(self, evt):
         """Loads and displays an about dialog box"""
