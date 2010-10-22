@@ -177,7 +177,7 @@ class WhereController(object):
             self.wherePanel.Layout()
             
 
-class WhereEditor(object):
+class WhereEditor(wx.Panel):
     """
     This is the class containing everything else needed in the where clause of the query.
     """
@@ -187,9 +187,11 @@ class WhereEditor(object):
     
     def __init__(self, parent):
         """Setup"""
-        print "Where editor"
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER | wx.EXPAND)
+
+        
         self.parent = parent
-        self.panel = QueryPanel(parent)
+        self.panel = QueryPanel(self)
 	self.topSizer = wx.BoxSizer( wx.VERTICAL )
 
 	fgSizer3 = wx.FlexGridSizer( 1, 6, 0, 0 )
@@ -197,30 +199,34 @@ class WhereEditor(object):
 	fgSizer3.SetFlexibleDirection( wx.HORIZONTAL )
 	fgSizer3.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 	
-	self.stDesc1 = wx.StaticText( parent, wx.ID_ANY, u"Match", wx.DefaultPosition, wx.DefaultSize, 0 )
+	self.stDesc1 = wx.StaticText( self, wx.ID_ANY, u"Match", wx.DefaultPosition, wx.DefaultSize, 0 )
 	self.stDesc1.Wrap( -1 )
 	fgSizer3.Add( self.stDesc1, 0, wx.ALL, 5 )
 	
-	self.choiceLogic = wx.Choice( parent, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.logicChoices, 0 )
+	self.choiceLogic = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.logicChoices, 0 )
 	self.choiceLogic.SetSelection( 0 )
 	fgSizer3.Add( self.choiceLogic, 0, wx.ALL, 5 )
 	
-	self.stDesc2 = wx.StaticText( parent, wx.ID_ANY, u"of the following conditions:", wx.DefaultPosition, wx.DefaultSize, 0 )
+	self.stDesc2 = wx.StaticText( self, wx.ID_ANY, u"of the following conditions:", wx.DefaultPosition, wx.DefaultSize, 0 )
 	self.stDesc2.Wrap( -1 )
 	fgSizer3.Add( self.stDesc2, 0, wx.ALL, 5 )
 
         fgSizer3.Add((0, 0), 1, wx.EXPAND)
 	# Control Buttons
-	self.btnAdd = wx.Button( parent, wx.ID_ANY, u"+", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
+	self.btnAdd = wx.Button( self, wx.ID_ANY, u"+", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
 	fgSizer3.Add( self.btnAdd, 0, wx.ALL| wx.ALIGN_RIGHT, 5 )
         hBoxSpacing =  wx.BoxSizer( wx.HORIZONTAL)
 	
-	self.btnSub = wx.Button( parent, wx.ID_ANY, u"...", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
+	self.btnSub = wx.Button( self, wx.ID_ANY, u"...", wx.DefaultPosition, wx.Size( 40,-1 ), 0 )
         hBoxSpacing.Add( self.btnSub, 0, wx.ALL | wx.ALIGN_RIGHT, 5 )
         hBoxSpacing.Add((2,-1), 0)
 	fgSizer3.Add( hBoxSpacing, 0)
 	self.topSizer.Add( fgSizer3, 0, wx.ALL | wx.EXPAND, 5 )
         self.topSizer.Add( self.panel, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.SetAutoLayout(True)
+        self.SetSizer( self.topSizer )
+	self.Layout()
 
 
     
@@ -494,7 +500,6 @@ class QueryPanel(wx.Panel):
 
     def __init__( self, parent ):
         """Initialize panel"""
-        print "Query panel"
         
 	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
         self.SetBackgroundColour('#C9C0BB')

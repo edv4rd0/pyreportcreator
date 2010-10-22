@@ -184,7 +184,7 @@ class QueryToolbook(wx.Toolbook):
 
         self.selectPage = SelectPanel(self)
         self.conditionEditor = querypanel.WhereEditor(self)
-        self.conditionPage = self.conditionEditor.panel
+        self.conditionPage = self.conditionEditor
         
         self.AddPage(self.selectPage, "Select Items", 1, imageId = 1)
         self.AddPage(self.conditionPage,"Add Conditions", imageId = 0)
