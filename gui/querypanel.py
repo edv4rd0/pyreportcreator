@@ -41,18 +41,6 @@ class PopupFrame(wx.Frame):
 
     def __init__(self, parent, style=wx.DEFAULT_FRAME_STYLE & wx.FRAME_FLOAT_ON_PARENT):
         wx.Frame.__init__(parent, style = style)
-        
-
-class QueryEditorControl(object):
-    """
-    This class handles the events and actions coming from the various widgets/editors for select items, from tables,
-    joins, groups and filters. It is the main controller for the view.
-
-    This class contains the control code for the above, the WhereController handles the condition code.
-    """
-    def __init__(self):
-        """Initialize and bind to events"""
-        pass
 
 
 class WhereController(object):
@@ -62,13 +50,12 @@ class WhereController(object):
     wherePanel = None
     elementControllers = []
     
-    def __init__(self):
+    def __init__(self, view):
         """Initialize stuff so events can be monitored"""
         
-        self.frame = TestFrame(None, -1, '')
         
-        self.whereEditor = self.frame.whereEditor
-        self.wherePanel = self.whereEditor.panel
+        self.whereEditor = view
+        self.wherePanel = view.panel
         #bind to events
         self.whereEditor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.whereEditor.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
@@ -200,6 +187,7 @@ class WhereEditor(object):
     
     def __init__(self, parent):
         """Setup"""
+        print "Where editor"
         self.parent = parent
         self.panel = QueryPanel(parent)
 	self.topSizer = wx.BoxSizer( wx.VERTICAL )
@@ -506,6 +494,7 @@ class QueryPanel(wx.Panel):
 
     def __init__( self, parent ):
         """Initialize panel"""
+        print "Query panel"
         
 	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
         self.SetBackgroundColour('#C9C0BB')
@@ -515,38 +504,3 @@ class QueryPanel(wx.Panel):
         self.SetSizer( self.topSizer )
 	self.Layout()
         
-class TestFrame( wx.Frame ):
-    """Test frame"""
-    def __init__(self, parent, id, title):
-        """Initialize"""
-        wx.Frame.__init__(self, parent, id, title)
-        panel = wx.Panel(self, -1)
-        vbox = wx.BoxSizer(wx.VERTICAL)
-        self.whereEditor = WhereEditor(panel)
-        vbox.Add(self.whereEditor.topSizer, 1, wx.EXPAND | wx.ALL, 20)
-        
-        
-        panel.SetSizer(vbox)
-        panel.SetAutoLayout(True)
-        panel.Layout()
-	self.Maximize()
-        self.Centre()
-        
-
-
-class Application(wx.App):
-    """Just a test application"""
-
-    def __init__(self):
-        """initialize"""
-        wx.App.__init__(self)
-
-        #init objects
-        self.controller = WhereController()
-        self.controller.frame.Show()
-
-app = Application()
-wx.lib.inspection.InspectionTool().Show()
-
-
-app.MainLoop()

@@ -5,6 +5,8 @@ import wx.lib.inspection
 from pyreportcreator.datahandler import datahandler, querybuilder
 from pyreportcreator.profile import query
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
+import querypanel
+
 
 class AutoWidthListCtrl(wx.ListCtrl):
     def __init__(self, parent):
@@ -83,10 +85,10 @@ class SelectController(object):
 
     This class contains the control code for the above, the WhereController handles the condition code.
     """
-    def __init__(self):
+    def __init__(self, view):
         """Initialize and bind to events"""
         self.frame = TestFrame(None, -1, '')
-        self.selectPanel = self.frame.panel
+        self.selectPanel = view
         #Button events
         self.selectPanel.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_select_item)
         #ListCtrl events
@@ -157,17 +159,68 @@ class TestFrame( wx.Frame ):
 
 	#self.Maximize()
         self.Centre()
+
+class QueryToolbook(wx.Toolbook):
+    """
+    Toolbook class
+    """
+ 
+    #----------------------------------------------------------------------
+    def __init__(self, parent):
+        """Constructor"""
+        wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=
+                             wx.BK_DEFAULT
+                             #wx.BK_TOP
+                             #wx.BK_BOTTOM
+                             #wx.BK_LEFT
+                             #wx.BK_RIGHT
+                            )
+        images = ("gui/icons/checkboxes32.png", "gui/icons/selectitems.png")
+        # make an image list using the LBXX images
+        il = wx.ImageList(32, 32)
+        for i in images:
+            il.Add(wx.Bitmap(i, wx.BITMAP_TYPE_PNG))
+        self.AssignImageList(il)
+
+        self.selectPage = SelectPanel(self)
+        self.conditionEditor = querypanel.WhereEditor(self)
+        self.conditionPage = self.conditionEditor.panel
+        
+        self.AddPage(self.selectPage, "Select Items", 1, imageId = 1)
+        self.AddPage(self.conditionPage,"Add Conditions", imageId = 0)
+ 
+        self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGED, self.OnPageChanged)
+        self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGING, self.OnPageChanging)
+ 
+    #----------------------------------------------------------------------
+    def OnPageChanged(self, event):
+        old = event.GetOldSelection()
+        new = event.GetSelection()
+        sel = self.GetSelection()
+        print 'OnPageChanged,  old:%d, new:%d, sel:%d\n' % (old, new, sel)
+        event.Skip()
+ 
+    #----------------------------------------------------------------------
+    def OnPageChanging(self, event):
+        old = event.GetOldSelection()
+        new = event.GetSelection()
+        sel = self.GetSelection()
+        print 'OnPageChanging, old:%d, new:%d, sel:%d\n' % (old, new, sel)
+        event.Skip()
         
 
+class QueryController(object):
+    """
+    This controls top level events to do with displaying and editing the
+    query definition.
+    """
+    def __init__(self, parent, document):
+        """Initialise, bind events, init other controllers and views"""
+        #add tab to parent and make it selected
+        self.parentView = parent
+        self.toolbook = QueryToolbook(self.parentView)
+        self.page = self.parentView.AddPage(self.toolbook, document.name, select = True)
 
-class Application(wx.App):
-    """Just a test application"""
-
-    def __init__(self):
-        """initialize"""
-        wx.App.__init__(self)
-
-        #init objects
-        self.controller = SelectController()
-        self.controller.frame.Show()
-
+        #sub controllers
+        self.selectController = SelectController(self.toolbook.selectPage)
+        self.conditionController = querypanel.WhereController(self.toolbook.conditionEditor)

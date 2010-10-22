@@ -6,6 +6,7 @@ import gui
 import mainpanel
 import sidepanelcontrol
 from pyreportcreator.profile import profile
+from pubsub import pub
 
 class Application(wx.App):
 
@@ -15,8 +16,9 @@ class Application(wx.App):
         self.profile = profile.Profile()
         self.frame = gui.MainFrame(None)
         self.dataPanelControl = sidepanelcontrol.DataPanelControl(self.frame.sidePanel.dataPanel, self.profile)
+        self.profilePanelControl = sidepanelcontrol.ProfilePanelControl(self.frame.sidePanel.treeProfileObjects, self.profile)
         #initialize the document editor controller
-        self.documentEditorControl = mainpanel.DocumentEditorController(self.frame.mainNoteBook)
+        self.documentEditorControl = mainpanel.DocumentEditorController(self.frame.mainNoteBook, self.profile)
 
         
         # initialize menus and toolbars
@@ -29,6 +31,8 @@ class Application(wx.App):
         self.Bind(wx.EVT_MENU, self.profile_new, self.menu.menuFileNewProject)
         self.Bind(wx.EVT_MENU, self.profile_open, self.menu.menuFileOpen)
         self.Bind(wx.EVT_MENU, self.profile_save_as, self.menu.menuFileSaveAs)
+        ##Profile menu
+        self.Bind(wx.EVT_MENU, self.new_query, self.menu.menuProjectNewQuery)
         ##help menu
         self.Bind(wx.EVT_MENU, self.about_dialog, self.menu.menuHelpAbout)
         # bind toolbar events
@@ -38,6 +42,9 @@ class Application(wx.App):
         self.frame.Show()
         return True
 
+    def new_query(self, evt):
+        pub.sendMessage('new_query', docType = 'query', connID = 1)
+        
     def OnClose(self, evt):
         """Exits application"""
         self.frame.Close()

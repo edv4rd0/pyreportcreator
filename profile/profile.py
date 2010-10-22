@@ -92,11 +92,13 @@ class Profile(object):
             while documentID in self.queries.keys():
                 documentID = uuid.uuid4()
             self.queries[documentID] = Query(documentID, engineID)
+            return self.queries[documentID]
         elif docType == 'report':
             documentID = uuid.uuid4()
             while documentID in self.reports.keys():
                 documentID = uuid.uuid4()
             self.reports[documentID] = Report(documentID)
+            return self.reports[documentID]
         else:
             return False #TODO: change to raise unknown doc type error
 
@@ -108,11 +110,11 @@ class Document(object):
     __STATE_NEW = 'new'
     __STATE_ALTERED = 'altered'
     state = __STATE_NEW
-    _name = ""
-    _documentID = 0
+    name = ""
+    documentID = 0
     def __init__(self, documentID, name = ""):
-        self._documentID = documentID
-        self._name = name
+        self.documentID = documentID
+        self.name = name
 
     def change_made(self):
         """This allows items like save buttons on toolbars to realise it now needs to be saved"""
@@ -148,7 +150,7 @@ class Query(Document):
         
     def change_name(self, newName):
         """Change name of query"""
-        self._name = newName
+        self.name = newName
         pub.sendMessage('document.name_change', name = self._name, documentID = self._documentID)
         self.change_made()
 
@@ -341,13 +343,13 @@ class Report(Document):
     __STATE_NEW = 'new'
     __STATE_ALTERED = 'altered'
     state = __STATE_NEW
-    _name = ""
-    _documentID = 0
+    name = ""
+    documentID = 0
     
     
     def __init__(self, documentID, name = ""):
         self._documentID = documentID
-        self._name = name
+        self.name = name
 
     def change_made(self):
         """This allows items like save buttons on toolbars to realise it now needs to be saved"""
