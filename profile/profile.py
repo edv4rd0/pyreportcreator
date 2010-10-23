@@ -126,12 +126,12 @@ class Document(object):
     def change_made(self):
         """This allows items like save buttons on toolbars to realise it now needs to be saved"""
         self.state = self.__STATE_ALTERED
-        pub.sendMessage('document.state.altered', documentID = self._documentID)
+        pub.sendMessage('document.state.altered', documentID = self.documentID)
 
     def was_saved(self):
         """This allows items like toolbars to register that it doesn't need saving"""
         self.state = self.__STATE_SAVED
-        pub.sendMessage('document.state.saved', documentID = self._documentID)
+        pub.sendMessage('document.state.saved', documentID = self.documentID)
 
 #-----------------------------------------------------------------#
 
@@ -158,7 +158,7 @@ class Query(Document):
     def change_name(self, newName):
         """Change name of query"""
         self.name = newName
-        pub.sendMessage('document.name_change', name = self._name, documentID = self._documentID)
+        pub.sendMessage('document.name_change', name = self.name, documentID = self.documentID)
         self.change_made()
 
     def check_for_relations(self, table, selTables):
@@ -172,9 +172,9 @@ class Query(Document):
                 result = datahandler.return_relationship_info(self.engineID, t, table)
                 if result != False:
                     joinInfo[(t, table)]
-                    pub.sendMessage('query.compose_join', join = joinInfo, documentiD = self._documentID)
+                    pub.sendMessage('query.compose_join', join = joinInfo, documentiD = self.documentID)
                 else:
-                    pub.sendMessage('query.compose_join', documentID = self._documentID)                    
+                    pub.sendMessage('query.compose_join', documentID = self._ocumentID)                    
         return relations
 
     def devise_join(self, localColumns, foreignColumns, localTable, foreignTable):
@@ -195,16 +195,16 @@ class Query(Document):
                 self.selectItems[table].append([column, 0])
                 #assert(self.selectItems[table].index([column, 0]) == 0)
                 self.change_made()
-                pub.sendMessage('query.add_select.success', column = (table, column), documentID = self._documentID)
+                pub.sendMessage('query.add_select.success', column = (table, column), documentID = self.documentID)
             else:
-                pub.sendMessage('query.add_select.duplicate', column = (table, column), documentID = self._documentID)
+                pub.sendMessage('query.add_select.duplicate', column = (table, column), documentID = self.documentID)
         else:
             if len(self.selectItems.keys()) == 1:
                 check = self.check_for_relations(table, 1)
             self.selectItems[table] = list()
             self.selectItems[table].append([column, 0])
             self.change_made()
-            pub.sendMessage('query.add_select.success', column = (table, column), documentID = self._documentID)
+            pub.sendMessage('query.add_select.success', column = (table, column), documentID = self.documentID)
 
     def check_for_dependent_join(self, table):
         """Checks for any dependent joins"""
@@ -223,21 +223,21 @@ class Query(Document):
             if len(self.selectItems[table]) is 1:
                 if self.check_for_dependent_join(table) is True:
                     if f == False:
-                        pub.sendMessage('query.del_select.join_exists_error', tbl = table, col = column, documentID = self._documentID)
+                        pub.sendMessage('query.del_select.join_exists_error', tbl = table, col = column, documentID = self.documentID)
                     else:
                         try:
                             del self.selectItems[table] #it's the last column, remove table
                             self.change_made()
-                            pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self._documentID)
+                            pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self.documentID)
                         except KeyError:
-                            pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
+                            pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self.documentID)
                 else:
                     try:
                         del self.selectItems[table]
                         self.change_made()
-                        pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self._documentID)
+                        pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self.documentID)
                     except KeyError, IndexError:
-                        pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
+                        pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self.documentID)
             elif len(self.selectItems[table]) > 1:
                 try:
                     for i in self.selectItems[table]:
@@ -245,12 +245,12 @@ class Query(Document):
                             if i[0] == column:
                                 index = self.selectItems[table].index(i)
                                 self.selectItems[table].pop(index)
-                                pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self._documentID)
+                                pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self.documentID)
                                 self.change_made()
                 except IndexError:
-                    pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
+                    pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self.documentID)
         except KeyError:
-            pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self._documentID)
+            pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self.documentID)
             return None
 
     def add_condition(self, parent = None, prev = None):
@@ -289,11 +289,11 @@ class Query(Document):
                 self.joins[(leftTable, joiningTable)] = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr]
             else:
                 self.joins[(leftTable, joiningTable)] = (type, (leftTable, tableValue), (joiningTable, joiningValue), opr)
-            pub.sendMessage('query.add_join.success', documentID, self._documentID, join = (leftTable, joiningTable))
+            pub.sendMessage('query.add_join.success', documentID, self.documentID, join = (leftTable, joiningTable))
             self.change_made()
             return True
         except:
-            pub.sendMessage('query.add_join.failure', documentID = self._documentID) 
+            pub.sendMessage('query.add_join.failure', documentID = self.documentID) 
             return False
 
 
@@ -312,7 +312,7 @@ class Query(Document):
                 return True #nothing changed
             return True
         except:
-            pub.sendMessage('query.remove_join.failure', documentID = self._documentID) 
+            pub.sendMessage('query.remove_join.failure', documentID = self.documentID) 
             return False
 
     def describe_join(self):
@@ -335,7 +335,7 @@ class Query(Document):
             for c in self.selectItems[table]:
                 if c[0] == column:
                     c[1] = 1
-                    pub.sendMessage('query.group_by.updated', group = (table, column), documentID = self._documentID)
+                    pub.sendMessage('query.group_by.updated', group = (table, column), documentID = self.documentID)
                     self.change_made()
         except KeyError:
             return False
@@ -355,17 +355,17 @@ class Report(Document):
     
     
     def __init__(self, documentID, name = ""):
-        self._documentID = documentID
+        self.documentID = documentID
         self.name = name
 
     def change_made(self):
         """This allows items like save buttons on toolbars to realise it now needs to be saved"""
         state = self._STATE_ALTERED
-        pub.sendMessage('document.state.altered', self._documentID)
+        pub.sendMessage('document.state.altered', self.documentID)
 
     def was_saved(self):
         """This allows items like toolbars to register that it doesn't need saving"""
         state = self.__STATE_SAVED
-        pub.sendMessage('document.state.saved', self._documentID)
+        pub.sendMessage('document.state.saved', self.documentID)
 
 #-----------------------------------------------------------------#
