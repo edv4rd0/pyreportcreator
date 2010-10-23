@@ -114,7 +114,7 @@ class WhereController(object):
             
             children = [j for j in panel.topSizer.GetChildren()]
             if len(children) > 1:
-                dlg = wx.MessageBox("Really delete this set of conditions? This action will delete the child conditions!", "Confirm Delete", wx.OK | wx.CANCEL)
+                dlg = wx.MessageBox("Really delete this set of conditions? This action will delete the child conditions!", "Confirm Delete", wx.OK | wx.CANCEL, wx.GetApp().GetTopWindow())
                 if dlg == 4:
                     for i in children[1:]:
                         index = panel.topSizer.GetChildren().index(i)

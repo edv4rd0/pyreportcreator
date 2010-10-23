@@ -2,6 +2,7 @@
 from pyreportcreator.datahandler import datahandler
 from pyreportcreator.profile import profile
 from pubsub import pub
+import wx
 
 class DataPanelControl(object):
     """This controls events connected with the data panel/treeview"""
@@ -77,8 +78,13 @@ class ProfilePanelControl(object):
         self.root = self.tree.AddRoot("root")
         self.queryNode = self.tree.AppendItem(self.root, "Queries")
         self.reportNode = self.tree.AppendItem(self.root, "Reports")
+        #bind to widget events
+        self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.right_click)
         #subscribe to data add events
         pub.subscribe(self.add_document, 'newdocument')
+
+    def right_click(self, evt):
+        pass
 
     def add_document(self, name, docId, docType):
         """This handles a new document added message"""
