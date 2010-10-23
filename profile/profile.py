@@ -17,9 +17,8 @@ class Profile(object):
     """A profile object. This stores query, report and data connection objects"""
     def __init__(self):
         self._fileName = ""
-        self.queries = dict() #stores query objects
+        self.documents = dict() #stores query objects
         self.connections = dict()
-        self.reports = dict()
 
         pub.subscribe(self.add_connection, 'dataconnection.save')
 
@@ -47,7 +46,7 @@ class Profile(object):
 
     def save_query(self, query, queryID):
         """Save query to dictionary with key being the id for the database connection"""
-        self.queries[queryID] = query
+        self.documents[queryID] = query
 
     def remove_query(self, queryID):
         """Remove query"""
@@ -59,7 +58,7 @@ class Profile(object):
 
     def run_query(self, queryID):
         """Run the query and return the result"""
-        q = self.queries[queryID].build_query() #might need to optimize this later so already built objects just get run
+        q = self.documents[queryID].build_query() #might need to optimize this later so already built objects just get run
         engine = datahandler.ConnectionManager.dataConnections[self.queries[queryID].engineID]
         return engine.execute(q)
 
@@ -97,16 +96,16 @@ class Profile(object):
         import uuid
         if docType == 'query':
             documentID = uuid.uuid4()
-            while documentID in self.queries.keys():
+            while documentID in self.documents.keys():
                 documentID = uuid.uuid4()
-            self.queries[documentID] = Query(documentID, engineID)
-            return self.queries[documentID]
+            self.documents[documentID] = Query(documentID, engineID)
+            return self.documents[documentID]
         elif docType == 'report':
             documentID = uuid.uuid4()
-            while documentID in self.reports.keys():
+            while documentID in self.documents.keys():
                 documentID = uuid.uuid4()
-            self.reports[documentID] = Report(documentID)
-            return self.reports[documentID]
+            self.documents[documentID] = Report(documentID)
+            return self.documents[documentID]
         else:
             return False #TODO: change to raise unknown doc type error
 

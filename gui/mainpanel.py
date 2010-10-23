@@ -26,6 +26,9 @@ class DocumentEditorController(object):
         """Initialize and bind to events"""
         self.view = view #the MainNotebook
         self.profile = profile
+        #set right click menu
+        self.create_right_click_menu()
+        self.view.SetRightClickMenu(self._rmenu)
         #page = selectpanel.SelectPanel(self.view)
         #self.view.AddPage(page, "test page", select=False, imageId=-1)
         #bind to events
@@ -35,6 +38,17 @@ class DocumentEditorController(object):
 
         #subscribe to pubsub
         pub.subscribe(self.new_document, 'new_query')
+        pub.subscribe(self.open_document, 'open_document')
+
+    def create_right_click_menu(self):
+        """
+        Based on method from flatnotebook demo
+        """
+        self._rmenu = wx.Menu()
+        item = wx.MenuItem(self._rmenu, wx.ID_ANY,
+                           "Close Tab")
+        self.view.Bind(wx.EVT_MENU, self.closing_tab, item)
+        self._rmenu.AppendItem(item)
 
     def new_document(self, docType, connID = None):
         """
@@ -42,21 +56,28 @@ class DocumentEditorController(object):
         Note: this is NOT used for already existing documents.
         """
         document = self.profile.new_document(docType, connID)
+        #create document
+        self.documentsOpen[document.documentID] = selectpanel.QueryController(self.view, document)
+                
+        #let things like the Profile panel know and update themselves (view, not model related)
+        pub.sendMessage('newdocument', name = document.name, docId = document.documentID, docType = docType)
+
+    def open_document(self, docType, documentID):
+        """Add an already existing document to the editor"""
         if docType == 'query':
             try:
-                self.view.SetSelection(self.documentsOpen[document.documentID].page)
+                self.view.SetSelection(self.documentsOpen[documentID].page)
             except KeyError:
-                self.documentsOpen[document.documentID] = selectpanel.QueryController(self.view, document)
-                #let things like the Profile panel know and update themselves
-                pub.sendMessage('newdocument', name = document.name, docId = document.documentID, docType = docType)
-
-    def add_document(self, documentID, controller):
-        """Add an already existing document to the editor"""
-        pass
+                self.documentsOpen[documentID] = selectpanel.QueryController(self.view, self.profile.documents[documentID])
     
     def closing_tab(self, evt):
         """Check if it's saved, if not allow the user to save or discard"""
-        help(evt)
+        evt.Veto()
+        docId = self.view.GetPage(self.view.GetSelection()).documentID
+        #check saved state of document
+        if self.profile.documents[docId].state == 'saved':
+            del self.documentsOpen[docId]
+            self.view.DeletePage(self.view.GetSelection())
         print "closing tab"
         
     def closed_tab(self, evt):

@@ -154,7 +154,7 @@ class QueryToolbook(wx.Toolbook):
     """
  
     #----------------------------------------------------------------------
-    def __init__(self, parent):
+    def __init__(self, parent, documentID):
         """Constructor"""
         wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=
                              wx.BK_DEFAULT
@@ -163,6 +163,7 @@ class QueryToolbook(wx.Toolbook):
                              #wx.BK_LEFT
                              #wx.BK_RIGHT
                             )
+        self.documentID = documentID
         images = ("gui/icons/checkboxes32.png", "gui/icons/selectitems.png")
         # make an image list using the LBXX images
         il = wx.ImageList(32, 32)
@@ -206,8 +207,10 @@ class QueryController(object):
         """Initialise, bind events, init other controllers and views"""
         #add tab to parent and make it selected
         self.parentView = parent
-        self.toolbook = QueryToolbook(self.parentView)
+        self.document = document #need to keep tabs on the document we're editing
+        self.toolbook = QueryToolbook(self.parentView, self.document.documentID)
         self.page = self.parentView.AddPage(self.toolbook, document.name, select = True)
+        
 
         #sub controllers
         self.selectController = SelectController(self.toolbook.selectPage)
