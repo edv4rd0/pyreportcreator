@@ -77,14 +77,26 @@ class ProfilePanelControl(object):
         self.tree = self.view
         self.root = self.tree.AddRoot("root")
         self.queryNode = self.tree.AppendItem(self.root, "Queries")
+        self.tree.SetPyData(self.queryNode, 'query')
         self.reportNode = self.tree.AppendItem(self.root, "Reports")
+        self.tree.SetPyData(self.reportNode, 'report')
         #bind to widget events
         self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.right_click)
+        self.tree.Bind(wx.EVT_LEFT_DCLICK, self.open_doc)
+        
         #subscribe to data add events
         pub.subscribe(self.add_document, 'newdocument')
 
     def right_click(self, evt):
         pass
+
+    def open_doc(self, evt):
+        item = self.tree.GetSelection()
+        data = self.tree.GetItemData(item).GetData()
+        if data not in ('query', 'report'):
+            docType = self.tree.GetItemData(self.tree.GetItemParent(item)).GetData()
+            pub.sendMessage('open_document', docType = docType, documentID = data)
+            
 
     def add_document(self, name, docId, docType):
         """This handles a new document added message"""

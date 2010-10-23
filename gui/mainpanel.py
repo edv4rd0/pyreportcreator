@@ -6,6 +6,30 @@ from pubsub import pub
 import selectpanel
 from pyreportcreator.profile import profile
 
+class SaveDiscardDialog(wx.Dialog):
+    def __init__(self, parent):
+        wx.Dialog.__init__(self, parent, -1, "Save Before Closing?", size=(250, 210))
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        stline = wx.StaticText(self, 11, 'Your work is unsaved! Save, or quit without saving?')
+        vbox.Add(stline, 1, wx.ALIGN_CENTER|wx.TOP, 45)
+        self.btnSave = wx.Button(self, -1, "Save")
+        self.btnDiscard = wx.Button(self, -1, "Discard")
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        sizer.Add(self.btnDiscard, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        sizer.Add(self.btnSave, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        vbox.Add(sizer, 0, wx.ALIGN_CENTER)
+        self.SetSizer(vbox)
+        self.btnSave.Bind(wx.EVT_BUTTON, self.on_yes)
+        self.btnDiscard.Bind(wx.EVT_BUTTON, self.on_no)
+        
+    def on_yes(self, event):
+        self.res = 'save'
+        self.Close()
+
+    def on_no(self, event):
+        self.res = 'dis'
+        self.Close()
 
 class MainNotebook(fnb.FlatNotebook):
     """This is the main work area"""
@@ -33,7 +57,7 @@ class DocumentEditorController(object):
         #self.view.AddPage(page, "test page", select=False, imageId=-1)
         #bind to events
         self.view.Bind(fnb.EVT_FLATNOTEBOOK_PAGE_CHANGED, self.update_editor_toolbar)
-        self.view.Bind(fnb.EVT_FLATNOTEBOOK_PAGE_CLOSED, self.closed_tab)
+        #self.view.Bind(fnb.EVT_FLATNOTEBOOK_PAGE_CLOSED, self.closed_tab)
         self.view.Bind(fnb.EVT_FLATNOTEBOOK_PAGE_CLOSING, self.closing_tab)
 
         #subscribe to pubsub
@@ -78,12 +102,14 @@ class DocumentEditorController(object):
         if self.profile.documents[docId].state == 'saved':
             del self.documentsOpen[docId]
             self.view.DeletePage(self.view.GetSelection())
+        else:
+            dlg = SaveDiscardDialog(wx.GetApp().GetTopWindow())
+            dlg.ShowModal()
+            if dlg.res == 'save':
+                self.profile.save_doc(docId)
+                print "saved"
+                
         print "closing tab"
-        
-    def closed_tab(self, evt):
-        """Destroy the controller, view etc for the opened document"""
-        
-        print "closed tab"
         
     def update_editor_toolbar(self, evt):
         """

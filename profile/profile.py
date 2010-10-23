@@ -1,6 +1,8 @@
 from pubsub import pub #PubSub implements a Publisher - Subscriber pattern for the application
 import query
 from pyreportcreator.datahandler import datahandler
+import jsonpickle
+import zipfile
 #OK, query object's condition expression consists of conditions which each specify their parent and left sibling (except the leftmost, which is set to Null
 # ThisAllows multiple nested sets
 
@@ -51,7 +53,7 @@ class Profile(object):
     def remove_query(self, queryID):
         """Remove query"""
         try:
-            del self.queries[queryID]
+            del self.documents[queryID]
             return True
         except IndexError:
             return False
@@ -72,24 +74,60 @@ class Profile(object):
 
     def save_profile(self, fileName):
         """Pickles profile to file"""
-        import cPickle
-        try:
-            daFile = open(fileName, 'w')
-            cPickle.dump(self, daFile)
-            return True
-        except PicklingError, e:
-            return e
-        
+        self._fileName = fileName
+        zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
+        for i in self.documents:
+            pickled = jsonpickle.encode(self.documents[i])
+            zf.writestr(str(i), pickled)
+        pickled = jsonpickle.encode(self.connections)
+        zf.writestr('connections', pickled)
+
     def open_profile(self, fileName):
-        """Opens file and unpickles it"""
-        import cPickle
+        """Opens file and completely erases old objects"""
+        self._fileName = fileName
+        self.connections = dict()
+        self.documents = dict()
+        zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
+        items = zf.namelist()
+        for i in items:
+            if str(i) != 'connections':
+                self.documents[i] = self.load_doc(str(i), zf) 
+                if isinstance(self.documents[i], Query):
+                    docType = 'query'
+                else:
+                    docType = 'report'
+                pub.sendMessage('newdocument', name = self.documents[i].name, docId = self.documents[i].documentID, docType = docType)
+        
+
+    def save_doc(self, documentID):
+        """Save a document to the zip file"""
         try:
-            dafile = open(fileName, 'r')
-            self = cPickle.load(dafile)
-            return True
-        except UnPicklingError, e:
-            returnValues = (e, filename)
-            return returnValues
+            document = self.documents[documentID]
+        except KeyError:
+            print "Key Error with document save"
+            return False
+        zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
+        pickled = jsonpickle.encode(document)
+        zf.writestr(str(document.documentID), pickled)
+        self.documents[documentID].was_saved()
+
+    def load_doc(self, docID, zf = None):
+        """load a document from the zip file"""
+        if zf == None:
+            zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
+        unpickled = jsonpickle.decode(zf.open(str(docID)).read())
+        for i in unpickled.conditions.conditions:
+            if i.condID == unpickled.conditions.firstID:
+                unpickled.conditions.firstObj = i
+                i.parentObj = unpickled.conditions
+            for j in unpickled.conditions.conditions:
+                if j.condID == i.nextID:
+                    j.prevObj == i
+                    i.nextObj == j
+                elif i.condID == j.nextID:
+                    i.prevObj == j
+                    j.nextObj == i
+        return unpickled
         
     def new_document(self, docType, engineID = None):
         """Create new document"""

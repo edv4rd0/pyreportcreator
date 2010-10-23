@@ -100,6 +100,7 @@ class SelectController(object):
             dlg = DataItemsDialog(wx.GetApp().GetTopWindow(), -1, "Select Data Items")
             control = DataItemsDialogController(dlg)
             dlg.ShowModal()
+            dlg.Destroy()
 
     def activate_remove_btn(self, evt):
         """Activate the remove selected item button"""
