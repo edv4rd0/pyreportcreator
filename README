@@ -1,0 +1,20 @@
+pyreportcreator is a GUI based, on demand query builder in Python and wxPython.
+
+
+=Development stage of version 0.1=
+At present it is in the development stages of building a basic working prototype.
+
+Run command: python reportcreator.py
+
+=Python=
+Developed on Python 2.6.5 and Archlinux 32bit
+
+=Required dependencies=
+wxPython 2.8.11
+SQLAlchemy 6.x
+pubsub (version 3)
+a Python wrapper for MySQL 
+jsonpickle
+
+From standard library:
+zipfile
