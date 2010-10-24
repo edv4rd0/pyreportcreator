@@ -51,24 +51,23 @@ class DataItemsDialog(wx.Dialog):
 #---------------------------------------------------------
 class DataItemsDialogController(object):
     """This is the controller for the dialog to add data items"""
-    def __init__(self, dlg, query, profile):
+    def __init__(self, dlg, query):
         """Initialise and bind to controls"""
-        self.profile = profile
+        
         self.query = query
+        self.selected_index = [] #keep track of selected items
         #bind to controls
         self.dlg = dlg
-        self.dlg.btnOK.Bind(wx.EVT_BUTTON, self.add_select_items)
+        self.dlg.btnOK.Bind(wx.EVT_BUTTON, self.add_chosen)
         self.dlg.btnCancel.Bind(wx.EVT_BUTTON, self.close)
-        self.dlg.btnAddSelect.Bind(wx.EVT_BUTTON, self.add)
+        self.dlg.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_item)
+        self.dlg.btnRemoveItem.Bind(wx.EVT_BUTTON, self.remove_item)
+        
 
         #load data
         connID = self.query.engineID
         try:
-            name = self.profile.connections[connID][2]
-        except AttributeError:
-            print "fail first"
-        try:
-            d = self.dlg.treeDataItems.AddRoot(name + str(connID))           
+            d = self.dlg.treeDataItems.AddRoot(str(connID))           
             tables = datahandler.DataHandler.get_tables(connID)
             for i in tables:
                 j = self.dlg.treeDataItems.AppendItem(d, i)
@@ -93,21 +92,45 @@ class DataItemsDialogController(object):
             print IndexError, "update_view"
             self.dlg.Close()
 
-                                      
-        
     def close(self, evt):
         """Close dialog without adding select items"""
+        self.update = False
         self.dlg.Close()
-        
-    def add_select_items(self, evt):
-        """Close dialog and add select items"""
-        self.dlg.Close()
-        #add select items
 
-    def add(self, evt):
-        selectedItem = self.dlg.treeDataItems.GetSelection()
-        if self.dlg.treeDataItems.GetPyData(selectedItem) == 'table':
-            print "YO!"
+    def remove_item(self, evt):
+        """Remove the selected item"""
+        index = self.dlg.lbSelect.GetSelection()
+        if index == wx.NOT_FOUND:
+            return
+        self.dlg.lbSelect.Delete(index)
+        del self.selected_index[index]
+        
+    def add_item(self, evt):
+        """add selected item"""
+        data = self.dlg.treeDataItems.GetItemData(self.dlg.treeDataItems.GetSelection()).GetData()
+        try:
+            table = data[1]
+            column = data[2]
+        except IndexError:
+            return
+        if (table, column) in self.selected_index:
+            return
+        else:
+            self.selected_index.append((table, column))
+            self.dlg.lbSelect.Append(column[0] + " " + str(column[1]) + " - " + table)
+            
+
+    def add_chosen(self, evt):
+        """Close dialog and add selected items"""
+        
+        if len(self.selected_index) > 0:
+            for i in self.selected_index:
+                self.query.add_select_item(i[0], i[1][0])
+            self.update = True
+        else:
+            self.update = False
+        self.dlg.Close()
+
 #---------------------------------------------------------
 
 
@@ -133,7 +156,7 @@ class SelectController(object):
         """This opens a dialog to allow the user to add a select item"""
         if self.check_for_which_database() == False:
             dlg = DataItemsDialog(wx.GetApp().GetTopWindow(), -1, "Select Data Items")
-            control = DataItemsDialogController(dlg, self.query, self.profile)
+            control = DataItemsDialogController(dlg, self.query)
             dlg.ShowModal()
             dlg.Destroy()
 

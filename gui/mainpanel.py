@@ -165,7 +165,8 @@ class DocumentEditorController(object):
             try:
                 self.view.SetSelection(self.documentsOpen[documentID].page)
             except KeyError:
-                self.documentsOpen[documentID] = selectpanel.QueryController(self.view, self.profile.open_doc(documentID), self.profile)
+                document = self.profile.load_doc(documentID)
+                self.documentsOpen[documentID] = selectpanel.QueryController(self.view, document, self.profile)
 
     def close_tab(self, evt):
         """For the tab menu"""
@@ -176,19 +177,24 @@ class DocumentEditorController(object):
         """Check if it's saved, if not allow the user to save or discard"""
         docId = self.view.GetPage(self.view.GetSelection()).documentID
         #check saved state of document
+        print docId,docId, "docid"
+        for i in self.profile.documents:
+            print self.profile.documents[i].documentID
+            print "\n"
+        print "\n\n"
         if self.profile.documents[docId].state == 'saved':
-            del delf.profile.documents[docId]
+            del self.profile.documents[docId]
             del self.documentsOpen[docId]
         elif self.profile.documents[docId].state == 'new':
-            del delf.profile.documents[docId]
+            del self.profile.documents[docId]
             del self.documentsOpen[docId]
             pub.sendMessage('removequery', docId = docId)
         else:
             dlg = SaveDiscardDialog(wx.GetApp().GetTopWindow())
             dlg.ShowModal()
             if dlg.res == 'save':
-                del self.profile.documents[docId]
                 self.profile.save_doc(docId)
+                del self.profile.documents[docId]
                 del self.documentsOpen[docId]
                 print "saved"
             elif dlg.res == 'dis':

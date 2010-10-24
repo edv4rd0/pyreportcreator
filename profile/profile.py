@@ -77,10 +77,14 @@ class Profile(object):
         self._fileName = fileName
         zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
         for i in self.documents:
+            print "saving items"
             pickled = jsonpickle.encode(self.documents[i])
+            self.documents[i].was_saved()
             zf.writestr(str(i), pickled)
         pickled = jsonpickle.encode(self.connections)
         zf.writestr('connections', pickled)
+        print "saved profile"
+        zf.close()
 
     def open_profile(self, fileName):
         """Opens file and completely erases old objects"""
@@ -92,31 +96,34 @@ class Profile(object):
         items = zf.namelist()
         for i in items:
             if str(i) != 'connections':
-                doc = self.load_doc(str(i), zf) 
+                doc = self.loaddoc(str(i), zf) 
                 if isinstance(doc, Query):
                     docType = 'query'
+                    print "opening query"
                 else:
                     docType = 'report'
                 self.document_index[doc.documentID] = docType
                 pub.sendMessage('newdocument', name = self.documents[i].name, docId = doc.documentID, docType = docType)
-        
+        print "opened profile" 
+        zf.close()
 
     def save_doc(self, documentID):
         """Save a document to the zip file"""
+        print self.documents, documentID
         try:
             document = self.documents[documentID]
         except KeyError:
             print "Key Error with document save"
             return False
         zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
+        print "saving doc"
         pickled = jsonpickle.encode(document)
         zf.writestr(str(document.documentID), pickled)
-        self.documents[documentID].was_saved()       
+        zf.close()
+        self.documents[documentID].was_saved()
 
-    def load_doc(self, docID, zf = None):
-        """load a document from the zip file"""
-        if zf == None:
-            zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
+    def loaddoc(self, docID, zf):
+        """for use only within load_profile"""
         unpickled = jsonpickle.decode(zf.open(str(docID)).read())
         for i in unpickled.conditions.conditions:
             if i.condID == unpickled.conditions.firstID:
@@ -129,6 +136,28 @@ class Profile(object):
                 elif i.condID == j.nextID:
                     i.prevObj == j
                     j.nextObj == i
+        unpickled.was_saved() #otherwise it'll appear altered
+        return unpickled
+
+    def load_doc(self, docID):
+        """load a document from the zip file"""
+        zf = zipfile.ZipFile(self._fileName, 'r')
+        unpickled = jsonpickle.decode(zf.open(str(docID)).read())
+        
+        for i in unpickled.conditions.conditions:
+            if i.condID == unpickled.conditions.firstID:
+                unpickled.conditions.firstObj = i
+                i.parentObj = unpickled.conditions
+            for j in unpickled.conditions.conditions:
+                if j.condID == i.nextID:
+                    j.prevObj == i
+                    i.nextObj == j
+                elif i.condID == j.nextID:
+                    i.prevObj == j
+                    j.nextObj == i
+        zf.close()
+        unpickled.was_saved() #otherwise will appear altered
+        self.documents[unpickled.documentID] = unpickled
         return unpickled
         
     def new_document(self, docType, engineID = None):
@@ -171,6 +200,7 @@ class Document(object):
     def was_saved(self):
         """This allows items like toolbars to register that it doesn't need saving"""
         self.state = self.__STATE_SAVED
+        print self.state
         pub.sendMessage('document.state.saved', documentID = self.documentID)
 
 #-----------------------------------------------------------------#
@@ -212,9 +242,9 @@ class Query(Document):
                 result = datahandler.return_relationship_info(self.engineID, t, table)
                 if result != False:
                     joinInfo[(t, table)]
-                    pub.sendMessage('query.compose_join', join = joinInfo, documentiD = self.documentID)
+                    pub.sendMessage('query.compose_join', join = joinInfo, documentID = self.documentID)
                 else:
-                    pub.sendMessage('query.compose_join', documentID = self._ocumentID)                    
+                    pub.sendMessage('query.compose_join', documentID = self.documentID)                    
         return relations
 
     def devise_join(self, localColumns, foreignColumns, localTable, foreignTable):
@@ -230,6 +260,7 @@ class Query(Document):
         Add a select item to the query. If from a new, second table, this must
         check how the user wants to join the two tables.
         """
+        print self.documentID, self.selectItems################################################################################
         if table in self.selectItems.keys():
             if column not in [c[0] for c in self.selectItems[table]]:
                 self.selectItems[table].append([column, 0])
