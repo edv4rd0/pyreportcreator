@@ -51,9 +51,11 @@ class ConnectionManager(object):
         else:
             cls.dataConnections[dbID] = (create_engine(connectionString, echo = True)) #create new engine
         #TODO: turn off 'echo = True' before shipping
-
-        testConnection = cls.dataConnections[dbID].connect()
-        testConnection.close()
+        try:
+            testConnection = cls.dataConnections[dbID].connect()
+            testConnection.close()
+        except sqlalchemy.exc.OperationalError:
+            return False
         print "Success" #TODO: remove this
         return dbID
        # except:

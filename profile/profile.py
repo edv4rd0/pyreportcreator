@@ -6,6 +6,11 @@ import zipfile
 #OK, query object's condition expression consists of conditions which each specify their parent and left sibling (except the leftmost, which is set to Null
 # ThisAllows multiple nested sets
 
+class JoinException(Exception):
+    """There's a join"""
+    def __init__(self, var = "There's a join"):
+        self.var = var
+
 #-----------------------------------------------------
 
 def get_type(connID, table, column):
@@ -294,7 +299,8 @@ class Query(Document):
             if len(self.selectItems[table]) is 1:
                 if self.check_for_dependent_join(table) is True:
                     if f == False:
-                        pub.sendMessage('query.del_select.join_exists_error', tbl = table, col = column, documentID = self.documentID)
+                        #pub.sendMessage('query.del_select.join_exists_error', tbl = table, col = column, documentID = self.documentID)
+                        raise JoinException()
                     else:
                         try:
                             del self.selectItems[table] #it's the last column, remove table
