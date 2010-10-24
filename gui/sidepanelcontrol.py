@@ -65,7 +65,6 @@ class DataPanelControl(object):
             (child, cookie) = self.tree.GetNextChild(d, cookie)
 
 
-
 class ProfilePanelControl(object):
     """This controls events connected with the tree control (mostly) in the sidepanel class"""
 
@@ -86,6 +85,17 @@ class ProfilePanelControl(object):
         
         #subscribe to data add events
         pub.subscribe(self.add_document, 'newdocument')
+        pub.subscribe(self.remove_query, 'removequery')
+
+    def remove_query(self, docId):
+        """Remove listing of query document in tree ctrl"""
+        (child, cookie) = self.tree.GetFirstChild(self.queryNode)
+        while child.IsOk(): 
+            # do something with child
+            c = self.tree.GetItemData(child).GetData()
+            if c == docId:
+                self.tree.Delete(child)
+            (child, cookie) = self.tree.GetNextChild(self.queryNode, cookie)
 
     def right_click(self, evt):
         pass

@@ -87,16 +87,18 @@ class Profile(object):
         self._fileName = fileName
         self.connections = dict()
         self.documents = dict()
+        self.document_index = dict()
         zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
         items = zf.namelist()
         for i in items:
             if str(i) != 'connections':
-                self.documents[i] = self.load_doc(str(i), zf) 
-                if isinstance(self.documents[i], Query):
+                doc = self.load_doc(str(i), zf) 
+                if isinstance(doc, Query):
                     docType = 'query'
                 else:
                     docType = 'report'
-                pub.sendMessage('newdocument', name = self.documents[i].name, docId = self.documents[i].documentID, docType = docType)
+                self.document_index[doc.documentID] = docType
+                pub.sendMessage('newdocument', name = self.documents[i].name, docId = doc.documentID, docType = docType)
         
 
     def save_doc(self, documentID):
@@ -109,7 +111,7 @@ class Profile(object):
         zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
         pickled = jsonpickle.encode(document)
         zf.writestr(str(document.documentID), pickled)
-        self.documents[documentID].was_saved()
+        self.documents[documentID].was_saved()       
 
     def load_doc(self, docID, zf = None):
         """load a document from the zip file"""
@@ -133,15 +135,15 @@ class Profile(object):
         """Create new document"""
         import uuid
         if docType == 'query':
-            documentID = uuid.uuid4()
+            documentID = str(uuid.uuid4())
             while documentID in self.documents.keys():
-                documentID = uuid.uuid4()
+                documentID = str(uuid.uuid4())
             self.documents[documentID] = Query(documentID, engineID)
             return self.documents[documentID]
         elif docType == 'report':
-            documentID = uuid.uuid4()
+            documentID = str(uuid.uuid4())
             while documentID in self.documents.keys():
-                documentID = uuid.uuid4()
+                documentID = str(uuid.uuid4())
             self.documents[documentID] = Report(documentID)
             return self.documents[documentID]
         else:
@@ -184,7 +186,7 @@ class Query(Document):
     group_by = dict() #dict of {'table': 'column'}
     order_by = dict() #dict of {'table': ('column', 'direction')}
     joins = dict() #firstjoin => join info, secondJoin => join info
-    engineID = 0
+    engineID = ""
 
     def __init__(self, documentID, engineID, name = "Untitled Query"):
         """This initializes the query object from some supplied definitions"""

@@ -162,7 +162,7 @@ class DetailsPage(wiz.PyWizardPage):
 	self.stPort.Wrap( -1 )
 	fgsConnConf.Add( self.stPort, 0, wx.ALL, 5 )
         #Port masked ctrl
-        self.tcPort = masked.TextCtrl(self, -1, u"3066", mask="#{4}")
+        self.tcPort = masked.TextCtrl(self, -1, u"", mask="#{4}")
 	fgsConnConf.Add( self.tcPort, 0, wx.ALL, 5 )
 
         #Database Name label
