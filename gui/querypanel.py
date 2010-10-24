@@ -73,6 +73,7 @@ class WhereController(object):
         
         self.wherePanel.topSizer.Insert(0, c.topSizer, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.Layout()
+        self.wherePanel.layout_magic()
         
     def add_set(self, evt):
         """Add condition set to top level"""
@@ -80,6 +81,7 @@ class WhereController(object):
         s = SetEditor(self.wherePanel, 6)
         self.wherePanel.topSizer.Insert(0, s, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.Layout()
+        self.wherePanel.layout_magic()
         
     def add_child_set(self, object):
         """Not being implemented in this version"""
@@ -96,6 +98,7 @@ class WhereController(object):
             panel.topSizer.Remove(condSizer)
             panel.Layout()
             self.wherePanel.Layout()
+            self.wherePanel.layout_magic()
 
     def remove_set(self, queryID, parentPanel, panel):
         """
@@ -126,7 +129,8 @@ class WhereController(object):
             else:
                 panel.topSizer.DeleteWindows()
                 panel.Destroy()
-                parentPanel.Layout()       
+                parentPanel.Layout()
+            self.wherePanel.layout_magic()
 
             
         
@@ -146,6 +150,7 @@ class WhereController(object):
             panel.topSizer.Insert( index, c.topSizer, 0, wx.EXPAND | wx.ALL)
             panel.Layout()
             self.wherePanel.Layout()
+            self.wherePanel.layout_magic()
 
 
     def add_sibling_set(self, queryID, sizer, panel, ind):
@@ -164,6 +169,7 @@ class WhereController(object):
             panel.topSizer.Insert( index, s, 0, wx.EXPAND | wx.ALL)
             panel.Layout()
             self.wherePanel.Layout()
+            self.wherePanel.layout_magic()
             
 
     def add_child_condition(self, queryID, parentSizer, ind, panel):
@@ -175,6 +181,7 @@ class WhereController(object):
             parentSizer.Insert(1, c.topSizer, 1, wx.EXPAND | wx.ALL)
             panel.Layout()
             self.wherePanel.Layout()
+            self.wherePanel.layout_magic()
             
 
 class WhereEditor(wx.Panel):
@@ -495,17 +502,22 @@ class ConditionEditorControl(object):
         pass
 
 
-class QueryPanel(wx.Panel):
+class QueryPanel(wx.ScrolledWindow):
     """The panel for a query editor"""
 
     def __init__( self, parent ):
         """Initialize panel"""
         
-	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
+	wx.ScrolledWindow.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER | wx.VSCROLL)
+        #wx.ScrolledWindow.__init__ ( self, parent, id = -1)
         self.SetBackgroundColour('#C9C0BB')
-
+        self.SetScrollbars(1, 79, 150, 153)
 	self.topSizer = wx.BoxSizer( wx.VERTICAL )
         self.SetAutoLayout(True)
         self.SetSizer( self.topSizer )
 	self.Layout()
-        
+        self.SetVirtualSize(self.topSizer.CalcMin())
+
+    def layout_magic(self):
+        """This exists to set the virtual size of the scroll window to the size required by the sizer"""
+        self.SetVirtualSize(self.topSizer.CalcMin())
