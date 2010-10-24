@@ -154,7 +154,7 @@ class DocumentEditorController(object):
             return #the user has clicked cancel
         document = self.profile.new_document(docType, connID)
         #create document
-        self.documentsOpen[str(document.documentID)] = selectpanel.QueryController(self.view, document)
+        self.documentsOpen[str(document.documentID)] = selectpanel.QueryController(self.view, document, self.profile)
         
         #let things like the Profile panel know and update themselves (view, not model related)
         pub.sendMessage('newdocument', name = document.name, docId = document.documentID, docType = docType)
@@ -165,7 +165,7 @@ class DocumentEditorController(object):
             try:
                 self.view.SetSelection(self.documentsOpen[documentID].page)
             except KeyError:
-                self.documentsOpen[documentID] = selectpanel.QueryController(self.view, self.profile.open_doc(documentID))
+                self.documentsOpen[documentID] = selectpanel.QueryController(self.view, self.profile.open_doc(documentID), self.profile)
 
     def close_tab(self, evt):
         """For the tab menu"""

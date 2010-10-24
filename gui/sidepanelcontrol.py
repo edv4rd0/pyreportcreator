@@ -29,7 +29,7 @@ class DataPanelControl(object):
 
     def update_view(self, connID):
         """This grabs the connection ID and populates the view with the data information"""
-        print 1
+ 
         try:
             name = self.profile.connections[connID][2]
         except AttributeError:

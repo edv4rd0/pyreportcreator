@@ -24,12 +24,8 @@ class DataItemsDialog(wx.Dialog):
         self.lbSelect = wx.ListBox(self, -1, size = (-1, -1), style = wx.SUNKEN_BORDER)
 
         self.selectSizer.Add(self.treeDataItems, 1, wx.EXPAND | wx.ALL, 5)
-        #dummy data
-        r = self.treeDataItems.AddRoot("text")
-        t = self.treeDataItems.AppendItem(r, "Table")
-        self.treeDataItems.SetPyData(t, "table")
-        self.treeDataItems.AppendItem(t, "column")
-        #help(self.treeDataItems)
+
+
         #select items buttons
         self.sizerButtons = wx.BoxSizer(wx.VERTICAL)
         self.btnAddSelect = wx.Button(self, -1, ">", size = (30, -1))
@@ -55,16 +51,58 @@ class DataItemsDialog(wx.Dialog):
 #---------------------------------------------------------
 class DataItemsDialogController(object):
     """This is the controller for the dialog to add data items"""
-    def __init__(self, dlg, query = None):
+    def __init__(self, dlg, query, profile):
         """Initialise and bind to controls"""
+        self.profile = profile
+        self.query = query
+        #bind to controls
         self.dlg = dlg
         self.dlg.btnOK.Bind(wx.EVT_BUTTON, self.add_select_items)
         self.dlg.btnCancel.Bind(wx.EVT_BUTTON, self.close)
         self.dlg.btnAddSelect.Bind(wx.EVT_BUTTON, self.add)
+
+        #load data
+        connID = self.query.engineID
+        try:
+            name = self.profile.connections[connID][2]
+        except AttributeError:
+            print "fail first"
+        try:
+            d = self.dlg.treeDataItems.AddRoot(name + str(connID))           
+            tables = datahandler.DataHandler.get_tables(connID)
+            for i in tables:
+                j = self.dlg.treeDataItems.AppendItem(d, i)
+                self.dlg.treeDataItems.SetPyData(j, (connID, i))
+            
+            (child, cookie) = self.dlg.treeDataItems.GetFirstChild(d)
+            while child.IsOk(): 
+                # do something with child
+                c = self.dlg.treeDataItems.GetItemData(child).GetData()
+                columns = datahandler.DataHandler.get_columns(c[0], c[1])
+                for k in columns:
+                    if k[2]:
+                        colDesc = k[0] + "[PK]"
+                    else:
+                        colDesc = k[0]
+                    
+                    f = self.dlg.treeDataItems.AppendItem(child, colDesc)
+                    self.dlg.treeDataItems.SetPyData(f, (c[0], c[1], k))
+                (child, cookie) = self.dlg.treeDataItems.GetNextChild(d, cookie)
+            
+        except IndexError:
+            print IndexError, "update_view"
+            self.dlg.Close()
+
+                                      
+        
     def close(self, evt):
-        self.dlg.Destroy()
+        """Close dialog without adding select items"""
+        self.dlg.Close()
+        
     def add_select_items(self, evt):
-        self.dlg.Destroy()
+        """Close dialog and add select items"""
+        self.dlg.Close()
+        #add select items
 
     def add(self, evt):
         selectedItem = self.dlg.treeDataItems.GetSelection()
@@ -80,9 +118,11 @@ class SelectController(object):
 
     This class contains the control code for the above, the WhereController handles the condition code.
     """
-    def __init__(self, view):
+    def __init__(self, view, query, profile):
         """Initialize and bind to events"""
         self.selectPanel = view
+        self.query = query
+        self.profile = profile
         #Button events
         self.selectPanel.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_select_item)
         #ListCtrl events
@@ -93,7 +133,7 @@ class SelectController(object):
         """This opens a dialog to allow the user to add a select item"""
         if self.check_for_which_database() == False:
             dlg = DataItemsDialog(wx.GetApp().GetTopWindow(), -1, "Select Data Items")
-            control = DataItemsDialogController(dlg)
+            control = DataItemsDialogController(dlg, self.query, self.profile)
             dlg.ShowModal()
             dlg.Destroy()
 
@@ -169,10 +209,9 @@ class QueryToolbook(wx.Toolbook):
 
         self.selectPage = SelectPanel(self)
         self.conditionEditor = querypanel.WhereEditor(self)
-        self.conditionPage = self.conditionEditor
         
         self.AddPage(self.selectPage, "Select Items", 1, imageId = 1)
-        self.AddPage(self.conditionPage,"Add Conditions", imageId = 0)
+        self.AddPage(self.conditionEditor,"Add Conditions", imageId = 0)
  
         self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -199,15 +238,15 @@ class QueryController(object):
     This controls top level events to do with displaying and editing the
     query definition.
     """
-    def __init__(self, parent, document):
+    def __init__(self, parent, document, profile):
         """Initialise, bind events, init other controllers and views"""
         #add tab to parent and make it selected
         self.parentView = parent
         self.document = document #need to keep tabs on the document we're editing
         self.toolbook = QueryToolbook(self.parentView, self.document.documentID)
         self.page = self.parentView.AddPage(self.toolbook, document.name, select = True)
-        
+        self.profile = profile
 
         #sub controllers
-        self.selectController = SelectController(self.toolbook.selectPage)
+        self.selectController = SelectController(self.toolbook.selectPage, self.document, self.profile)
         self.conditionController = querypanel.WhereController(self.toolbook.conditionEditor)
