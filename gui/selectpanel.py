@@ -8,11 +8,6 @@ from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 import querypanel
 
 
-class AutoWidthListCtrl(wx.ListCtrl):
-    def __init__(self, parent):
-        wx.ListCtrl.__init__(self, parent, -1,size = (-1,-1), style= wx. wx.SUNKEN_BORDER)
-        #ListCtrlAutoWidthMixin.__init__(self)
-
 class DataItemsDialog(wx.Dialog):
     """This is the dialog box for users to add new columns to the select from clause"""
     def __init__(self, parent, id, title):

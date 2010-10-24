@@ -105,10 +105,9 @@ class DocumentEditorController(object):
         self.view = view #the MainNotebook
         self.profile = profile
         #set right click menu
-        self.create_right_click_menu()
-        self.view.SetRightClickMenu(self._rmenu)
-        #page = selectpanel.SelectPanel(self.view)
-        #self.view.AddPage(page, "test page", select=False, imageId=-1)
+        #NOT IMPLEMENTED self.create_right_click_menu()
+        #NOT IMPLEMENTED self.view.SetRightClickMenu(self._rmenu)
+        
         #bind to events
         self.view.Bind(fnb.EVT_FLATNOTEBOOK_PAGE_CHANGED, self.update_editor_toolbar)
         #self.view.Bind(fnb.EVT_FLATNOTEBOOK_PAGE_CLOSED, self.closed_tab)
@@ -121,6 +120,7 @@ class DocumentEditorController(object):
     def create_right_click_menu(self):
         """
         Based on method from flatnotebook demo
+        NOT IMPLEMENTED
         """
         self._rmenu = wx.Menu()
         item = wx.MenuItem(self._rmenu, wx.ID_ANY,
@@ -152,7 +152,6 @@ class DocumentEditorController(object):
             connID = dlg.data
         except AttributeError:
             return #the user has clicked cancel
-        print data
         document = self.profile.new_document(docType, connID)
         #create document
         self.documentsOpen[str(document.documentID)] = selectpanel.QueryController(self.view, document)
@@ -166,7 +165,12 @@ class DocumentEditorController(object):
             try:
                 self.view.SetSelection(self.documentsOpen[documentID].page)
             except KeyError:
-                self.documentsOpen[documentID] = selectpanel.QueryController(self.view, self.profile.open_document(documentID))
+                self.documentsOpen[documentID] = selectpanel.QueryController(self.view, self.profile.open_doc(documentID))
+
+    def close_tab(self, evt):
+        """For the tab menu"""
+        pass
+        #self.view.DeletePage(self.view.GetSelection())
     
     def closing_tab(self, evt):
         """Check if it's saved, if not allow the user to save or discard"""
@@ -175,8 +179,7 @@ class DocumentEditorController(object):
         if self.profile.documents[docId].state == 'saved':
             del delf.profile.documents[docId]
             del self.documentsOpen[docId]
-            self.view.DeletePage(self.view.GetSelection())
-        elif self.profile.documents[docId].state == 'nefgfgw':
+        elif self.profile.documents[docId].state == 'new':
             del delf.profile.documents[docId]
             del self.documentsOpen[docId]
             pub.sendMessage('removequery', docId = docId)
