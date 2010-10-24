@@ -122,7 +122,6 @@ class DataItemsDialogController(object):
 
     def add_chosen(self, evt):
         """Close dialog and add selected items"""
-        
         if len(self.selected_index) > 0:
             for i in self.selected_index:
                 self.query.add_select_item(i[0], i[1][0])
@@ -146,11 +145,12 @@ class SelectController(object):
         self.selectPanel = view
         self.query = query
         self.profile = profile
+        self.selectitem_index = []
         #Button events
         self.selectPanel.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_select_item)
         #ListCtrl events
-        self.selectPanel.lbSelect.Bind(wx.EVT_LIST_ITEM_SELECTED, self.activate_remove_btn)
-        self.selectPanel.lbSelect.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
+        self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_SELECTED, self.activate_remove_btn)
+        self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
         
     def add_select_item(self, evt):
         """This opens a dialog to allow the user to add a select item"""
@@ -158,8 +158,28 @@ class SelectController(object):
             dlg = DataItemsDialog(wx.GetApp().GetTopWindow(), -1, "Select Data Items")
             control = DataItemsDialogController(dlg, self.query)
             dlg.ShowModal()
+            if control.update:
+                self.update_select_view()
             dlg.Destroy()
+            
+    def update_select_view(self):
+        """Ok, need to put some of this into a load data for when opening the save ddoc."""
+        self.view.selectList.Freeze()
+        count = self.view.selectList.GetItemCount()
+        self.selectitem_index = []
+        for i in self.query.selectItems:
+            for j in self.query.selectItems[i]:
+                a = self.view.selectList.InsertStringItem(count, j[0])
+                self.view.selectList.SetStringItem(count, 1, j[0][0]) 
+                self.view.selectList.SetItemData(a, 
+                self.display_select_item(i,j)
+        self.view.selectList.Thaw()
 
+    def display_select_item(self, table, column):
+        """Column will be a list, column name index 0"""
+        a = self.view.selectList.InsertStringItem(column[0], table)
+        self.selectitem_index.Append((table, column))
+        
     def activate_remove_btn(self, evt):
         """Activate the remove selected item button"""
         self.selectPanel.btnRemoveItem.Enable(True)
@@ -188,9 +208,10 @@ class SelectPanel(wx.Panel):
 	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = (-1,-1), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         #select items area
-        self.lbSelect = wx.ListCtrl(self, size = (-1,200), style = wx.SUNKEN_BORDER)
-       
-        self.topSizer.Add(self.lbSelect, 1, wx.EXPAND | wx.ALL, 5)
+        self.selectList = wx.ListCtrl(self, size = (-1,200), style = wx.SUNKEN_BORDER)
+        self.selectList.InsertColumn(0, "Column Name", format=ULC_FORMAT_LEFT, width=-1)
+        self.selectList.InsertColumn(1, "Table Name", format=ULC_FORMAT_LEFT, width=-1)
+        self.topSizer.Add(self.selectList, 1, wx.EXPAND | wx.ALL, 5)
         #select items buttons
         self.sizerButtons = wx.BoxSizer(wx.HORIZONTAL)
         self.btnRemoveItem = wx.Button(self, -1, "Remove Selected", size = (-1, -1))
