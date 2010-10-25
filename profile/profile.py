@@ -345,6 +345,21 @@ class Query(Document):
             self.counter += 1
             return cond
 
+    def add_set(self, parent = None, prev = None):
+        """
+        Adds a set to the query definition.
+        """
+        self.counter
+        if parent == None:
+            #top level set, parentID == 0
+            cond = query.condition_factory('set', self.counter, self.conditions, prev)
+            self.counter += 1
+            return cond
+        else:
+            cond = query.condition_factory('set', self.counter, parent, prev)
+            self.counter += 1
+            return cond
+
     def remove_condition(self, condition):
         """Removes condition from query definition"""
         condition.remove_self()

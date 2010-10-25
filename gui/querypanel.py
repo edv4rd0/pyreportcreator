@@ -120,7 +120,7 @@ class WhereController(object):
     This class handles the gui events etc relating to the where clause
     """
     wherePanel = None
-    elementControllers = []
+    elementControllers = dict()
     
     def __init__(self, view, query):
         """Initialize stuff so events can be monitored"""
@@ -135,52 +135,60 @@ class WhereController(object):
         self.whereEditor.choiceLogic.Bind(wx.EVT_CHOICE, self.alter_boolval)
 
         #pubsub subscriptions
-        pub.subscribe(self.add_sibling_condition, 'where.insert.condition')
-        pub.subscribe(self.remove_condition, 'where.remove.condition')
-        pub.subscribe(self.add_child_condition, 'where.set_insert.condition')
-        pub.subscribe(self.remove_set, 'where.remove.set')
-        pub.subscribe(self.add_sibling_set, 'where.insert.sub_set')
+        #pub.subscribe(self.add_sibling_condition, 'where.insert.condition')
+        #pub.subscribe(self.remove_condition, 'where.remove.condition')
+        #pub.subscribe(self.add_child_condition, 'where.set_insert.condition')
+        #pub.subscribe(self.remove_set, 'where.remove.set')
+        #pub.subscribe(self.add_sibling_set, 'where.insert.sub_set')
 
     def alter_boolval(self, evt):
         """Change the joining bool of the top set of the query"""
-        sel = self.whereEditor.choiceLogic.GetCurrentSelection()
-        print sel
-        self.query.conditions.boolVal = sel
+        choice = self.whereEditor.choiceLogic.GetCurrentSelection()
+        self.query.conditions.boolVal = self.editor.logicChoices[index]
+        self.query.change_made() #change state to altered
 
     def add_condition(self, evt):
         """Add condition to top level"""
-        cond = self.query.add_condition(self.query.conditions)
-        c = ConditionEditor(self.wherePanel, 6, cond)
-        self.wherePanel.topSizer.Insert(0, c.topSizer, 0, wx.EXPAND | wx.ALL)
+
+        #new condition    
+        cond = self.query.add_condition(parent = self.query.conditions)
+        #set view and controller
+        view = ConditionEditor(self.wherePanel, cond.condID)
+        self.elementControllers[cond.condID] = ConditionEditorControl(view, cond, whereController = self) 
+        self.wherePanel.topSizer.Insert(0, view.topSizer, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.Layout()
         self.wherePanel.layout_magic()
+        self.query.change_made() #change state to altered
         
     def add_set(self, evt):
         """Add condition set to top level"""
-
-        s = SetEditor(self.wherePanel, 6)
-        self.wherePanel.topSizer.Insert(0, s, 0, wx.EXPAND | wx.ALL)
+        cond = self.query.add_set(self.query.conditions)
+        view = SetEditor(self.wherePanel, 6)
+        self.elementControllers[cond.condID] = SetEditorControl(view, cond, whereController = self)
+        self.wherePanel.topSizer.Insert(0, view, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.Layout()
         self.wherePanel.layout_magic()
+        self.query.change_made() #change state to altered
         
     def add_child_set(self, object):
         """Not being implemented in this version"""
         pass
 
-    def remove_condition(self, queryID, panel, condSizer):
+    def remove_condition(self, panel, condSizer, cond):
         """Remove a condition editor from the containing sizer"""
-        if queryID == 0:
-            try:
-                condSizer.DeleteWindows()
-            except AttributeError: #if condSizer is an int (when deleting a set whith children)
-                panel.topSizer.GetItem(condSizer).DeleteWindows()
 
-            panel.topSizer.Remove(condSizer)
-            panel.Layout()
-            self.wherePanel.Layout()
-            self.wherePanel.layout_magic()
+        try:
+            condSizer.DeleteWindows()
+        except AttributeError: #if condSizer is an int (when deleting a set whith children)
+            panel.topSizer.GetItem(condSizer).DeleteWindows()
+        panel.topSizer.Remove(condSizer)
+        panel.Layout()
+        self.wherePanel.Layout()
+        self.wherePanel.layout_magic()
+        cond.remove_self()
+        self.query.change_made()
 
-    def remove_set(self, queryID, parentPanel, panel):
+    def remove_set(self, parentPanel, panel, condSet):
         """
         Remove a query set from the where condition.
         This must check for any child conditions.
@@ -193,75 +201,75 @@ class WhereController(object):
         parentPanel: the panel of the parent condition set, or the top QueryPanel
         panel: the actual panel to be removed from the view
         """
-        if queryID == 0:
-            
-            children = [j for j in panel.topSizer.GetChildren()]
-            if len(children) > 1:
-                dlg = wx.MessageBox("Really delete this set of conditions? This action will delete the child conditions!", "Confirm Delete", wx.OK | wx.CANCEL, wx.GetApp().GetTopWindow())
-                if dlg == 4:
-                    for i in children[1:]:
-                        index = panel.topSizer.GetChildren().index(i)
-                        self.remove_condition(queryID, panel, index)
-
-                    panel.topSizer.DeleteWindows()
-                    panel.Destroy()
-                    parentPanel.Layout()
-            else:
+        children = [j for j in panel.topSizer.GetChildren()]
+        if len(children) > 1:
+            dlg = wx.MessageBox("Really delete this set of conditions? This action will delete the child conditions!", "Confirm Delete", wx.OK | wx.CANCEL, wx.GetApp().GetTopWindow())
+            if dlg == 4:
+                for i in children[1:]:
+                    index = panel.topSizer.GetChildren().index(i)
+                    self.remove_condition(queryID, panel, index)
                 panel.topSizer.DeleteWindows()
                 panel.Destroy()
+                condSet.remove_self()
+                self.query.change_made()
                 parentPanel.Layout()
+                self.wherePanel.layout_magic()
+        else:
+            panel.topSizer.DeleteWindows()
+            panel.Destroy()
+            parentPanel.Layout()
+            condSet.remove_self()
+            self.query.change_made()
             self.wherePanel.layout_magic()
-
-            
         
-    def add_sibling_condition(self, queryID, sizer, panel, ind):
+    def add_sibling_condition(self, sizer, panel, ind, prevCond):
         """Handles a message from pubsub"""
-        if queryID == 0:
-            #get sizer and index
-            
-            szItem = panel.topSizer.GetItem(sizer)
+        #get sizer and index
+        self.controller = ConditionEditorControl(self, cond, False)
+        szItem = panel.topSizer.GetItem(sizer)
 
-            index = panel.topSizer.GetChildren().index(szItem)
+        index = panel.topSizer.GetChildren().index(szItem)
             
-            index += 1 #insert below element
+        index += 1 #insert below element
         
-            #setup Editor
-            c = ConditionEditor(panel, 6, ind)
-            panel.topSizer.Insert( index, c.topSizer, 0, wx.EXPAND | wx.ALL)
-            panel.Layout()
-            self.wherePanel.Layout()
-            self.wherePanel.layout_magic()
+        #setup Editor
+        c = ConditionEditor(panel, 6, ind)
+        panel.topSizer.Insert( index, c.topSizer, 0, wx.EXPAND | wx.ALL)
+        panel.Layout()
+        self.wherePanel.Layout()
+        self.wherePanel.layout_magic()
 
 
-    def add_sibling_set(self, queryID, sizer, panel, ind):
+    def add_sibling_set(self, sizer, panel, ind):
         """
         Adds a sibling condition set
         """
-        if queryID == 0:
-            szItem = panel.topSizer.GetItem(sizer)
 
-            index = panel.topSizer.GetChildren().index(szItem)
+        szItem = panel.topSizer.GetItem(sizer)
+
+        index = panel.topSizer.GetChildren().index(szItem)
             
-            index += 1 #insert below element
+        index += 1 #insert below element
         
-            #setup Editor
-            s = SetEditor(panel, 6, ind)
-            panel.topSizer.Insert( index, s, 0, wx.EXPAND | wx.ALL)
-            panel.Layout()
-            self.wherePanel.Layout()
-            self.wherePanel.layout_magic()
+        #setup Editor
+        s = SetEditor(panel, 6, ind)
+        panel.topSizer.Insert( index, s, 0, wx.EXPAND | wx.ALL)
+        panel.Layout()
+        self.wherePanel.Layout()
+        self.wherePanel.layout_magic()
             
 
-    def add_child_condition(self, queryID, parentSizer, ind, panel):
+    def add_child_condition(self, parentSizer, ind, panel, parentSet):
         """This method adds a child condition to a sub condition set"""
-        if queryID == 0:
-            #setup Editor
-            c = ConditionEditor(panel, 6, ind)
-            
-            parentSizer.Insert(1, c.topSizer, 1, wx.EXPAND | wx.ALL)
-            panel.Layout()
-            self.wherePanel.Layout()
-            self.wherePanel.layout_magic()
+        cond = self.query.add_condition(parent = parentSet)
+        #set view and controller
+        view = ConditionEditor(self.wherePanel, cond.condID, ind)
+        self.elementControllers[cond.condID] = ConditionEditorControl(view, cond, whereController = self) 
+        parentSizer.Insert(0, view.topSizer, 0, wx.EXPAND | wx.ALL)
+        panel.Layout()
+        self.wherePanel.Layout()
+        self.wherePanel.layout_magic()
+        self.query.change_made() #change state to altered
             
 
 class WhereEditor(wx.Panel):
@@ -322,10 +330,9 @@ class QueryCondEditor(object):
     This is the abstract class for the editor for query conditions
     """
     parent = None
-    id = None
     indent = None
 
-    def __init__(self, parent, id, indentation = 0):
+    def __init__(self, parent, condId, indentation = 0):
         """
         initialise the editor
 
@@ -341,14 +348,13 @@ class SetEditor(QueryCondEditor, wx.Panel):
     Such as (condition1 OR condition2)
     """
     logicChoices = [ u"all", u"any" ]
-    elemID = 0
     
-    def __init__(self, parent, id, indentation = 0):
+    def __init__(self, parent, condId, indentation = 0):
         """Initialise the set"""
-        QueryCondEditor.__init__(self, parent, id, indentation)
+        QueryCondEditor.__init__(self, parent, indentation)
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL)
         
-        
+        self.condId = condId
         self.SetBackgroundColour('#C9C0BB')
 	self.topSizer = wx.BoxSizer( wx.VERTICAL )
         #set indentation of element
@@ -398,9 +404,6 @@ class SetEditor(QueryCondEditor, wx.Panel):
         self.SetAutoLayout(True)
 	self.Layout()
 
-        #initialise controller - yeah, weird but good way to handle the killing of the controller
-        self.controller = SetEditorControl(self)
-
     def get_index_in_top_sizer(self):
         self.topSizer.GetItem(self, True)
 
@@ -416,9 +419,9 @@ class ConditionEditor(QueryCondEditor):
     operations = ['contains', 'equals', 'is in', 'not in', 'does not contain', 'not equal to']
     date__opr = ['between', 'equals', 'not equal to', 'not between']
     
-    def __init__(self, parent, id, cond, indentation = 0):
+    def __init__(self, parent, condId, indentation = 0):
         """Initialise editor interface"""
-        QueryCondEditor.__init__(self, parent, id, indentation)
+        QueryCondEditor.__init__(self, parent, indentation)
         parent.ClearBackground()
         #We are not going to have hugely deep nested conditions in this version
         if indentation == 0:
@@ -426,6 +429,7 @@ class ConditionEditor(QueryCondEditor):
         else:
             self.topSizer = wx.FlexGridSizer(1, 4, 1, 1)
             
+        self.condId = condId #for the purposes of clean removals
         self.topSizer.AddGrowableCol( 1 )
 	self.topSizer.SetFlexibleDirection( wx.HORIZONTAL )
 	self.topSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
@@ -463,28 +467,25 @@ class ConditionEditor(QueryCondEditor):
         if indentation == 0:
             self.btnSub = wx.Button( parent, wx.ID_ANY, u"...", wx.DefaultPosition, size = (40, -1))
             self.topSizer.Add( self.btnSub, 1, wx.ALL, 5 )
-        #set controller
-            self.controller = ConditionEditorControl(self, cond)
-        else:
-            #pass False so Controller doesn't bind to non-existent Button
-            self.controller = ConditionEditorControl(self, cond, False)
+
 
 
 class SetEditorControl(object):
     """This class implements a row of widgets for specifying a condition"""
-    id = None
+
     condition = None
     condType = None
     editor = None
 
     
-    def __init__(self, conView):
+    def __init__(self, conView, cond, whereController):
         """Setup editor control, bind to events"""
         
         #self.id = id #this will get replaced by the condition ID
         #self.condition = None
         self.editor = conView
-
+        self.whereController = whereController
+        self.cond = cond
         self.editor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.editor.btnDel.Bind(wx.EVT_BUTTON, self.remove_set)
         
@@ -525,13 +526,14 @@ class ConditionEditorControl(object):
     condType = None
     editor = None
     
-    def __init__(self, conView, condition, top = True):
+    def __init__(self, conView, condition, whereController, top = True):
         """Set up editor control, bind to events"""
         
         #self.id = id #this will get replaced by the condition ID
         #self.condition = None
         self.editor = conView
         self.condition = condition
+        self.whereController = whereController
         self.editor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.editor.btnDel.Bind(wx.EVT_BUTTON, self.remove)
         if top == True:
