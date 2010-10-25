@@ -311,4 +311,4 @@ class QueryController(object):
 
         #sub controllers
         self.selectController = SelectController(self.toolbook.selectPage, self.document, self.profile)
-        self.conditionController = querypanel.WhereController(self.toolbook.conditionEditor)
+        self.conditionController = querypanel.WhereController(self.toolbook.conditionEditor, self.document)

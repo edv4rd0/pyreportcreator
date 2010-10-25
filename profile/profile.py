@@ -337,12 +337,13 @@ class Query(Document):
         self.counter
         if parent == None:
             #top level condition, parentID == 0
-            query.condition_factory('condition', self.counter, self.conditions, prev)
+            cond = query.condition_factory('condition', self.counter, self.conditions, prev)
             self.counter += 1
-            return
+            return cond
         else:
-            query.condition_factory('condition', self.counter, parent, prev)
+            cond = query.condition_factory('condition', self.counter, parent, prev)
             self.counter += 1
+            return cond
 
     def remove_condition(self, condition):
         """Removes condition from query definition"""

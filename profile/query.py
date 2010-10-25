@@ -109,7 +109,7 @@ class ConditionSet(AbstractCondition):
             self.firstID = item.condID
             self.firstObj = item
         self.conditions.append(item)
-        return True
+        return item
 
     def update_pointers(self, item):
         """
@@ -173,14 +173,14 @@ def condition_factory(type, condID, parentObj = None, prev = None, boolVal = Non
     """
     if type == "set":
         if parentObj != None:
-            parentObj.add_child_member(ConditionSet(condID, parentObj, prev, boolVal))
-            return True
+            cond = parentObj.add_child_member(ConditionSet(condID, parentObj, prev, boolVal))
+            return cond
         else:
             return ConditionSet(condID, parentObj, prev, boolVal)
     elif type == "condition":
         if parentObj != None:
-            parentObj.add_child_member(Condition(condID, parentObj, prev))
-            return True
+            cond = parentObj.add_child_member(Condition(condID, parentObj, prev))
+            return cond
         else:
             return Condition(condID, parentObj, prev)
 

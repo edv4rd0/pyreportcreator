@@ -1,10 +1,11 @@
 """Test code for a query editor"""
 import wx
 from pubsub import pub
-import wx.lib.inspection
-from wx.lib.combotreebox import ComboTreeBox
-from wx.lib.popupctl import PopButton
+#from wx.lib.combotreebox import ComboTreeBox
+#from wx.lib.popupctl import PopButton
 import wx.lib.masked as masked
+import sqlalchemy
+from sqlalchemy import types
 
 
 class DateCtrl(masked.TextCtrl):
@@ -25,22 +26,93 @@ class DateTimeCtrl(masked.TextCtrl):
         """Initialize and setup"""
         masked.TextCtrl.__init__(self, parent, -1, "2010 12 31 - 24:00 00", mask ="#{4} ## ## - ##:## ##")
 
-class DateRange(wx.Panel):
+class BetweenValue(wx.Panel):
     """This class allows a date, time or date time range control to be built"""
-    def __init__(self, parent, ctrlType = 'date'):
+    def __init__(self, parent, ctrlType = 'float'):
+        wx.Panel.__init__(self, parent, -1)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        if ctrlType == 'float':
+            self.ctrl1 = FloatCtrl(self)
+            self.ctrl2 = FloatCtrl(self)
+        elif ctrlType == 'integer':
+            self.ctrl1 = IntegerCtrl(self)
+            self.ctrl2 = IntegerCtrl(self)
+        elif ctrlType == 'tiny_int':
+            self.ctrl1 = TinyIntCtrl(self)
+            self.ctrl2 = TinyIntCtrl(self)            
+        sizer.Add(self.ctrl1, 1)
+        sizer.Add(self.ctrl2, 1)
+        self.SetSizer(sizer)
+
+class DateBetweenValue(wx.Panel):
+    """This class allows a date, time or date time range control to be built"""
+    def __init__(self, parent, ctrlType = 'float'):
         wx.Panel.__init__(self, parent, -1)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         if ctrlType == 'date':
             self.ctrl1 = DateCtrl(self)
             self.ctrl2 = DateCtrl(self)
+        elif ctrlType == 'time':
+            self.ctrl1 = TimeCtrl(self)
+            self.ctrl2 = TimeCtrl(self)
+        elif ctrlType == 'datetime':
+            self.ctrl1 = DateTimeCtrl(self)
+            self.ctrl2 = DateTimeCtrl(self)
         sizer.Add(self.ctrl1, 1)
         sizer.Add(self.ctrl2, 1)
+        self.SetSizer(sizer)
+
+
+class PickColumnDialog(wx.Dialog):
+    """This class implements a column picker for choosing the column for a condition"""
+    def __init__(self, parent, query):
+        """Initialise and set up things"""
+        wx.Dialog.__init__(self, parent, -1, size = (200,300))
+        self.column = None #the variable for the new column
+        self.query = query
+        panel = wx.Panel(self, -1)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.tree = wx.TreeCtrl(panel, style = wx.TR_HIDE_ROOT | wx.EXPAND| wx.SUNKEN_BORDER | wx.TR_HAS_BUTTONS)
+        self.root = self.tree.AddRoot("root")
+        self.button = wx.Button(panel, -1, "Confirm", size= (-1,-1), style = wx.EXPAND)
+        sizer.Add(self.tree, 1, wx.EXPAND)
+        sizer.Add(self.button, 0, wx.EXPAND)
+        panel.SetSizer(sizer)
+        panel.Layout()
+        self.Center()
+        self.load_items()
+
+        #bind to events
+        self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.select)
+
+    def load_items(self):
+        """Load items into column picker"""
+        for t in self.query.selectItems:
+            tableItem = self.tree.AppendItem(self.root, t)
+            self.tree.SetPyData(tableItem, "table")
+            columns = datahandler.DataHandler.get_columns(self.query.engineID, t)
+            for c in columns:
+                citem = self.tree.AppendItem(tableItem, c[0])
+                self.tree.SetPyData(citem, c)
         
+    def select(self, evt):
+        item = self.tree.GetSelection()
+        print item
+        data = self.tree.GetItemData(item).GetData()
+        if data != "table":
+            self.change_text_confirm(data)
+        else:
+            self.change_text_close()
 
-class PopupFrame(wx.Frame):
+    def change_text_close(self):
+        """Change text"""
+        self.column = None
+        self.button.SetLabel("Close")
 
-    def __init__(self, parent, style=wx.DEFAULT_FRAME_STYLE & wx.FRAME_FLOAT_ON_PARENT):
-        wx.Frame.__init__(parent, style = style)
+    def change_text_confirm(self, data):
+        """Change Text"""
+        self.column = data
+        self.button.SetLabel("Confirm")
 
 
 class WhereController(object):
@@ -50,15 +122,17 @@ class WhereController(object):
     wherePanel = None
     elementControllers = []
     
-    def __init__(self, view):
+    def __init__(self, view, query):
         """Initialize stuff so events can be monitored"""
         
-        
+        self.query = query
         self.whereEditor = view
         self.wherePanel = view.panel
         #bind to events
         self.whereEditor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.whereEditor.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
+        #boolval for top set of query
+        self.whereEditor.choiceLogic.Bind(wx.EVT_CHOICE, self.alter_boolval)
 
         #pubsub subscriptions
         pub.subscribe(self.add_sibling_condition, 'where.insert.condition')
@@ -66,11 +140,17 @@ class WhereController(object):
         pub.subscribe(self.add_child_condition, 'where.set_insert.condition')
         pub.subscribe(self.remove_set, 'where.remove.set')
         pub.subscribe(self.add_sibling_set, 'where.insert.sub_set')
-        
+
+    def alter_boolval(self, evt):
+        """Change the joining bool of the top set of the query"""
+        sel = self.whereEditor.choiceLogic.GetCurrentSelection()
+        print sel
+        self.query.conditions.boolVal = sel
+
     def add_condition(self, evt):
         """Add condition to top level"""
-        c = ConditionEditor(self.wherePanel, 6)
-        
+        cond = self.query.add_condition(self.query.conditions)
+        c = ConditionEditor(self.wherePanel, 6, cond)
         self.wherePanel.topSizer.Insert(0, c.topSizer, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.Layout()
         self.wherePanel.layout_magic()
@@ -336,7 +416,7 @@ class ConditionEditor(QueryCondEditor):
     operations = ['contains', 'equals', 'is in', 'not in', 'does not contain', 'not equal to']
     date__opr = ['between', 'equals', 'not equal to', 'not between']
     
-    def __init__(self, parent, id, indentation = 0):
+    def __init__(self, parent, id, cond, indentation = 0):
         """Initialise editor interface"""
         QueryCondEditor.__init__(self, parent, id, indentation)
         parent.ClearBackground()
@@ -355,12 +435,14 @@ class ConditionEditor(QueryCondEditor):
         if indentation > 0:
             hBoxSizer.AddSpacer(indentation, -1)
         
-	#self.columnSelector = wx.combo.ComboCtrl(parent, style = wx.CB_READONLY)
-	self.columnSelector = ComboTreeBox(parent, style = wx.CB_READONLY|wx.CB_SORT)
-        #quick tets populate:
-        item1 = self.columnSelector.Append('Item 1')
-        item1a = self.columnSelector.Append('Item 1a', parent=item1)
-	hBoxSizer.Add( self.columnSelector, 1,wx.ALL, 5 )
+	#The column selector
+	#self.columnSelector = ComboTreeBox(parent, style = wx.CB_READONLY|wx.CB_SORT)
+        columnSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.tcColumn = wx.TextCtrl(parent, wx.ID_ANY, "Select a column", wx.DefaultPosition, (-1,-1),  wx.TE_READONLY | wx.EXPAND)
+        self.btnColumn = wx.Button(parent, wx.ID_ANY, "^", wx.DefaultPosition, (30, -1))
+        columnSizer.Add(self.tcColumn, 1)
+        columnSizer.Add(self.btnColumn, 0)
+	hBoxSizer.Add( columnSizer, 1, wx.ALL, 5 )
 	
 	self.choiceOperator = wx.Choice( parent, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.operations, 0 )
 	self.choiceOperator.SetSelection( 0 )
@@ -369,7 +451,7 @@ class ConditionEditor(QueryCondEditor):
         self.topSizer.Add(hBoxSizer, 1, wx.ALL)
 	#The param widget(s)
 	#self.paramWidget = wx.TextCtrl( parent, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (350, -1), 0)
-        self.paramWidget = DateCtrl(parent)
+        self.paramWidget = wx.TextCtrl(parent, wx.ID_ANY, "", wx.DefaultPosition, (-1,-1),   wx.EXPAND)
 	self.topSizer.Add( self.paramWidget, 1, wx.EXPAND| wx.ALL, 5 )
 
         self.btnDel = wx.Button( parent, wx.ID_ANY, u" - ", wx.DefaultPosition, size = (40, -1))
@@ -382,10 +464,10 @@ class ConditionEditor(QueryCondEditor):
             self.btnSub = wx.Button( parent, wx.ID_ANY, u"...", wx.DefaultPosition, size = (40, -1))
             self.topSizer.Add( self.btnSub, 1, wx.ALL, 5 )
         #set controller
-            self.controller = ConditionEditorControl(self)
+            self.controller = ConditionEditorControl(self, cond)
         else:
             #pass False so Controller doesn't bind to non-existent Button
-            self.controller = ConditionEditorControl(self, False)
+            self.controller = ConditionEditorControl(self, cond, False)
 
 
 class SetEditorControl(object):
@@ -442,20 +524,25 @@ class ConditionEditorControl(object):
     condition = None
     condType = None
     editor = None
-    conditionValues = []
     
-    def __init__(self, conView, top = True):
+    def __init__(self, conView, condition, top = True):
         """Set up editor control, bind to events"""
         
         #self.id = id #this will get replaced by the condition ID
         #self.condition = None
         self.editor = conView
-
+        self.condition = condition
         self.editor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.editor.btnDel.Bind(wx.EVT_BUTTON, self.remove)
         if top == True:
             self.editor.btnSub.Bind(wx.EVT_BUTTON, self.add_sub)
+        self.editor.btnColumn.Bind(wx.EVT_BUTTON, self.set_column)
 
+    def set_column(self, evt):
+        """This method loads the set column dialog and changes the column to whatever the user decides"""
+        
+
+        
     def load_condition(self, condition):
         """
         This method accepts a condition object and loads it into the widget
