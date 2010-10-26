@@ -134,13 +134,6 @@ class WhereController(object):
         #boolval for top set of query
         self.whereEditor.choiceLogic.Bind(wx.EVT_CHOICE, self.alter_boolval)
 
-        #pubsub subscriptions
-        #pub.subscribe(self.add_sibling_condition, 'where.insert.condition')
-        #pub.subscribe(self.remove_condition, 'where.remove.condition')
-        #pub.subscribe(self.add_child_condition, 'where.set_insert.condition')
-        #pub.subscribe(self.remove_set, 'where.remove.set')
-        #pub.subscribe(self.add_sibling_set, 'where.insert.sub_set')
-
     def change_made(self):
         """Called by condition/set controllers"""
         self.query.change_made()
@@ -189,8 +182,8 @@ class WhereController(object):
         panel.Layout()
         self.wherePanel.Layout()
         self.wherePanel.layout_magic()
-        if condObj != None:
-            condObj.remove_self()
+        condObj.remove_self()
+        del self.elementControllers[condObj.condID]
         self.query.change_made()
 
     def remove_set(self, parentPanel, panel, condSet):
@@ -207,7 +200,7 @@ class WhereController(object):
         panel: the actual panel to be removed from the view
         """
         children = [j for j in panel.topSizer.GetChildren()]
-        if len(children) > 1:
+        if len(children) > 1: #basically checking sizer length/num of sizer items (1 means just the set controls)
             dlg = wx.MessageBox("Really delete this set of conditions? This action will delete the child conditions!", "Confirm Delete", wx.OK | wx.CANCEL, wx.GetApp().GetTopWindow())
             if dlg == 4:
                 for i in children[1:]:
@@ -216,7 +209,12 @@ class WhereController(object):
                 panel.topSizer.DeleteWindows()
                 panel.Destroy()
                 condSet.remove_self()
+                #remove controller objects
+                self.remove_child_controllers(condSet.conditions)
+                del self.elementControllers[condSet.condID]
+                #update document state
                 self.query.change_made()
+                #layout parent panels
                 parentPanel.Layout()
                 self.wherePanel.layout_magic()
         else:
@@ -224,6 +222,7 @@ class WhereController(object):
             panel.Destroy()
             parentPanel.Layout()
             condSet.remove_self()
+            del self.elementControllers[condSet.condID]
             self.query.change_made()
             self.wherePanel.layout_magic()
         
@@ -264,6 +263,18 @@ class WhereController(object):
         self.wherePanel.layout_magic()
         self.query.change_made() #change state to altered
 
+    def remove_child_controllers(self, children):
+        """
+        This takes a list of children and iterates through them removing all controllers for thos conditions.
+        """
+        for i in children:
+            try: #first act as if it's a ConditionSet object
+                self.remove_child_controllers(i.conditions)
+                del self.elementControllers[i.condID]
+            except AttributeError:
+                #if it's a condition object
+                del self.elementControllers[i.condID]
+        
     def add_child_condition(self, parentSizer, ind, panel, parentSet):
         """
         This method adds a child condition to a sub condition set.
