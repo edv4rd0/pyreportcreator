@@ -230,7 +230,7 @@ class WhereController(object):
     def add_sibling_condition(self, sizer, panel, ind, condObj):
         """Handles a message from pubsub"""
                 #new condition    
-        cond = self.query.add_condition(parent = prevCond.parentObj, prev = condObj)
+        cond = self.query.add_condition(parent = condObj.parentObj, prev = condObj)
         #set view and controller
         szItem = panel.topSizer.GetItem(sizer)
         index = panel.topSizer.GetChildren().index(szItem)
@@ -244,28 +244,25 @@ class WhereController(object):
         self.wherePanel.layout_magic()
         self.query.change_made() #change state to altered
         #get sizer and index
-        self.controller = ConditionEditorControl(self, cond, False)
 
 
-    def add_sibling_set(self, sizer, panel, ind):
+    def add_sibling_set(self, sizer, panel, ind, condObj):
         """
         Adds a sibling condition set
-        NOT IMPLEMENTED
         """
-
+        condSet = self.query.add_set(parent = condObj.parentObj, prev = condObj)
         szItem = panel.topSizer.GetItem(sizer)
 
         index = panel.topSizer.GetChildren().index(szItem)
             
         index += 1 #insert below element
-        
-        #setup Editor
-        s = SetEditor(panel, 6, ind)
-        panel.topSizer.Insert( index, s, 0, wx.EXPAND | wx.ALL)
+        view = SetEditor(panel, condSet.condID)
+        self.elementControllers[condSet.condID] = SetEditorControl(view, condSet, whereController = self)
+        panel.topSizer.Insert( index, view, 0, wx.EXPAND | wx.ALL)
         panel.Layout()
-        self.wherePanel.Layout()
+        #self.wherePanel.Layout()
         self.wherePanel.layout_magic()
-            
+        self.query.change_made() #change state to altered
 
     def add_child_condition(self, parentSizer, ind, panel, parentSet):
         """
@@ -275,9 +272,9 @@ class WhereController(object):
         """
         cond = self.query.add_condition(parent = parentSet)
         #set view and controller
-        view = ConditionEditor(self.wherePanel, cond.condID, ind)
+        view = ConditionEditor(panel, cond.condID, ind)
         self.elementControllers[cond.condID] = ConditionEditorControl(view, cond, whereController = self, top = False) 
-        panel.topSizer.Insert(0, view.topSizer, 0, wx.EXPAND | wx.ALL)
+        panel.topSizer.Insert(1, view.topSizer, 0, wx.EXPAND | wx.ALL)
         panel.Layout()
         self.wherePanel.topSizer.Layout()
         self.wherePanel.layout_magic()
@@ -576,7 +573,7 @@ class ConditionEditorControl(object):
         This is called in the event of the editor.btnSub, or add child Set button being clicked
         """
         sizer = self.editor.topSizer
-        self.whereController.add_sub_set(sizer = sizer, panel = self.editor.parent, ind = self.editor.indentation, condObj = self.condition)
+        self.whereController.add_sibling_set(sizer = sizer, panel = self.editor.parent, ind = self.editor.indentation, condObj = self.condition)
 
 
     def remove(self, evt):

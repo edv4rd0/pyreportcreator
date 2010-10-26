@@ -113,15 +113,22 @@ class ConditionSet(AbstractCondition):
 
     def update_pointers(self, item):
         """
-        Update next, first and prev pointers
+        Update next, first and prev pointers.
+        This is used when removing objects from a ConditionSet
         """
         if item.parentObj != None:
             if item.parentObj.firstID == item.condID:
-                item.nextObj.prevID = None
-                item.nextObj.prevObj = None
-                item.parentObj.firstID = item.nextID
-                item.parentObj.firstObj = item.nextObj
+                #if removing the first object in the set of coditions
+                try:
+                    item.nextObj.prevID = None
+                    item.nextObj.prevObj = None
+                    item.parentObj.firstID = item.nextID
+                    item.parentObj.firstObj = item.nextObj
+                except AttributeError: #no nextObj
+                    item.parentObj.firstID = None
+                    item.parentObj.firstObj = None
             else:
+                #this object is in the middle of a sequence of objects
                 if item.nextObj != None:
                     item.nextObj.prevID = item.prevID
                     item.nextObj.prevObj = item.prevObj
