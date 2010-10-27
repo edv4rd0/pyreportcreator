@@ -31,7 +31,8 @@ class Condition(AbstractCondition):
     """
     Defines a condition (a la, column LIKE '%term')
     """
-    field1 = ""
+    field1 = tuple()
+    columnType = ""
     field2 = tuple()
     operator = None
     
