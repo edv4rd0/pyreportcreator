@@ -27,6 +27,52 @@ def get_generic_type(columnType):
         return ("datetime")
     else:
         raise TypeError()
+class BigIntCtrl(wx.IntCtrl):
+    """
+    An integer ctrl for editing the variable of the condition ctrl
+    """
+    def __init__(self, parent, width, update_state, dataField):
+        wx.IntCtrl(self, parent, -1, min = -9223372036854775808, max = 9223372036854775807, size = (width, -1))
+        self.dataField = dataField
+        self.dataField = self.lastValue = 0
+        self.update_state()
+
+class IntegerCtrl(wx.IntCtrl):
+    """
+    An integer ctrl for editing the variable of the condition ctrl
+    """
+    def __init__(self, parent, width, update_state, dataField):
+        wx.IntCtrl(self, parent, -1, min = -2147483648, max = 2147483647, size = (width, -1))
+        self.dataField = dataField
+        self.dataField = self.lastValue = 0
+        self.update_state()
+
+class SmallIntCtrl(wx.IntCtrl):
+    """
+    An integer ctrl for editing the variable of the condition ctrl
+    """
+    def __init__(self, parent, width, update_state, dataField):
+        wx.IntCtrl(self, parent, -1, min = 0, max = 32767, size = (width, -1))
+        self.dataField = dataField
+        self.dataField = self.lastValue = 0
+        self.update_state()
+
+class CustomIntCtrl(wx.IntCtrl):
+    """
+    An integer ctrl for editing the variable of the condition ctrl
+    @Param: update_state is a reference to the method of the profile.Query class being edited.
+    It is run to change state to 'altered'.
+    """
+    def __init__(self, parent, width, update_state, dataField, minimum, maximum):
+        wx.IntCtrl(self, parent, -1, min = minimum, max = maximum, value = 0, limited = True, size = (width, -1))
+        self.dataField = dataField
+        self.update_state = update_state
+        self.dataField = 0
+        self.update_state()
+
+    def assign_value(self, evt):
+        self.dataField = self.GetValue()
+        self.update_state()
 
 class CustomMaskedCtrl(masked.TextCtrl):
     """
@@ -50,6 +96,8 @@ class DateCtrl(CustomMaskedCtrl):
         """Initialize and setup"""
         CustomMaskedCtrl.__init__(self, parent, width, "#{4} ## ##", "2010 12 31", update_state, dataField)
         self.lastValue = "2010 12 31"
+        self.dataField = self.lastValue
+        self.update_state()
 
     def assign_value(self, evt):
         curValue = self.GetValue()
@@ -67,6 +115,8 @@ class TimeCtrl(CustomMaskedCtrl):
         """Initialize and setup"""
         CustomMaskedCtrl.__init__(self, parent, width, "##:## ##", "24:00 00", update_state, dataField)
         self.lastValue = "24:00 00"
+        self.dataField = self.lastValue
+        self.update_state()
 
     def assign_value(self, evt):
         curValue = self.GetValue()
@@ -83,6 +133,8 @@ class DateTimeCtrl(CustomMaskedCtrl):
         """Initialize and setup"""
         CustomMaskedCtrl.__init__(self, parent, width, "#{4} ## ## - ##:## ##", "2010 12 31 - 24:00 00", update_state, dataField)
         self.lastValue = "2010 12 31 - 24:00 00"
+        self.dataField = self.lastValue
+        self.update_state()
         
     def assign_value(self, evt):
         curValue = self.GetValue()
