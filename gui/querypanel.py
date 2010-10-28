@@ -1,10 +1,17 @@
 """Test code for a query editor"""
 import wx
+from wx.lib import intctrl
 from pubsub import pub
 #from wx.lib.combotreebox import ComboTreeBox
 #from wx.lib.popupctl import PopButton
 import wx.lib.masked as masked
 import sqlalchemy
+from sqlalchemy.dialects.mysql import \
+        BIGINT, BINARY, BIT, BLOB, BOOLEAN, CHAR, DATE, \
+        DATETIME, DECIMAL, DECIMAL, DOUBLE, ENUM, FLOAT, INTEGER, \
+        LONGBLOB, LONGTEXT, MEDIUMBLOB, MEDIUMINT, MEDIUMTEXT, NCHAR, \
+        NUMERIC, NVARCHAR, REAL, SET, SMALLINT, TEXT, TIME, TIMESTAMP, \
+        TINYBLOB, TINYINT, TINYTEXT, VARBINARY, VARCHAR, YEAR
 from sqlalchemy import types
 from pyreportcreator.datahandler import datahandler
 from pyreportcreator.profile import timestampconv
@@ -23,11 +30,56 @@ def get_generic_type(columnType):
         return ("date")
     if isinstance(columnType, types.Time):
         return ("time")
-    if isinstance(columnType):
+    if isinstance(columnType, types.DateTime):
         return ("datetime")
     else:
         raise TypeError()
-class BigIntCtrl(wx.IntCtrl):
+
+def get_mysql_types(columnType):
+    """Retrieves the MYSQL type"""
+    
+    if isinstance(columnType, TINYINT):
+        if columnType.unsigned:
+            return ("int", 0, 255, False)
+        else:
+            return ("int", -128, 127, False)
+    if isinstance(columnType, SMALLINT):
+        if columnType.unsigned:
+            return ("int", 0, 65535, False)
+        else:
+            return ("int", -32768, 32767, False)
+    if isinstance(columnType, INTEGER):
+        if columnType.unsigned:
+            return ("int", 0, 4294967295, True)
+        else:
+            return ("int", -2147483648, 2147483647, True)
+    if isinstance(columnType, BIGINT):
+        if columnType.unsigned:
+            return ("int", 0, 18446744073709551615, True)
+        else:
+            return ("int", -9223372036854775808, 9223372036854775807, True)
+    if isinstance(columnType, MEDIUMINT):
+        if columnType.unsigned:
+            return ("int", 0, 16777215, True)
+        else:
+            return ("int", -8388608, 8388607, True)
+    if isinstance(columnType, NUMERIC):
+        return ("numeric", columnType.__dict__["precision"], columnType.__dict__["scale"], columnType.unsigned) 
+    if isinstance(columnType, types.String):
+        return ("string", columnType.__dict__["length"])
+    if isinstance(columnType, DATE):
+        return ("date")
+    if isinstance(columnType, TIME):
+        return ("time")
+    if isinstance(columnType, DATETIME):
+        return ("datetime")
+    if isinstance(columnType, YEAR):
+        return ("year")
+    else:
+        print columnType
+        raise TypeError()
+
+class BigIntCtrl(intctrl.IntCtrl):
     """
     An integer ctrl for editing the variable of the condition ctrl
     """
@@ -37,7 +89,7 @@ class BigIntCtrl(wx.IntCtrl):
         self.dataField = self.lastValue = 0
         self.update_state()
 
-class IntegerCtrl(wx.IntCtrl):
+class IntegerCtrl(intctrl.IntCtrl):
     """
     An integer ctrl for editing the variable of the condition ctrl
     """
@@ -47,7 +99,7 @@ class IntegerCtrl(wx.IntCtrl):
         self.dataField = self.lastValue = 0
         self.update_state()
 
-class SmallIntCtrl(wx.IntCtrl):
+class SmallIntCtrl(intctrl.IntCtrl):
     """
     An integer ctrl for editing the variable of the condition ctrl
     """
@@ -57,14 +109,14 @@ class SmallIntCtrl(wx.IntCtrl):
         self.dataField = self.lastValue = 0
         self.update_state()
 
-class CustomIntCtrl(wx.IntCtrl):
+class CustomIntCtrl(intctrl.IntCtrl):
     """
     An integer ctrl for editing the variable of the condition ctrl
     @Param: update_state is a reference to the method of the profile.Query class being edited.
     It is run to change state to 'altered'.
     """
-    def __init__(self, parent, width, update_state, dataField, minimum, maximum):
-        wx.IntCtrl(self, parent, -1, min = minimum, max = maximum, value = 0, limited = True, size = (width, -1))
+    def __init__(self, parent, width, update_state, dataField, minimum, maximum, longBool):
+        intctrl.IntCtrl.__init__(self, parent, -1, min = minimum, max = maximum, limited = True, allow_none = False, allow_long = longBool, size = (width, -1))
         self.dataField = dataField
         self.update_state = update_state
         self.dataField = 0
@@ -147,7 +199,7 @@ class DateTimeCtrl(CustomMaskedCtrl):
 
 class BetweenValue(wx.Panel):
     """This class allows a date, time or date time range control to be built"""
-    def __init__(self, parent, ctrlType = 'numeric', dataField, precision = None, decimalPlaces = None):
+    def __init__(self, parent, dataField, ctrlType = 'numeric',  precision = None, decimalPlaces = None):
         wx.Panel.__init__(self, parent, -1)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         if ctrlType == 'numeric':
@@ -165,7 +217,7 @@ class BetweenValue(wx.Panel):
 
 class DateBetweenValue(wx.Panel):
     """This class allows a date, time or date time range control to be built"""
-    def __init__(self, parent, ctrlType = 'float', dataField):
+    def __init__(self, parent, dataField, ctrlType = 'float'):
         wx.Panel.__init__(self, parent, -1)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         if ctrlType == 'date':
@@ -691,7 +743,10 @@ class ConditionEditorControl(object):
         if top == True:
             self.editor.btnSub.Bind(wx.EVT_BUTTON, self.add_sub)
         self.editor.btnColumn.Bind(wx.EVT_BUTTON, self.set_column)
+        self.typeDetails = ("string")
 
+
+        
     def set_column(self, evt):
         """
         This method loads the set column dialog and changes the column to whatever the user decides
@@ -700,26 +755,30 @@ class ConditionEditorControl(object):
         if choice != None: #If they click cancel/close this should not run
             self.condition.field1 = (choice[0], choice[1])
             self.editor.tcColumn.ChangeValue(choice[0]+"."+choice[1])
-            details = get_generic_type(choice[2])
             print choice[2].__dict__
-            if details in ("integer", "smallint", "number", "date", "datetime", "time"):
-                self.editor.choiceOperator.Clear()
+            self.typeDetails = get_mysql_types(choice[2])
+            self.editor.choiceOperator.Clear()
+            self.editor.paramSizer.Clear(True)
+            print self.typeDetails
+            if self.typeDetails[0] == "int":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = DateCtrl(self.editor.parent, 400)
                 
-                self.editor.paramSizer.Clear(True)
-                self.editor.paramSizer.Add(self.editor.paramWidget)
-                #sizers and stuff need updating
-                self.editor.topSizer.Layout()
-                self.whereController.update_wherepanel()
+                self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
+                                                        update_state = self.whereController.change_made,\
+                                                        dataField = self.condition.field2, minimum = self.typeDetails[1],\
+                                                        maximum = self.typeDetails[2], longBool = self.typeDetails[3])
+                
             else:
-                self.editor.choiceOperator.Clear()
-                self.editor.choiceOperator.AppendItems(self.editor.operations)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.topSizer.Layout()
-                self.whereController.update_wherepanel()
-                
+                self.editor.paramWidget = wx.TextCtrl( self.editor.parent, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (450, -1), 0)
+            self.editor.paramSizer.Add(self.editor.paramWidget)
+            #sizers and stuff need updating
+            self.editor.topSizer.Layout()
+            self.whereController.update_wherepanel()
+
+    def set_field_widgets(self):
+        pass
+    
     def load_condition(self, condition):
         """
         This method accepts a condition object and loads it into the widget
