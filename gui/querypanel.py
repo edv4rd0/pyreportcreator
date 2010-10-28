@@ -7,6 +7,7 @@ import wx.lib.masked as masked
 import sqlalchemy
 from sqlalchemy import types
 from pyreportcreator.datahandler import datahandler
+from pyreportcreator.profile import timestampconv
 
 def get_generic_type(columnType):
     """Recieves the type and returns the correct details for the GUI"""
@@ -27,61 +28,107 @@ def get_generic_type(columnType):
     else:
         raise TypeError()
 
+class CustomMaskedCtrl(masked.TextCtrl):
+    """
+    Abstract base class for my own custom masked controls
+    @Param: update_state is a reference to the method of the profile.Query class being edited.
+    It is run to change state to 'altered'.
+    @Param: mask, the appropriate maks for the control
+    @Param: value, the default value for the control
+    """
+    def __init__(self, parent, width, mask, value, update_state, dataField):
+        masked.TextCtrl.__init__(self, parent, -1, value, mask = mask, size = (width, -1))
+        self.dataField = dataField
+        self.update_state = update_state
 
-class DateCtrl(masked.TextCtrl):
+    def assign_value(self, evt):
+        raise NotImplementedError("Subclass must implement abstract method")
+
+class DateCtrl(CustomMaskedCtrl):
     """This is basically the date ctrl"""
-    def __init__(self, parent):
+    def __init__(self, parent, width, update_state, dataField):
         """Initialize and setup"""
-        masked.TextCtrl.__init__(self, parent, -1, "2010 12 31", mask ="#{4} ## ##")
+        CustomMaskedCtrl.__init__(self, parent, width, "#{4} ## ##", "2010 12 31", update_state, dataField)
+        self.lastValue = "2010 12 31"
+
+    def assign_value(self, evt):
+        curValue = self.GetValue()
+        value = timestampconv.date_conv(curValue)
+        if value == False:
+            self.SetValue(self.lastValue)
+        else:
+            self.lastValue = curValue
+            self.dataField = value
+            self.update_state()
         
-class TimeCtrl(masked.TextCtrl):
+class TimeCtrl(CustomMaskedCtrl):
     """This is basically the date ctrl"""
-    def __init__(self, parent):
+    def __init__(self, parent, width, update_state, dataField):
         """Initialize and setup"""
-        masked.TextCtrl.__init__(self, parent, -1, "24:00 00", mask ="##:## ##")
+        CustomMaskedCtrl.__init__(self, parent, width, "##:## ##", "24:00 00", update_state, dataField)
+        self.lastValue = "24:00 00"
 
-class DateTimeCtrl(masked.TextCtrl):
+    def assign_value(self, evt):
+        curValue = self.GetValue()
+        value = timestampconv.time_conv(curValue)
+        if value == False:
+            self.SetValue(self.lastValue)
+        else:
+            self.lastValue = curValue
+            self.dataField = value
+
+class DateTimeCtrl(CustomMaskedCtrl):
     """This is basically the date ctrl"""
-    def __init__(self, parent):
+    def __init__(self, parent, width, update_state, dataField):
         """Initialize and setup"""
-        masked.TextCtrl.__init__(self, parent, -1, "2010 12 31 - 24:00 00", mask ="#{4} ## ## - ##:## ##")
+        CustomMaskedCtrl.__init__(self, parent, width, "#{4} ## ## - ##:## ##", "2010 12 31 - 24:00 00", update_state, dataField)
+        self.lastValue = "2010 12 31 - 24:00 00"
+        
+    def assign_value(self, evt):
+        curValue = self.GetValue()
+        value = timestampconv.datetime_conv(curValue)
+        if value == False:
+            self.SetValue(self.lastValue)
+        else:
+            self.lastValue = curValue
+            self.dataField = value
 
 class BetweenValue(wx.Panel):
     """This class allows a date, time or date time range control to be built"""
-    def __init__(self, parent, ctrlType = 'float'):
+    def __init__(self, parent, ctrlType = 'numeric', dataField, precision = None, decimalPlaces = None):
         wx.Panel.__init__(self, parent, -1)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        if ctrlType == 'float':
-            self.ctrl1 = FloatCtrl(self)
-            self.ctrl2 = FloatCtrl(self)
+        if ctrlType == 'numeric':
+            self.ctrl1 = NumericCtrl(self, dataField[0], precision, decimalPlaces)
+            self.ctrl2 = NumericCtrl(self, dataField[1], precision, decimalPlaces)
         elif ctrlType == 'integer':
-            self.ctrl1 = IntegerCtrl(self)
-            self.ctrl2 = IntegerCtrl(self)
+            self.ctrl1 = IntegerCtrl(self, dataField[0])
+            self.ctrl2 = IntegerCtrl(self, dataField[1])
         elif ctrlType == 'tiny_int':
-            self.ctrl1 = TinyIntCtrl(self)
-            self.ctrl2 = TinyIntCtrl(self)            
+            self.ctrl1 = TinyIntCtrl(self, dataField[0])
+            self.ctrl2 = TinyIntCtrl(self, dataField[1])
         sizer.Add(self.ctrl1, 1)
         sizer.Add(self.ctrl2, 1)
         self.SetSizer(sizer)
 
 class DateBetweenValue(wx.Panel):
     """This class allows a date, time or date time range control to be built"""
-    def __init__(self, parent, ctrlType = 'float'):
+    def __init__(self, parent, ctrlType = 'float', dataField):
         wx.Panel.__init__(self, parent, -1)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         if ctrlType == 'date':
-            self.ctrl1 = DateCtrl(self)
-            self.ctrl2 = DateCtrl(self)
+            self.ctrl1 = DateCtrl(self, dataField[0])
+            self.ctrl2 = DateCtrl(self, dataField[1])
         elif ctrlType == 'time':
-            self.ctrl1 = TimeCtrl(self)
-            self.ctrl2 = TimeCtrl(self)
+            self.ctrl1 = TimeCtrl(self, dataField[0])
+            self.ctrl2 = TimeCtrl(self, dataField[1])
         elif ctrlType == 'datetime':
-            self.ctrl1 = DateTimeCtrl(self)
-            self.ctrl2 = DateTimeCtrl(self)
+            self.ctrl1 = DateTimeCtrl(self, dataField[0])
+            self.ctrl2 = DateTimeCtrl(self, dataField[1])
         sizer.Add(self.ctrl1, 1)
         sizer.Add(self.ctrl2, 1)
         self.SetSizer(sizer)
-
+        
 
 class PickColumnDialog(wx.Dialog):
     """This class implements a column picker for choosing the column for a condition"""
@@ -157,6 +204,10 @@ class WhereController(object):
         self.whereEditor.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
         #boolval for top set of query
         self.whereEditor.choiceLogic.Bind(wx.EVT_CHOICE, self.alter_boolval)
+
+    def update_wherepanel(self):
+        self.wherePanel.topSizer.Layout()
+        self.wherePanel.layout_magic()
 
     def set_condition_column(self):
         """
@@ -265,7 +316,7 @@ class WhereController(object):
         index = panel.topSizer.GetChildren().index(szItem)
             
         index += 1 #insert below element
-        view = ConditionEditor(panel, cond.condID)
+        view = ConditionEditor(panel, cond.condID, ind)
         self.elementControllers[cond.condID] = ConditionEditorControl(view, cond, whereController = self) 
         panel.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
         panel.Layout()
@@ -522,6 +573,7 @@ class ConditionEditor(QueryCondEditor):
         """Initialise editor interface"""
         QueryCondEditor.__init__(self, parent, indentation)
         parent.ClearBackground()
+        self.parent = parent
         #We are not going to have hugely deep nested conditions in this version
         if indentation == 0:
             self.topSizer = wx.FlexGridSizer( 1, 5, 1, 1 )
@@ -529,7 +581,7 @@ class ConditionEditor(QueryCondEditor):
             self.topSizer = wx.FlexGridSizer(1, 4, 1, 1)
             
         self.condId = condId #for the purposes of clean removals
-        self.topSizer.AddGrowableCol( 1 )
+        self.topSizer.AddGrowableCol( 0 )
 	self.topSizer.SetFlexibleDirection( wx.HORIZONTAL )
 	self.topSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
         
@@ -544,20 +596,22 @@ class ConditionEditor(QueryCondEditor):
         self.btnColumn = wx.Button(parent, wx.ID_ANY, "^", wx.DefaultPosition, (30, -1))
         columnSizer.Add(self.tcColumn, 1)
         columnSizer.Add(self.btnColumn, 0)
-	hBoxSizer.Add( columnSizer, 1, wx.ALL, 5 )
+	hBoxSizer.Add( columnSizer, 1, wx.EXPAND | wx.ALL, 5 )
 	
 	self.choiceOperator = wx.Choice( parent, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, self.operations, 0 )
 	self.choiceOperator.SetSelection( 0 )
-	hBoxSizer.Add( self.choiceOperator, 1,wx.ALL, 5 )
+	hBoxSizer.Add( self.choiceOperator, 1,wx.EXPAND | wx.ALL, 5 )
         #add box sizer with first three widgets to grid sizer
-        self.topSizer.Add(hBoxSizer, 1, wx.ALL)
+        self.topSizer.Add(hBoxSizer, 1, wx.EXPAND | wx.ALL)
 	#The param widget(s)
-	self.paramWidget = wx.TextCtrl( parent, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (350, -1), 0)
+	self.paramWidget = wx.TextCtrl( parent, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (450, -1), 0)
+        self.paramSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.paramSizer.Add(self.paramWidget, 1)
         #self.paramWidget = wx.TextCtrl(parent, wx.ID_ANY, "", wx.DefaultPosition, (-1,-1),   wx.EXPAND)
-	self.topSizer.Add( self.paramWidget, 1, wx.EXPAND| wx.ALL, 5 )
+	self.topSizer.Add( self.paramSizer, 1, wx.ALL, 5 )
 
         self.btnDel = wx.Button( parent, wx.ID_ANY, u" - ", wx.DefaultPosition, size = (40, -1))
-	self.topSizer.Add( self.btnDel, 1, wx.ALL, 5 )
+	self.topSizer.Add( self.btnDel, 0, wx.ALL, 5 )
 	self.btnAdd = wx.Button( parent, wx.ID_ANY, u" + ", wx.DefaultPosition, size = (40, -1))
 	self.topSizer.Add( self.btnAdd, 1, wx.ALL, 5 )
 
@@ -596,14 +650,24 @@ class ConditionEditorControl(object):
             self.editor.tcColumn.ChangeValue(choice[0]+"."+choice[1])
             details = get_generic_type(choice[2])
             print choice[2].__dict__
-            if details in ("integer", "smallint", "number", "date", "datetime", "time"): 
+            if details in ("integer", "smallint", "number", "date", "datetime", "time"):
                 self.editor.choiceOperator.Clear()
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
+                self.editor.paramWidget = DateCtrl(self.editor.parent, 400)
+                
+                self.editor.paramSizer.Clear(True)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+                #sizers and stuff need updating
+                self.editor.topSizer.Layout()
+                self.whereController.update_wherepanel()
             else:
                 self.editor.choiceOperator.Clear()
                 self.editor.choiceOperator.AppendItems(self.editor.operations)
                 self.editor.choiceOperator.SetSelection( 0 )
+                self.editor.topSizer.Layout()
+                self.whereController.update_wherepanel()
+                
     def load_condition(self, condition):
         """
         This method accepts a condition object and loads it into the widget

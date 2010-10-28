@@ -59,6 +59,8 @@ def get_condition(condition, engineID):
     #compile condition:
     if condition.operator == "==":
         return field1==field2
+    elif condition.operator == "!=":
+        return ~(field1==field2)
     elif condition.operator == ">":
         return field1>field2
     elif condition.operator == "<":
