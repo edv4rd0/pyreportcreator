@@ -79,35 +79,6 @@ def get_mysql_types(columnType):
         print columnType
         raise TypeError()
 
-class BigIntCtrl(intctrl.IntCtrl):
-    """
-    An integer ctrl for editing the variable of the condition ctrl
-    """
-    def __init__(self, parent, width, update_state, dataField):
-        wx.IntCtrl(self, parent, -1, min = -9223372036854775808, max = 9223372036854775807, size = (width, -1))
-        self.dataField = dataField
-        self.dataField = self.lastValue = 0
-        self.update_state()
-
-class IntegerCtrl(intctrl.IntCtrl):
-    """
-    An integer ctrl for editing the variable of the condition ctrl
-    """
-    def __init__(self, parent, width, update_state, dataField):
-        wx.IntCtrl(self, parent, -1, min = -2147483648, max = 2147483647, size = (width, -1))
-        self.dataField = dataField
-        self.dataField = self.lastValue = 0
-        self.update_state()
-
-class SmallIntCtrl(intctrl.IntCtrl):
-    """
-    An integer ctrl for editing the variable of the condition ctrl
-    """
-    def __init__(self, parent, width, update_state, dataField):
-        wx.IntCtrl(self, parent, -1, min = 0, max = 32767, size = (width, -1))
-        self.dataField = dataField
-        self.dataField = self.lastValue = 0
-        self.update_state()
 
 class CustomIntCtrl(intctrl.IntCtrl):
     """
@@ -121,9 +92,18 @@ class CustomIntCtrl(intctrl.IntCtrl):
         self.update_state = update_state
         self.dataField = 0
         self.update_state()
+        self.Bind(wx.EVT_TEXT, self.assign_value)
+
+    def GetValue(self):
+        """Deals with TypeError I was getting from user entered negative numbers"""
+        try:
+            return intctrl.IntCtrl.GetValue(self)
+        except ValueError:
+            return 0
 
     def assign_value(self, evt):
         self.dataField = self.GetValue()
+        print self.dataField
         self.update_state()
 
 class CustomMaskedCtrl(masked.TextCtrl):
@@ -160,6 +140,24 @@ class DateCtrl(CustomMaskedCtrl):
             self.lastValue = curValue
             self.dataField = value
             self.update_state()
+
+class YearCtrl(CustomMaskedCtrl):
+    """This is basically the year ctrl"""
+    def __init__(self, parent, width, update_state, dataField):
+        """Initialize and setup"""
+        CustomMaskedCtrl.__init__(self, parent, width, "####", "2010", update_state, dataField)
+        self.lastValue = "2010"
+        self.dataField = self.lastValue
+        self.update_state()
+
+    def assign_value(self, evt):
+        curValue = self.GetValue()
+        value = timestampconv.time_conv(curValue)
+        if value == False:
+            self.SetValue(self.lastValue)
+        else:
+            self.lastValue = curValue
+            self.dataField = value
         
 class TimeCtrl(CustomMaskedCtrl):
     """This is basically the date ctrl"""
