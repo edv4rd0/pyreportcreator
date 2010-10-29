@@ -22,3 +22,10 @@ def date_conv(self, var):
         return datetime.strptime(var, "%Y %m %d")
     except ValueError:
         return False
+
+def year_conv(self, var):
+    """Coverting: '2010', With: '%Y' """
+    #try:
+    return datetime.strptime(var, "%Y")
+    #except ValueError:
+    #    return False
