@@ -1,31 +1,31 @@
 """Functions existing to convert the textctrl values to a python datetime object"""
-from datetime import datetime
+from datetime import datetime, date
 
 
-def datetime_conv(self, var):
+def datetime_conv(var):
     """Coverting: '2010 12 14 - 22:43 45', With: '%Y %m %d - %H:%M %S' """
     try:
-        return datetime.strptime(var, "%Y %m %d - %H:%M %S")
+        return datetime.strptime(var, "%Y %m %d - %H:%M %S").isoformat()
     except ValueError:
         return False
 
-def time_conv(self, var):
+def time_conv(var):
     """Coverting: '22:43 45', With: '%H:%M %S' """
     try:
-        return datetime.strptime(var, "%H:%M %S")
+        return datetime.strptime(var, "%H:%M %S").time().isoformat()
     except ValueError:
         return False
 
-def date_conv(self, var):
+def date_conv(var):
     """Coverting: '2010 12 14', With: '%Y %m %d' """
     try:
-        return datetime.strptime(var, "%Y %m %d")
+        return datetime.strptime(var, "%Y %m %d").date().isoformat()
     except ValueError:
         return False
 
-def year_conv(self, var):
+def year_conv(var):
     """Coverting: '2010', With: '%Y' """
     #try:
-    return datetime.strptime(var, "%Y")
+    datetime.strptime(var, "%Y").year
     #except ValueError:
     #    return False

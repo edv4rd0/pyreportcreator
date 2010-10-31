@@ -40,7 +40,7 @@ def get_condition(condition, engineID):
     The condition object contains the needed condition definition.
     """
     field1 = datahandler.DataHandler.get_column_object(condition.field1[0], engineID, condition.field1[1])
-    if isinstance(condition.field2, tuple):
+    if isinstance(condition.field2, list):
         #TODO: add proper error checking code here
         if condition.field2[0] == "column":
             field2 = datahandler.DataHandler.get_column_object(condition.field1[1], engineID, condition.field2[2])
