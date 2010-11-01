@@ -291,9 +291,9 @@ class BetweenValue(wx.Panel):
             self.condition.field2 = self.lastValues
             self.update_state()
 
-        self.label = wx.StaticText(self, -1, "and", wx.DefaultPosition, (40,-1), wx.ALL, 5)
+        self.label = wx.StaticText(self, -1, label="and", size= (40,-1))
         sizer.Add(self.ctrl1, 1)
-        sizer.Add(self.label, 1)
+        sizer.Add(self.label, 0)
         sizer.Add(self.ctrl2, 1)
         self.SetSizer(sizer)
         #Bind values
@@ -345,9 +345,9 @@ class DateBetweenValue(wx.Panel):
             self.condition.field2 = [timestampconv.year_conv("2009"), timestampconv.year_conv("2010")]
             self.update_state()
 
-        self.label = wx.StaticText(self, -1, "and", wx.DefaultPosition, (40,-1), wx.ALL, 5)
+        self.label = wx.StaticText(self, -1, label = "and", size = (40,-1))
         sizer.Add(self.ctrl1, 1)
-        sizer.Add(self.label, 1)
+        sizer.Add(self.label, 0)
         sizer.Add(self.ctrl2, 1)
         self.SetSizer(sizer)
         #bind events
@@ -827,7 +827,7 @@ class ConditionEditor(QueryCondEditor):
     """
 
     operations = ['contains', 'equals', 'does not contain', 'not equal to']
-    date_opr = ['between', 'equals', 'not equal to', 'not between', 'less than', 'greater than']
+    date_opr = ['equals', 'between', 'not equal to', 'not between', 'less than', 'greater than']
     
     def __init__(self, parent, condId, indentation = 0):
         """Initialise editor interface"""
@@ -1191,7 +1191,7 @@ class ConditionEditorControl(object):
         if num == 1:
             self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
                                                     update_state = self.whereController.change_made,\
-                                                    dataField = self.condition, minimum = self.typeDetails[1],\
+                                                    condition = self.condition, minimum = self.typeDetails[1],\
                                                     maximum = self.typeDetails[2], longBool = self.typeDetails[3])
         else:
             self.editor.paramWidget = BetweenValue(self.editor.parent, width = 450, update_state = self.whereController.change_made,\
@@ -1206,37 +1206,37 @@ class ConditionEditorControl(object):
                 
                 self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
                                                         update_state = self.whereController.change_made,\
-                                                        dataField = self.condition.field2, minimum = self.typeDetails[1],\
+                                                        condition = self.condition.field2, minimum = self.typeDetails[1],\
                                                         maximum = self.typeDetails[2], longBool = self.typeDetails[3])
             elif self.typeDetails[0] == "string":
                 self.editor.choiceOperator.AppendItems(self.editor.operations)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
                                                           update_state = self.whereController.change_made, \
-                                                          dataField = self.condition.field2, chars = self.typeDetails[1])
+                                                          condition = self.condition.field2, chars = self.typeDetails[1])
 
             elif self.typeDetails == "datetime":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    dataField = self.condition.field2)
+                                                    condition = self.condition.field2)
             elif self.typeDetails == "time":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    dataField = self.condition.field2)
+                                                    condition = self.condition.field2)
             elif self.typeDetails == "year":
                 self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    dataField = self.condition.field2)
+                                                    condition = self.condition.field2)
             elif self.typeDetails[0] == "numeric":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    dataField = self.condition.field2, numerals = self.typeDetails[1], decimalPlaces = self.typeDetails[2])
+                                                    condition = self.condition.field2, numerals = self.typeDetails[1], decimalPlaces = self.typeDetails[2])
 
 
 
