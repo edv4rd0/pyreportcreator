@@ -222,6 +222,7 @@ class Query(Document):
     order_by = dict() #dict of {'table': ('column', 'direction')}
     joins = dict() #firstjoin => join info, secondJoin => join info
     engineID = ""
+    conditionIndex = dict() #for code to check for dependent conditions before deleting select items
 
     def __init__(self, documentID, engineID, name = "Untitled Query"):
         """This initializes the query object from some supplied definitions"""
@@ -239,7 +240,7 @@ class Query(Document):
     def check_for_relations(self, table, selTables):
         """
         This runs through the tables already added and checks for relations and returns any mapped relations.
-        Need to have the type of relation fgured out and returned by the DataHandler module I think.
+        Need to have the type of relation figured out and returned by the DataHandler module I think.
         """
         relations = []
         if selTables == 1 and len(self.joins.keys()) == 0:
@@ -254,7 +255,7 @@ class Query(Document):
 
     def devise_join(self, localColumns, foreignColumns, localTable, foreignTable):
         """
-        This is where we get clever and try and devise a join
+        This tries to devise a join based on the existing relationship
         """
         if len(foreign_columns) == 1 and len(localColumns) == 1:
             foreignType = get_type(self.engineID, foreignTable, foreignColumns[0])

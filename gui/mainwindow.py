@@ -81,7 +81,7 @@ class Application(wx.App):
     def about_dialog(self, evt):
         """Loads and displays an about dialog box"""
         info = wx.AboutDialogInfo()
-        info.Name = "Edward's Report Builder"
+        info.Name = "Database Query Creator"
         info.Version = "0.0.1 Devel"
         info.Copyright = "(C) 2010 Edward Williams"
         info.Description = wordwrap("This is a GUI based application for"
@@ -93,5 +93,3 @@ class Application(wx.App):
                             wx.ClientDC(self.frame))
         # Show the wx.AboutBox
         wx.AboutBox(info)
- 
-

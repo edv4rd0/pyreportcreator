@@ -134,7 +134,7 @@ class BaseIntCtrl(intctrl.IntCtrl):
             return intctrl.IntCtrl.GetValue(self)
         except ValueError:
             return 0
-        
+
 class CustomIntCtrl(intctrl.IntCtrl):
     """
     An integer ctrl for editing the variable of the condition ctrl
@@ -460,6 +460,8 @@ class WhereController(object):
         self.query = query
         self.whereEditor = view
         self.wherePanel = view.panel
+        if self.query.status == "saved":
+            self.load_conditions()
         #bind to events
         self.whereEditor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.whereEditor.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
@@ -911,62 +913,70 @@ class ConditionEditorControl(object):
         """
         choice = self.whereController.set_condition_column()
         if choice != None: #If they click cancel/close this should not run
+            #modify index
+            self.whereController.query.conditionIndex[self.condition.condID] = (choice[0], choice[1])
+            #the index exists for code to check constraints when deleting select items etc
             self.condition.field1 = (choice[0], choice[1])
             self.editor.tcColumn.ChangeValue(choice[0]+"."+choice[1])
             print choice[2].__dict__
             self.typeDetails = get_mysql_types(choice[2])
-            self.editor.choiceOperator.Clear()
-            self.editor.paramSizer.Clear(True)
-            print self.typeDetails
-            if self.typeDetails[0] == "int":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                
-                self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
-                                                        update_state = self.whereController.change_made,\
-                                                        condition = self.condition, minimum = self.typeDetails[1],\
-                                                        maximum = self.typeDetails[2], longBool = self.typeDetails[3])
-            elif self.typeDetails[0] == "string":
-                self.editor.choiceOperator.AppendItems(self.editor.operations)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
-                                                          update_state = self.whereController.change_made, \
-                                                          condition = self.condition)
-            elif self.typeDetails == "date":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = DateCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition)
-            elif self.typeDetails == "datetime":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition)
-            elif self.typeDetails == "time":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition)
-            elif self.typeDetails == "year":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition)
-            elif self.typeDetails[0] == "numeric":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition, typeDetails = self.typeDetails)
-
-            self.editor.paramSizer.Add(self.editor.paramWidget)
-            #sizers and stuff need updating
-            self.editor.topSizer.Layout()
+            self.update_column_condition_widgets()
+            #update parent sizers/panels etc
             self.whereController.update_wherepanel()
+
+    def update_column_condition_widgets(self):
+        """Load the widgets for the appropriate column type"""
+        self.editor.choiceOperator.Clear()
+        self.editor.paramSizer.Clear(True)
+        print self.typeDetails
+        if self.typeDetails[0] == "int":
+            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+            self.editor.choiceOperator.SetSelection( 0 )
+            
+            self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
+                                                    update_state = self.whereController.change_made,\
+                                                    condition = self.condition, minimum = self.typeDetails[1],\
+                                                    maximum = self.typeDetails[2], longBool = self.typeDetails[3])
+        elif self.typeDetails[0] == "string":
+            self.editor.choiceOperator.AppendItems(self.editor.operations)
+            self.editor.choiceOperator.SetSelection( 0 )
+            self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
+                                                      update_state = self.whereController.change_made, \
+                                                      condition = self.condition)
+        elif self.typeDetails == "date":
+            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+            self.editor.choiceOperator.SetSelection( 0 )
+            self.editor.paramWidget = DateCtrl( parent = self.editor.parent, width = 450, \
+                                                update_state = self.whereController.change_made, \
+                                                condition = self.condition)
+        elif self.typeDetails == "datetime":
+            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+            self.editor.choiceOperator.SetSelection( 0 )
+            self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
+                                                update_state = self.whereController.change_made, \
+                                                condition = self.condition)
+        elif self.typeDetails == "time":
+            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+            self.editor.choiceOperator.SetSelection( 0 )
+            self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
+                                                update_state = self.whereController.change_made, \
+                                                condition = self.condition)
+        elif self.typeDetails == "year":
+            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+            self.editor.choiceOperator.SetSelection( 0 )
+            self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
+                                                update_state = self.whereController.change_made, \
+                                                condition = self.condition)
+        elif self.typeDetails[0] == "numeric":
+            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+            self.editor.choiceOperator.SetSelection( 0 )
+            self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
+                                                update_state = self.whereController.change_made, \
+                                                condition = self.condition, typeDetails = self.typeDetails)
+
+        self.editor.paramSizer.Add(self.editor.paramWidget)
+        #sizers and stuff need updating
+        self.editor.topSizer.Layout()
 
     def load_condition(self, condition):
         """
@@ -974,7 +984,8 @@ class ConditionEditorControl(object):
         """
         self.condition = condition
         #Now load any elements into appropriate controls
-        
+        column = datahandler.DataHandler.get_column(self.query.engineID, self.condition.field1[0], self.condition.field1[1])
+        self.typeDetails = column[1]
         #Must check type of column/field1 to determine what widgets to load
 
     def add_condition(self, evt):

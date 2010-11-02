@@ -144,6 +144,12 @@ class DataHandler(object):
         return [(c.name, c.type, c.primary_key) for c in cls.metaData[connID].tables[tableName].columns]
 
     @classmethod
+    def get_column(cls, connID, tableName, colName):
+        """Return a single tuple containing data column info"""
+        column = cls.metaData[connID].tables[tableName].columns[colName]
+        return (column.name, column.type)
+
+    @classmethod
     def get_table_object(cls, tableName, connID):
         """Returns table object based on two supplied identifying strings"""
         table = cls.dataObjects[connID][tableName]

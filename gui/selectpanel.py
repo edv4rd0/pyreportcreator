@@ -2,13 +2,34 @@
 import sys
 import wx
 import wx.lib.inspection
+from wx.lib.agw.customtreectrl import CustomTreeCtrl
 from pyreportcreator.datahandler import datahandler, querybuilder
 from pyreportcreator.profile import query, profile
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 
 import querypanel
 
+class PickTable(wx.Dialog):
+    """Table picker"""
+    def __init__(self, parent):
+        """Init"""
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        listBox = wx.ListBox(self, -1)
 
+class JoinDialog(wx.Dialog):
+    """This allows users to configure a join between two tables"""
+    def __init__(self, parent):
+        """Initialize elements and bind"""
+        wx.Dialog.__init__(self, parent, -1, "Configure Join", size=(600,400))
+        panel = wx.Panel(self, -1)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.tableSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.tcTable1 = wx.TextCtrl(self, -1, "Set left table", size = (-1,-1), style = wx.TE_READONLY)
+        self.tableSizer.Add(self.tcTable1, 1)
+        self.sizer.Add(self,tableSizer, 0)
+        self.SetSizer(self.sizer)
+
+        
 class DataItemsDialog(wx.Dialog):
     """This is the dialog box for users to add new columns to the select from clause"""
     def __init__(self, parent, id, title):
@@ -21,7 +42,7 @@ class DataItemsDialog(wx.Dialog):
         stDescription = wx.StaticText(self, -1, "Select data objects from the left which you want to include in your query.")
         sizer.Add(stDescription, 0, wx.ALL, 5)
         self.selectSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.treeDataItems = wx.TreeCtrl(self, size = (-1, -1), style = wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS)
+        self.treeDataItems = CustomTreeCtrl(self, size = (-1, -1), style = wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS)
         self.lbSelect = wx.ListBox(self, -1, size = (-1, -1), style = wx.SUNKEN_BORDER)
 
         self.selectSizer.Add(self.treeDataItems, 1, wx.EXPAND | wx.ALL, 5)
@@ -49,6 +70,7 @@ class DataItemsDialog(wx.Dialog):
         sizer.Add(dialogSizer, 0, wx.ALIGN_RIGHT)
         
         self.SetSizer(sizer)
+
 #---------------------------------------------------------
 class DataItemsDialogController(object):
     """This is the controller for the dialog to add data items"""
@@ -63,36 +85,40 @@ class DataItemsDialogController(object):
         self.dlg.btnCancel.Bind(wx.EVT_BUTTON, self.close)
         self.dlg.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_item)
         self.dlg.btnRemoveItem.Bind(wx.EVT_BUTTON, self.remove_item)
-        
 
+        #compile list of current select items to check against
+        self.itemsAlreadySelected = []
+        for t in self.query.selectItems.keys():
+            for c in self.query.selectItems[t]:
+                self.itemsAlreadySelected.append((t, c[0]))
+             
         #load data
         connID = self.query.engineID
         try:
             d = self.dlg.treeDataItems.AddRoot(str(connID))           
             tables = datahandler.DataHandler.get_tables(connID)
-            for i in tables:
-                j = self.dlg.treeDataItems.AppendItem(d, i)
-                self.dlg.treeDataItems.SetPyData(j, (connID, i))
+            for tableName in tables:
+                j = self.dlg.treeDataItems.AppendItem(d, tableName)
+                self.dlg.treeDataItems.SetItemPyData(j, (connID, tableName))
             
-            (child, cookie) = self.dlg.treeDataItems.GetFirstChild(d)
-            while child.IsOk(): 
-                # do something with child
-                c = self.dlg.treeDataItems.GetItemData(child).GetData()
-                columns = datahandler.DataHandler.get_columns(c[0], c[1])
-                for k in columns:
-                    if k[2]:
-                        colDesc = k[0] + "[PK]"
-                    else:
-                        colDesc = k[0]
+                columns = datahandler.DataHandler.get_columns(connID, tableName)
+                for colTuple in columns:
+                    if (tableName, colTuple[0]) not in self.itemsAlreadySelected:
+                        if colTuple[2]:
+                            colDesc = colTuple[0] + "[PK]"
+                        else:
+                            colDesc = colTuple[0]
                     
-                    f = self.dlg.treeDataItems.AppendItem(child, colDesc)
-                    self.dlg.treeDataItems.SetPyData(f, (c[0], c[1], k))
-                (child, cookie) = self.dlg.treeDataItems.GetNextChild(d, cookie)
+                        f = self.dlg.treeDataItems.AppendItem(j, colDesc)
+                        self.dlg.treeDataItems.SetItemPyData(f, (tableName, colTuple))
             
         except IndexError:
             print IndexError, "update_view"
             self.dlg.Close()
-
+        #load select items
+        for t in self.query.selectItems:
+            columns = datahandler.DataHandler.get_columns(connID, t)
+            
     def close(self, evt):
         """Close dialog without adding select items"""
         self.update = False
@@ -103,28 +129,42 @@ class DataItemsDialogController(object):
         index = self.dlg.lbSelect.GetSelection()
         if index == wx.NOT_FOUND:
             return
+        colTuple = self.dlg.lbSelect.GetClientData(index)
+        self.selected_index.remove(colTuple)
+
+        if colTuple[1][2]:
+            colDesc = colTuple[1][0] + "[PK]"
+        else:
+            colDesc = colTuple[1][0]
+        r = self.dlg.treeDataItems.GetRootItem()
+        tables = r.GetChildren()
+        for t in tables:
+            if t.GetText() == colTuple[0]:
+                self.dlg.treeDataItems.AppendItem(t, colDesc, data = colTuple)
         self.dlg.lbSelect.Delete(index)
-        del self.selected_index[index]
         
     def add_item(self, evt):
         """add selected item"""
-        data = self.dlg.treeDataItems.GetItemData(self.dlg.treeDataItems.GetSelection()).GetData()
+        item = self.dlg.treeDataItems.GetSelection()
+        data = self.dlg.treeDataItems.GetItemPyData(item)
+        self.dlg.treeDataItems.Delete(item)
+        
         try:
-            table = data[1]
-            column = data[2]
+            table = data[0]
+            column = data[1]
         except IndexError:
             return
         if (table, column) in self.selected_index:
             return
         else:
             self.selected_index.append((table, column))
-            self.dlg.lbSelect.Append(column[0] + " " + column[1].__visit_name__ + " - " + table)
+            self.dlg.lbSelect.Append(column[0] + " " + column[1].__visit_name__ + " - " + table, (table, column))
             
 
     def add_chosen(self, evt):
         """Close dialog and add selected items"""
         if len(self.selected_index) > 0:
-            for i in self.selected_index:
+            for i in self.selected_index: #add new select items to query
                 self.query.add_select_item(i[0], i[1][0])
             self.update = True
         else:
@@ -147,6 +187,9 @@ class SelectController(object):
         self.query = query
         self.profile = profile
         self.selectItems = dict()
+        #load any existing items from a saved query
+        if self.query.state == 'saved':
+            self.load_elements()
         #Button events
         self.selectPanel.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_select_item)
         self.selectPanel.btnRemoveItem.Bind(wx.EVT_BUTTON, self.remove_items)
@@ -175,6 +218,16 @@ class SelectController(object):
             self.selectPanel.selectList.SetItemData(a, id)
             self.selectItems[id] = i
         self.selectPanel.selectList.Thaw()
+
+    def load_elements(self):
+        """This method loads already existing query elements in a saved query"""
+        #load select items
+        items = []
+        for t in self.query.selectItems:
+            for c in self.query.selectItems[t]:
+                items.append((t, c))
+        self.update_select_view(items) # <-- add selectItems to view
+        
         
     def activate_remove_btn(self, evt):
         """Activate the remove selected item button"""
@@ -239,9 +292,14 @@ class SelectPanel(wx.Panel):
         self.btnAddSelect = wx.Button(self, -1, "Add Item...", size = (-1, -1))
         self.sizerButtons.Add(self.btnAddSelect, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
         
-        
         self.topSizer.Add(self.sizerButtons, 0, wx.ALIGN_RIGHT)
-        
+        #join area
+        self.joinSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.joinText = wx.StaticText(self, -1, label = "Configure join...", size = (-1,-1))
+        self.joinButton = wx.Button(self, -1, "Join", size = (-1, -1))
+        self.joinSizer.Add(self.joinText, 1, wx.EXPAND | wx.ALL, 5)
+        self.joinSizer.Add(self.joinButton, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+        self.topSizer.Add(self.joinSizer, 0, wx.EXPAND)
         self.SetAutoLayout(True)
         self.SetSizer( self.topSizer )
 	self.Layout()

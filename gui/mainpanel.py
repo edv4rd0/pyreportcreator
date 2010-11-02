@@ -177,11 +177,6 @@ class DocumentEditorController(object):
         """Check if it's saved, if not allow the user to save or discard"""
         docId = self.view.GetPage(self.view.GetSelection()).documentID
         #check saved state of document
-        print docId,docId, "docid"
-        for i in self.profile.documents:
-            print self.profile.documents[i].documentID
-            print "\n"
-        print "\n\n"
         if self.profile.documents[docId].state == 'saved':
             del self.profile.documents[docId]
             del self.documentsOpen[docId]
@@ -201,7 +196,6 @@ class DocumentEditorController(object):
                 del self.profile.documents[docId]
                 del self.documentsOpen[docId]
             dlg.Destroy()
-        print "closing tab"
         
     def update_editor_toolbar(self, evt):
         """

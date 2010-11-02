@@ -76,6 +76,7 @@ class ConditionSet(AbstractCondition):
     firstObj = None
     boolVal = None
     conditions = list()
+    
 
     def __init__(self, condID, parent = None, prev = None, boolVal = 'and'):
         """
