@@ -99,7 +99,7 @@ class DataItemsDialogController(object):
             tables = datahandler.DataHandler.get_tables(connID)
             for tableName in tables:
                 j = self.dlg.treeDataItems.AppendItem(d, tableName)
-                self.dlg.treeDataItems.SetItemPyData(j, (connID, tableName))
+                self.dlg.treeDataItems.SetItemPyData(j, "table")
             
                 columns = datahandler.DataHandler.get_columns(connID, tableName)
                 for colTuple in columns:
@@ -147,18 +147,19 @@ class DataItemsDialogController(object):
         """add selected item"""
         item = self.dlg.treeDataItems.GetSelection()
         data = self.dlg.treeDataItems.GetItemPyData(item)
-        self.dlg.treeDataItems.Delete(item)
         
-        try:
-            table = data[0]
-            column = data[1]
-        except IndexError:
-            return
-        if (table, column) in self.selected_index:
-            return
-        else:
-            self.selected_index.append((table, column))
-            self.dlg.lbSelect.Append(column[0] + " " + column[1].__visit_name__ + " - " + table, (table, column))
+        if data != "table":
+            try:
+                table = data[0]
+                column = data[1]
+                self.dlg.treeDataItems.Delete(item)
+            except IndexError, TypeError:
+                return
+            if (table, column) in self.selected_index:
+                return
+            else:
+                self.selected_index.append((table, column))
+                self.dlg.lbSelect.Append(column[0] + " " + column[1].__visit_name__ + " - " + table, (table, column))
             
 
     def add_chosen(self, evt):
@@ -186,7 +187,7 @@ class SelectController(object):
         self.selectPanel = view
         self.query = query
         self.profile = profile
-        self.selectItems = dict()
+        #self.selectItems = dict()
         #load any existing items from a saved query
         if self.query.state == 'saved':
             self.load_elements()
@@ -216,7 +217,7 @@ class SelectController(object):
             self.selectPanel.selectList.SetStringItem(count, 1, i[0])
             id = wx.NewId()
             self.selectPanel.selectList.SetItemData(a, id)
-            self.selectItems[id] = i
+            #self.selectItems[id] = i
         self.selectPanel.selectList.Thaw()
 
     def load_elements(self):

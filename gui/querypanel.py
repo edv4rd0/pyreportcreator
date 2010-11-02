@@ -460,8 +460,8 @@ class WhereController(object):
         self.query = query
         self.whereEditor = view
         self.wherePanel = view.panel
-        if self.query.status == "saved":
-            self.load_conditions()
+        #if self.query.state == "saved":
+        #    self.load_conditions()
         #bind to events
         self.whereEditor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.whereEditor.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
@@ -920,63 +920,61 @@ class ConditionEditorControl(object):
             self.editor.tcColumn.ChangeValue(choice[0]+"."+choice[1])
             print choice[2].__dict__
             self.typeDetails = get_mysql_types(choice[2])
-            self.update_column_condition_widgets()
+            self.editor.choiceOperator.Clear()
+            self.editor.paramSizer.Clear(True)
+            print self.typeDetails
+            if self.typeDetails[0] == "int":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+                self.editor.choiceOperator.SetSelection( 0 )
+            
+                self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
+                                                        update_state = self.whereController.change_made,\
+                                                        condition = self.condition, minimum = self.typeDetails[1],\
+                                                        maximum = self.typeDetails[2], longBool = self.typeDetails[3])
+            elif self.typeDetails[0] == "string":
+                self.editor.choiceOperator.AppendItems(self.editor.operations)
+                self.editor.choiceOperator.SetSelection( 0 )
+                self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
+                                                          update_state = self.whereController.change_made, \
+                                                          condition = self.condition)
+            elif self.typeDetails == "date":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+                self.editor.choiceOperator.SetSelection( 0 )
+                self.editor.paramWidget = DateCtrl( parent = self.editor.parent, width = 450, \
+                                                    update_state = self.whereController.change_made, \
+                                                    condition = self.condition)
+            elif self.typeDetails == "datetime":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+                self.editor.choiceOperator.SetSelection( 0 )
+                self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
+                                                        update_state = self.whereController.change_made, \
+                                                        condition = self.condition)
+            elif self.typeDetails == "time":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+                self.editor.choiceOperator.SetSelection( 0 )
+                self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
+                                                    update_state = self.whereController.change_made, \
+                                                    condition = self.condition)
+            elif self.typeDetails == "year":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+                self.editor.choiceOperator.SetSelection( 0 )
+                self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
+                                                    update_state = self.whereController.change_made, \
+                                                    condition = self.condition)
+            elif self.typeDetails[0] == "numeric":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+                self.editor.choiceOperator.SetSelection( 0 )
+                self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
+                                                       update_state = self.whereController.change_made, \
+                                                       condition = self.condition, typeDetails = self.typeDetails)
+
+            self.editor.paramSizer.Add(self.editor.paramWidget)
+            #sizers and stuff need updating
+            self.editor.topSizer.Layout()
+
             #update parent sizers/panels etc
             self.whereController.update_wherepanel()
 
-    def update_column_condition_widgets(self):
-        """Load the widgets for the appropriate column type"""
-        self.editor.choiceOperator.Clear()
-        self.editor.paramSizer.Clear(True)
-        print self.typeDetails
-        if self.typeDetails[0] == "int":
-            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-            self.editor.choiceOperator.SetSelection( 0 )
-            
-            self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
-                                                    update_state = self.whereController.change_made,\
-                                                    condition = self.condition, minimum = self.typeDetails[1],\
-                                                    maximum = self.typeDetails[2], longBool = self.typeDetails[3])
-        elif self.typeDetails[0] == "string":
-            self.editor.choiceOperator.AppendItems(self.editor.operations)
-            self.editor.choiceOperator.SetSelection( 0 )
-            self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
-                                                      update_state = self.whereController.change_made, \
-                                                      condition = self.condition)
-        elif self.typeDetails == "date":
-            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-            self.editor.choiceOperator.SetSelection( 0 )
-            self.editor.paramWidget = DateCtrl( parent = self.editor.parent, width = 450, \
-                                                update_state = self.whereController.change_made, \
-                                                condition = self.condition)
-        elif self.typeDetails == "datetime":
-            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-            self.editor.choiceOperator.SetSelection( 0 )
-            self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
-                                                update_state = self.whereController.change_made, \
-                                                condition = self.condition)
-        elif self.typeDetails == "time":
-            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-            self.editor.choiceOperator.SetSelection( 0 )
-            self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
-                                                update_state = self.whereController.change_made, \
-                                                condition = self.condition)
-        elif self.typeDetails == "year":
-            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-            self.editor.choiceOperator.SetSelection( 0 )
-            self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
-                                                update_state = self.whereController.change_made, \
-                                                condition = self.condition)
-        elif self.typeDetails[0] == "numeric":
-            self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-            self.editor.choiceOperator.SetSelection( 0 )
-            self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
-                                                update_state = self.whereController.change_made, \
-                                                condition = self.condition, typeDetails = self.typeDetails)
-
-        self.editor.paramSizer.Add(self.editor.paramWidget)
-        #sizers and stuff need updating
-        self.editor.topSizer.Layout()
 
     def load_condition(self, condition):
         """
@@ -984,9 +982,11 @@ class ConditionEditorControl(object):
         """
         self.condition = condition
         #Now load any elements into appropriate controls
-        column = datahandler.DataHandler.get_column(self.query.engineID, self.condition.field1[0], self.condition.field1[1])
-        self.typeDetails = column[1]
+        typeObject = datahandler.DataHandler.get_column_type_object(self.query.engineID, self.condition.field1[0],\
+                                                                    self.condition.field1[1])
+        self.typeDetails = get_mysql_types(typeObject)
         #Must check type of column/field1 to determine what widgets to load
+        
 
     def add_condition(self, evt):
         """This handles the event and sends a message with the object"""
@@ -999,7 +999,8 @@ class ConditionEditorControl(object):
         This is called in the event of the editor.btnSub, or add child Set button being clicked
         """
         sizer = self.editor.topSizer
-        self.whereController.add_sibling_set(sizer = sizer, panel = self.editor.parent, ind = self.editor.indentation, condObj = self.condition)
+        self.whereController.add_sibling_set(sizer = sizer, panel = self.editor.parent,\
+                                             ind = self.editor.indentation, condObj = self.condition)
 
 
     def remove(self, evt):
@@ -1018,137 +1019,141 @@ class ConditionEditorControl(object):
         choice = self.editor.choiceOperator.GetCurrentSelection()
         if choice != self.lastChoice:
             self.lastChoice = choice
-            if self.typeDetails == "string":
-                if choice == 0:
-                    self.condition.operator = "LIKE"
-                elif choice == 1:
-                    self.condition.operator = "=="
-                elif choice == 2:
-                    self.condition.operator = "NOT LIKE"
-                elif choice == 3:
-                    self.condition.operator = "!="
-                self.editor.paramSizer.Clear(True)
-                self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
-                                                          update_state = self.whereController.change_made, \
-                                                          condition = self.condition)
-            elif self.typeDetails == "date":
-                if choice == 0:
-                    self.condition.operator = "=="
-                    self.set_date_field(1)
-                elif choice == 1:
-                    self.condition.operator = "BETWEEN"
-                    self.set_date_field(2)
-                elif choice == 2:
-                    self.condition.operator = "!="
-                    self.set_date_field(1)
-                elif choice == 3:
-                    self.condition.operator = "NOT BETWEEN"
-                    self.set_date_field(2)
-                elif choice == 4:
-                    self.condition.operator = "<"
-                    self.set_date_field(1)
-                elif choice == 5:
-                    self.condition.operator = ">"
-                    self.set_date_field(1)
-            elif self.typeDetails == "year":
-                if choice == 0:
-                    self.condition.operator = "=="
-                    self.set_year_field(1)
-                elif choice == 1:
-                    self.condition.operator = "BETWEEN"
-                    self.set_year_field(2)
-                elif choice == 2:
-                    self.condition.operator = "!="
-                    self.set_year_field(1)
-                elif choice == 3:
-                    self.condition.operator = "NOT BETWEEN"
-                    self.set_year_field(2)
-                elif choice == 4:
-                    self.condition.operator = "<"
-                    self.set_year_field(1)
-                elif choice == 5:
-                    self.condition.operator = ">"
-                    self.set_year_field(1)
-            elif self.typeDetails == "time":
-                if choice == 0:
-                    self.condition.operator = "=="
-                    self.set_time_field(1)
-                elif choice == 1:
-                    self.condition.operator = "BETWEEN"
-                    self.set_time_field(2)
-                elif choice == 2:
-                    self.condition.operator = "!="
-                    self.set_time_field(1)
-                elif choice == 3:
-                    self.condition.operator = "NOT BETWEEN"
-                    self.set_time_field(2)
-                elif choice == 4:
-                    self.condition.operator = "<"
-                    self.set_time_field(1)
-                elif choice == 5:
-                    self.condition.operator = ">"
-                    self.set_time_field(1)
-            elif self.typeDetails == "datetime":
-                if choice == 0:
-                    self.condition.operator = "=="
-                    self.set_datetime_field(1)
-                elif choice == 1:
-                    self.condition.operator = "BETWEEN"
-                    self.set_datetime_field(2)
-                elif choice == 2:
-                    self.condition.operator = "!="
-                    self.set_datetime_field(1)
-                elif choice == 3:
-                    self.condition.operator = "NOT BETWEEN"
-                    self.set_datetime_field(2)
-                elif choice == 4:
-                    self.condition.operator = "<"
-                    self.set_datetime_field(1)
-                elif choice == 5:
-                    self.condition.operator = ">"
-                    self.set_datetime_field(1)
-            elif self.typeDetails[0] == "int":
-                if choice == 0:
-                    self.condition.operator = "=="
-                    self.set_int_field(1)
-                elif choice == 1:
-                    self.condition.operator = "BETWEEN"
-                    self.set_int_field(2)
-                elif choice == 2:
-                    self.condition.operator = "!="
-                    self.set_int_field(1)
-                elif choice == 3:
-                    self.condition.operator = "NOT BETWEEN"
-                    self.set_int_field(2)
-                elif choice == 4:
-                    self.condition.operator = "<"
-                    self.set_int_field(1)
-                elif choice == 5:
-                    self.condition.operator = ">"
-                    self.set_int_field(1)
-            elif self.typeDetails[0] == "numeric":
-                if choice == 0:
-                    self.condition.operator = "=="
-                    self.set_numeric_field(1)
-                elif choice == 1:
-                    self.condition.operator = "BETWEEN"
-                    self.set_numeric_field(2)
-                elif choice == 2:
-                    self.condition.operator = "!="
-                    self.set_numeric_field(1)
-                elif choice == 3:
-                    self.condition.operator = "NOT BETWEEN"
-                    self.set_numeric_field(2)
-                elif choice == 4:
-                    self.condition.operator = "<"
-                    self.set_numeric_field(1)
-                elif choice == 5:
-                    self.condition.operator = ">"
-                    self.set_numeric_field(1)
+
             self.editor.paramSizer.Add(self.editor.paramWidget)
             #sizers and stuff need updating
             self.editor.topSizer.Layout()
             self.whereController.update_wherepanel()
+
+    def setup_field_widgets(self):
+        """Setup field widgets"""
+        if self.typeDetails == "string":
+            if choice == 0:
+                self.condition.operator = "LIKE"
+            elif choice == 1:
+                self.condition.operator = "=="
+            elif choice == 2:
+                self.condition.operator = "NOT LIKE"
+            elif choice == 3:
+                self.condition.operator = "!="
+            self.editor.paramSizer.Clear(True)
+            self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
+                                                      update_state = self.whereController.change_made, \
+                                                      condition = self.condition)
+        elif self.typeDetails == "date":
+            if choice == 0:
+                self.condition.operator = "=="
+                self.set_date_field(1)
+            elif choice == 1:
+                self.condition.operator = "BETWEEN"
+                self.set_date_field(2)
+            elif choice == 2:
+                self.condition.operator = "!="
+                self.set_date_field(1)
+            elif choice == 3:
+                self.condition.operator = "NOT BETWEEN"
+                self.set_date_field(2)
+            elif choice == 4:
+                self.condition.operator = "<"
+                self.set_date_field(1)
+            elif choice == 5:
+                self.condition.operator = ">"
+                self.set_date_field(1)
+        elif self.typeDetails == "year":
+            if choice == 0:
+                self.condition.operator = "=="
+                self.set_year_field(1)
+            elif choice == 1:
+                self.condition.operator = "BETWEEN"
+                self.set_year_field(2)
+            elif choice == 2:
+                self.condition.operator = "!="
+                self.set_year_field(1)
+            elif choice == 3:
+                self.condition.operator = "NOT BETWEEN"
+                self.set_year_field(2)
+            elif choice == 4:
+                self.condition.operator = "<"
+                self.set_year_field(1)
+            elif choice == 5:
+                self.condition.operator = ">"
+                self.set_year_field(1)
+        elif self.typeDetails == "time":
+            if choice == 0:
+                self.condition.operator = "=="
+                self.set_time_field(1)
+            elif choice == 1:
+                self.condition.operator = "BETWEEN"
+                self.set_time_field(2)
+            elif choice == 2:
+                self.condition.operator = "!="
+                self.set_time_field(1)
+            elif choice == 3:
+                self.condition.operator = "NOT BETWEEN"
+                self.set_time_field(2)
+            elif choice == 4:
+                self.condition.operator = "<"
+                self.set_time_field(1)
+            elif choice == 5:
+                self.condition.operator = ">"
+                self.set_time_field(1)
+        elif self.typeDetails == "datetime":
+            if choice == 0:
+                self.condition.operator = "=="
+                self.set_datetime_field(1)
+            elif choice == 1:
+                self.condition.operator = "BETWEEN"
+                self.set_datetime_field(2)
+            elif choice == 2:
+                self.condition.operator = "!="
+                self.set_datetime_field(1)
+            elif choice == 3:
+                self.condition.operator = "NOT BETWEEN"
+                self.set_datetime_field(2)
+            elif choice == 4:
+                self.condition.operator = "<"
+                self.set_datetime_field(1)
+            elif choice == 5:
+                self.condition.operator = ">"
+                self.set_datetime_field(1)
+        elif self.typeDetails[0] == "int":
+            if choice == 0:
+                self.condition.operator = "=="
+                self.set_int_field(1)
+            elif choice == 1:
+                self.condition.operator = "BETWEEN"
+                self.set_int_field(2)
+            elif choice == 2:
+                self.condition.operator = "!="
+                self.set_int_field(1)
+            elif choice == 3:
+                self.condition.operator = "NOT BETWEEN"
+                self.set_int_field(2)
+            elif choice == 4:
+                self.condition.operator = "<"
+                self.set_int_field(1)
+            elif choice == 5:
+                self.condition.operator = ">"
+                self.set_int_field(1)
+        elif self.typeDetails[0] == "numeric":
+            if choice == 0:
+                self.condition.operator = "=="
+                self.set_numeric_field(1)
+            elif choice == 1:
+                self.condition.operator = "BETWEEN"
+                self.set_numeric_field(2)
+            elif choice == 2:
+                self.condition.operator = "!="
+                self.set_numeric_field(1)
+            elif choice == 3:
+                self.condition.operator = "NOT BETWEEN"
+                self.set_numeric_field(2)
+            elif choice == 4:
+                self.condition.operator = "<"
+                self.set_numeric_field(1)
+            elif choice == 5:
+                self.condition.operator = ">"
+                self.set_numeric_field(1)
 
     def set_date_field(self, num):
         """This sets up the date fields"""
@@ -1217,37 +1222,37 @@ class ConditionEditorControl(object):
                 
                 self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
                                                         update_state = self.whereController.change_made,\
-                                                        condition = self.condition.field2, minimum = self.typeDetails[1],\
+                                                        condition = self.condition, minimum = self.typeDetails[1],\
                                                         maximum = self.typeDetails[2], longBool = self.typeDetails[3])
             elif self.typeDetails[0] == "string":
                 self.editor.choiceOperator.AppendItems(self.editor.operations)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
                                                           update_state = self.whereController.change_made, \
-                                                          condition = self.condition.field2, chars = self.typeDetails[1])
+                                                          condition = self.condition, chars = self.typeDetails[1])
 
             elif self.typeDetails == "datetime":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    condition = self.condition.field2)
+                                                    condition = self.condition)
             elif self.typeDetails == "time":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    condition = self.condition.field2)
+                                                    condition = self.condition)
             elif self.typeDetails == "year":
                 self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    condition = self.condition.field2)
+                                                    condition = self.condition)
             elif self.typeDetails[0] == "numeric":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    condition = self.condition.field2, numerals = self.typeDetails[1], decimalPlaces = self.typeDetails[2])
+                                                    condition = self.condition, numerals = self.typeDetails[1], decimalPlaces = self.typeDetails[2])
 
 
 

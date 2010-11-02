@@ -153,20 +153,30 @@ class DocumentEditorController(object):
         except AttributeError:
             return #the user has clicked cancel
         document = self.profile.new_document(docType, connID)
+        print "justMade", document.documentID, document.selectItems, "just made"
         #create document
-        self.documentsOpen[str(document.documentID)] = selectpanel.QueryController(self.view, document, self.profile)
+        print document.documentID
+        self.documentsOpen[document.documentID] = selectpanel.QueryController(self.view, document, self.profile)
         
         #let things like the Profile panel know and update themselves (view, not model related)
         pub.sendMessage('newdocument', name = document.name, docId = document.documentID, docType = docType)
 
     def open_document(self, docType, documentID):
         """Add an already existing document to the editor"""
+        print "opening1", docType, documentID
+        print self.documentsOpen, "open"
         if docType == 'query':
             try:
+                print "try:"
                 self.view.SetSelection(self.documentsOpen[documentID].page)
+                print "it worked"
             except KeyError:
+                print "jdsjdsjdsjkdsdjksjkds"
                 document = self.profile.load_doc(documentID)
+                print "loaded da fricking doc"
+                print document.documentID, documentID
                 self.documentsOpen[documentID] = selectpanel.QueryController(self.view, document, self.profile)
+                print "opening", document.selectItems
 
     def close_tab(self, evt):
         """For the tab menu"""
@@ -176,24 +186,25 @@ class DocumentEditorController(object):
     def closing_tab(self, evt):
         """Check if it's saved, if not allow the user to save or discard"""
         docId = self.view.GetPage(self.view.GetSelection()).documentID
+        print self.documentsOpen
         #check saved state of document
-        if self.profile.documents[docId].state == 'saved':
-            del self.profile.documents[docId]
+        if self.documentsOpen[docId].document.state == 'saved':
             del self.documentsOpen[docId]
-        elif self.profile.documents[docId].state == 'new':
-            del self.profile.documents[docId]
+        elif self.documentsOpen[docId].document.state == 'new':
+            self.profile.documents.remove(docId)
+            
             del self.documentsOpen[docId]
             pub.sendMessage('removequery', docId = docId)
         else:
             dlg = SaveDiscardDialog(wx.GetApp().GetTopWindow())
             dlg.ShowModal()
             if dlg.res == 'save':
-                self.profile.save_doc(docId)
-                del self.profile.documents[docId]
+                self.profile.save_doc(self.documentsOpen[docId].document)
+                #del self.profile.documents[docId]
                 del self.documentsOpen[docId]
                 print "saved"
             elif dlg.res == 'dis':
-                del self.profile.documents[docId]
+#                self.profile.documents[docId]
                 del self.documentsOpen[docId]
             dlg.Destroy()
         

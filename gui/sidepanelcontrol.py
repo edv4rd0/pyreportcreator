@@ -106,6 +106,7 @@ class ProfilePanelControl(object):
         if data not in ('query', 'report'):
             docType = self.tree.GetItemData(self.tree.GetItemParent(item)).GetData()
             pub.sendMessage('open_document', docType = docType, documentID = data)
+            print "open order made", docType, data, "yup"
             
 
     def add_document(self, name, docId, docType):

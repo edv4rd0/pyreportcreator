@@ -3,6 +3,7 @@ import query
 from pyreportcreator.datahandler import datahandler
 import jsonpickle
 import zipfile
+import time
 #OK, query object's condition expression consists of conditions which each specify their parent and left sibling (except the leftmost, which is set to Null
 # ThisAllows multiple nested sets
 
@@ -24,7 +25,7 @@ class Profile(object):
     """A profile object. This stores query, report and data connection objects"""
     def __init__(self):
         self._fileName = ""
-        self.documents = dict() #stores query objects
+        self.documents = set() #stores document id index
         self.connections = dict()
 
         pub.subscribe(self.add_connection, 'dataconnection.save')
@@ -101,7 +102,7 @@ class Profile(object):
         items = zf.namelist()
         for i in items:
             if str(i) != 'connections':
-                doc = self.loaddoc(str(i), zf) 
+                doc = self.load_doc_profile(str(i), zf) 
                 if isinstance(doc, Query):
                     docType = 'query'
                     print "opening query"
@@ -112,22 +113,19 @@ class Profile(object):
         print "opened profile" 
         zf.close()
 
-    def save_doc(self, documentID):
+    def save_doc(self, document):
         """Save a document to the zip file"""
-        print self.documents, documentID
-        try:
-            document = self.documents[documentID]
-        except KeyError:
-            print "Key Error with document save"
-            return False
-        zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
-        print "saving doc"
+        zf = zipfile.ZipFile(self._fileName, 'a', zipfile.ZIP_DEFLATED)
+        print "saving doc", zf.namelist()
         pickled = jsonpickle.encode(document)
-        zf.writestr(str(document.documentID), pickled)
+        print pickled, "<--pickled"
+        info = zipfile.ZipInfo(document.documentID)
+        info.compress_type = zipfile.ZIP_DEFLATED
+        zf.writestr(info, pickled)
         zf.close()
-        self.documents[documentID].was_saved()
+        document.was_saved()
 
-    def loaddoc(self, docID, zf):
+    def load_doc_profile(self, docID, zf):
         """for use only within load_profile"""
         unpickled = jsonpickle.decode(zf.open(str(docID)).read())
         for i in unpickled.conditions.conditions:
@@ -147,8 +145,9 @@ class Profile(object):
     def load_doc(self, docID):
         """load a document from the zip file"""
         zf = zipfile.ZipFile(self._fileName, 'r')
-        unpickled = jsonpickle.decode(zf.open(str(docID)).read())
-        
+        print "loading", zf.namelist()
+        unpickled = jsonpickle.decode(zf.open(zf.getinfo(docID)).read())
+        print "unpickled", zf.namelist()
         for i in unpickled.conditions.conditions:
             if i.condID == unpickled.conditions.firstID:
                 unpickled.conditions.firstObj = i
@@ -161,8 +160,9 @@ class Profile(object):
                     i.prevObj == j
                     j.nextObj == i
         zf.close()
+        print unpickled.selectItems, "prof:"
         unpickled.was_saved() #otherwise will appear altered
-        self.documents[unpickled.documentID] = unpickled
+        #self.documents[unpickled.documentID] = unpickled
         return unpickled
         
     def new_document(self, docType, engineID = None):
@@ -170,16 +170,10 @@ class Profile(object):
         import uuid
         if docType == 'query':
             documentID = str(uuid.uuid4())
-            while documentID in self.documents.keys():
+            while documentID in self.documents:
                 documentID = str(uuid.uuid4())
-            self.documents[documentID] = Query(documentID, engineID)
-            return self.documents[documentID]
-        elif docType == 'report':
-            documentID = str(uuid.uuid4())
-            while documentID in self.documents.keys():
-                documentID = str(uuid.uuid4())
-            self.documents[documentID] = Report(documentID)
-            return self.documents[documentID]
+            self.documents.add(documentID)
+            return Query(documentID, engineID)
         else:
             return False #TODO: change to raise unknown doc type error
 
@@ -214,22 +208,20 @@ class Query(Document):
     """Defines a query document"""
     # for concatenating operators
     #data definition
-    distinct = False
-    selectItems = dict()
-    counter = None
-    conditions = None
-    group_by = dict() #dict of {'table': 'column'}
-    order_by = dict() #dict of {'table': ('column', 'direction')}
-    joins = dict() #firstjoin => join info, secondJoin => join info
-    engineID = ""
-    conditionIndex = dict() #for code to check for dependent conditions before deleting select items
+    
 
     def __init__(self, documentID, engineID, name = "Untitled Query"):
         """This initializes the query object from some supplied definitions"""
-        super(Query, self).__init__(documentID, name)
+        Document.__init__(self, documentID, name)
         self.conditions = query.ConditionSet(0)
         self.counter = 1 #condition id 0 reserved for top condition set
         self.engineID = engineID
+        self.distinct = False
+        self.selectItems = dict()
+        self.group_by = dict() #dict of {'table': 'column'}
+        self.order_by = dict() #dict of {'table': ('column', 'direction')}
+        self.joins = dict() #firstjoin => join info, secondJoin => join info""
+        self.conditionIndex = dict() #for code to check for dependent conditions before deleting select items
         
     def change_name(self, newName):
         """Change name of query"""
