@@ -116,6 +116,11 @@ class DocumentEditorController(object):
         #subscribe to pubsub
         pub.subscribe(self.new_document, 'new_query')
         pub.subscribe(self.open_document, 'open_document')
+        pub.subscribe(self.fail_close, 'failureclose')
+
+    def fail_close(self, documentID):
+        """This runs in the event of a database related error when opening a query"""
+        del self.documentsOpen[documentID]
 
     def create_right_click_menu(self):
         """
@@ -128,7 +133,7 @@ class DocumentEditorController(object):
         self.view.Bind(wx.EVT_MENU, self.closing_tab, item)
         self._rmenu.AppendItem(item)
 
-    def new_document(self, docType, connID = None):
+    def new_document(self, docType):
         """
         Add a new document and open it in the editor.
         Note: this is NOT used for already existing documents.
@@ -191,8 +196,7 @@ class DocumentEditorController(object):
         if self.documentsOpen[docId].document.state == 'saved':
             del self.documentsOpen[docId]
         elif self.documentsOpen[docId].document.state == 'new':
-            self.profile.documents.remove(docId)
-            
+            del self.profile.document_index[docId]
             del self.documentsOpen[docId]
             pub.sendMessage('removequery', docId = docId)
         else:
@@ -200,11 +204,9 @@ class DocumentEditorController(object):
             dlg.ShowModal()
             if dlg.res == 'save':
                 self.profile.save_doc(self.documentsOpen[docId].document)
-                #del self.profile.documents[docId]
                 del self.documentsOpen[docId]
                 print "saved"
             elif dlg.res == 'dis':
-#                self.profile.documents[docId]
                 del self.documentsOpen[docId]
             dlg.Destroy()
         

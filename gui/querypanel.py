@@ -178,12 +178,23 @@ class CustomMaskedCtrl(masked.TextCtrl):
 
 class DateCtrl(CustomMaskedCtrl):
     """This is basically the date ctrl"""
-    def __init__(self, parent, width, update_state, condition):
+    def __init__(self, parent, width, update_state, condition, isLoading = False):
         """Initialize and setup"""
         CustomMaskedCtrl.__init__(self, parent, width, "#{4} ## ##", "2010 12 31", update_state, condition)
-        self.lastValue = "2010 12 31"
-        self.condition.field2 = self.lastValue
-        self.update_state()
+        
+        if isLoading:
+            month = str(self.condition.field2.month)
+            if len(month) == 1:
+                month = '0' + month
+            day = str(self.condition.field2.day)
+            if len(day) == 1:
+                day = '0' + day
+            self.lastValue = str(self.condition.field2.year) + " " + month + " " + day
+            self.SetValue(self.lastValue)
+        else:
+            self.lastValue = "2010 12 31"
+            self.condition.field2 = self.lastValue
+            self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
     def assign_value(self, evt):
@@ -199,12 +210,16 @@ class DateCtrl(CustomMaskedCtrl):
 
 class YearCtrl(CustomMaskedCtrl):
     """This is basically the year ctrl"""
-    def __init__(self, parent, width, update_state, condition):
+    def __init__(self, parent, width, update_state, condition, isLoading = False):
         """Initialize and setup"""
         CustomMaskedCtrl.__init__(self, parent, width, "####", "2010", update_state, condition)
-        self.lastValue = "2010"
-        self.condition.field2 = self.lastValue
-        self.update_state()
+        if isLoading:
+            self.lastValue = str(self.condition.field2)
+            self.SetValue(self.lastValue)
+        else:
+            self.lastValue = "2010"
+            self.condition.field2 = self.lastValue
+            self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
     def assign_value(self, evt):
@@ -221,6 +236,19 @@ class TimeCtrl(CustomMaskedCtrl):
     def __init__(self, parent, width, update_state, condition):
         """Initialize and setup"""
         CustomMaskedCtrl.__init__(self, parent, width, "##:## ##", "24:00 00", update_state, condition)
+        if isLoading:
+            hour = str(self.condition.field2.hour)
+            if len(hour) == 1:
+                hour = '0' + hour
+            minute = str(self.condition.field2.minute)
+            if len(minute) == 1:
+                minute = '0' + minute
+            second = str(self.condition.field2.second)
+            if len(second) == 1:
+                second = '0' + second
+                
+            self.lastValue = hour + ":" + minute + " " + second
+            self.SetValue(self.lastValue)
         self.lastValue = "24:00 00"
         self.condition.field2 = self.lastValue
         self.update_state()
@@ -237,12 +265,31 @@ class TimeCtrl(CustomMaskedCtrl):
 
 class DateTimeCtrl(CustomMaskedCtrl):
     """This is basically the date ctrl"""
-    def __init__(self, parent, width, update_state, condition):
+    def __init__(self, parent, width, update_state, condition, isLoading = False):
         """Initialize and setup"""
         CustomMaskedCtrl.__init__(self, parent, width, "#{4} ## ## - ##:## ##", "2010 12 31 - 24:00 00", update_state, condition)
-        self.lastValue = "2010 12 31 - 24:00 00"
-        self.condition.field2 = self.lastValue
-        self.update_state()
+        if isLoading:
+            month = str(self.condition.field2.month)
+            if len(month) == 1:
+                month = '0' + month
+            day = str(self.condition.field2.day)
+            if len(day) == 1:
+                day = '0' + day
+            hour = str(self.condition.field2.hour)
+            if len(hour) == 1:
+                hour = '0' + hour
+            minute = str(self.condition.field2.minute)
+            if len(minute) == 1:
+                minute = '0' + minute
+            second = str(self.condition.field2.second)
+            if len(second) == 1:
+                second = '0' + second
+            self.lastValue = str(self.condition.field2.year) + " " + month + " " + day + " - " + hour + ":" + minute + " " + second
+            self.SetValue(self.lastValue)
+        else:
+            self.lastValue = "2010 12 31 - 24:00 00"
+            self.condition.field2 = self.lastValue
+            self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
         
     def assign_value(self, evt):
@@ -982,10 +1029,152 @@ class ConditionEditorControl(object):
         """
         self.condition = condition
         #Now load any elements into appropriate controls
-        typeObject = datahandler.DataHandler.get_column_type_object(self.query.engineID, self.condition.field1[0],\
-                                                                    self.condition.field1[1])
-        self.typeDetails = get_mysql_types(typeObject)
-        #Must check type of column/field1 to determine what widgets to load
+        try:
+            typeObject = datahandler.DataHandler.get_column_type_object(self.query.engineID, self.condition.field1[0],\
+                                                                   self.condition.field1[1])
+        except sqlalchemy.exc.OperationalError:
+            wx.MessageBox("Failure to determine column type - database cannot be reached. Please fix and then try again.", "Database Disconnected", parent = wx.GetApp().GetTopWindow())
+            pub.sendMessage('failureclose', documentID = self.whereController.query.documentID)
+            
+        try:
+            self.editor.tcColumn.ChangeValue(self.condition.field1[0]+"."+self.condition.field1[1])
+            self.typeDetails = get_mysql_types(typeObject)
+            #Must check type of column/field1 to determine what widgets to load
+            self.editor.choiceOperator.Clear()
+            if self.typeDetails == "string":
+                self.editor.choiceOperator.AppendItems(self.editor.operations)
+                if self.condition.operator == "LIKE":
+                    self.editor.choiceOperator.SetSelection( 0 )
+                elif self.condition.operator == "==":
+                    self.editor.choiceOperator.SetSelection( 1 )
+                elif self.condition.operator == "NOT LIKE":
+                    self.editor.choiceOperator.SetSelection( 2 )
+                elif self.condition.operator == "!=":
+                    self.editor.choiceOperator.SetSelection( 3 )
+            elif self.typeDetails == "date":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
+                if self.condition.operator == "==":
+                    self.editor.choiceOperator.SetSelection( 0 )
+                    self.set_date_field(1)
+                elif self.condition.operator == "BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 1 )
+                    self.set_date_field(2)
+                elif self.condition.operator == "!=":
+                    self.editor.choiceOperator.SetSelection( 2 )
+                    self.set_date_field(1)
+                elif self.condition.operator == "NOT BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 3 )
+                    self.set_date_field(2)
+                elif self.condition.operator == "<":
+                    self.editor.choiceOperator.SetSelection( 4)
+                    self.set_date_field(1)
+                elif self.condition.operator == ">":
+                    self.editor.choiceOperator.SetSelection( 5)
+                    self.set_date_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            elif self.typeDetails == "year":
+                if self.condition.operator == "==":
+                    self.editor.choiceOperator.SetSelection( 0 )
+                    self.set_year_field(1)
+                elif self.condition.operator == "BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 1 )
+                    self.set_year_field(2)
+                elif self.condition.operator == "!=":
+                    self.editor.choiceOperator.SetSelection( 2 )
+                    self.set_year_field(1)
+                elif self.condition.operator == "NOT BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 3 )
+                    self.set_year_field(2)
+                elif self.condition.operator == "<":
+                    self.editor.choiceOperator.SetSelection( 4 )
+                    self.set_year_field(1)
+                elif self.condition.operator == ">":
+                    self.editor.choiceOperator.SetSelection( 5 )
+                    self.set_year_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            elif self.typeDetails == "time":
+                if self.condition.operator == "==":
+                    self.editor.choiceOperator.SetSelection( 0 )
+                    self.set_time_field(1)
+                elif self.condition.operator == "BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 1 )
+                    self.set_time_field(2)
+                elif self.condition.operator == "!=":
+                    self.editor.choiceOperator.SetSelection( 2 )
+                    self.set_time_field(1)
+                elif self.condition.operator == "NOT BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 3 )
+                    self.set_time_field(2)
+                elif self.condition.operator == "<":
+                    self.editor.choiceOperator.SetSelection( 4 )
+                    self.set_time_field(1)
+                elif self.condition.operator == ">":
+                    self.editor.choiceOperator.SetSelection( 5 )
+                    self.set_time_field(1)
+            elif self.typeDetails == "datetime":
+                if self.condition.operator == "==":
+                    self.editor.choiceOperator.SetSelection( 0 )
+                    self.set_datetime_field(1)
+                elif self.condition.operator == "BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 1 )
+                    self.set_datetime_field(2)
+                elif self.condition.operator == "!=":
+                    self.editor.choiceOperator.SetSelection( 2 )
+                    self.set_datetime_field(1)
+                elif self.condition.operator == "NOT BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 3 )
+                    self.set_datetime_field(2)
+                elif self.condition.operator == "<":
+                    self.editor.choiceOperator.SetSelection( 4 )
+                    self.set_datetime_field(1)
+                elif self.condition.operator == ">":
+                    self.editor.choiceOperator.SetSelection( 5 )
+                    self.set_datetime_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            elif self.typeDetails[0] == "int":
+                if self.condition.operator == "==":
+                    self.editor.choiceOperator.SetSelection( 0 )
+                    self.set_int_field(1)
+                elif self.condition.operator == "BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 1 )
+                    self.set_int_field(2)
+                elif self.condition.operator == "!=":
+                    self.editor.choiceOperator.SetSelection( 2 )
+                    self.set_int_field(1)
+                elif self.condition.operator == "NOT BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 3 )
+                    self.set_int_field(2)
+                elif self.condition.operator == "<":
+                    self.editor.choiceOperator.SetSelection( 4 )
+                    self.set_int_field(1)
+                elif self.condition.operator == ">":
+                    self.editor.choiceOperator.SetSelection( 5 )
+                    self.set_int_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            elif self.typeDetails[0] == "numeric":
+                if self.condition.operator == "==":
+                    self.editor.choiceOperator.SetSelection( 0 )
+                    self.set_numeric_field(1)
+                elif self.condition.operator == "BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 1 )
+                    self.set_numeric_field(2)
+                elif self.condition.operator == "!=":
+                    self.editor.choiceOperator.SetSelection( 2 )
+                    self.set_numeric_field(1)
+                elif self.condition.operator == "NOT BETWEEN":
+                    self.editor.choiceOperator.SetSelection( 3 )
+                    self.set_numeric_field(2)
+                elif self.condition.operator == "<":
+                    self.editor.choiceOperator.SetSelection( 4 )
+                    self.set_numeric_field(1)
+                elif self.condition.operator == ">":
+                    self.editor.choiceOperator.SetSelection( 5 )
+                    self.set_numeric_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+
+        except IndexError, TypeError:
+            pass
+
         
 
     def add_condition(self, evt):
@@ -1019,141 +1208,138 @@ class ConditionEditorControl(object):
         choice = self.editor.choiceOperator.GetCurrentSelection()
         if choice != self.lastChoice:
             self.lastChoice = choice
-
-            self.editor.paramSizer.Add(self.editor.paramWidget)
+            if self.typeDetails == "string":
+                if choice == 0:
+                    self.condition.operator = "LIKE"
+                elif choice == 1:
+                    self.condition.operator = "=="
+                elif choice == 2:
+                    self.condition.operator = "NOT LIKE"
+                elif choice == 3:
+                    self.condition.operator = "!="
+            elif self.typeDetails == "date":
+                if choice == 0:
+                    self.condition.operator = "=="
+                    self.set_date_field(1)
+                elif choice == 1:
+                    self.condition.operator = "BETWEEN"
+                    self.set_date_field(2)
+                elif choice == 2:
+                    self.condition.operator = "!="
+                    self.set_date_field(1)
+                elif choice == 3:
+                    self.condition.operator = "NOT BETWEEN"
+                    self.set_date_field(2)
+                elif choice == 4:
+                    self.condition.operator = "<"
+                    self.set_date_field(1)
+                elif choice == 5:
+                    self.condition.operator = ">"
+                    self.set_date_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            elif self.typeDetails == "year":
+                if choice == 0:
+                    self.condition.operator = "=="
+                    self.set_year_field(1)
+                elif choice == 1:
+                    self.condition.operator = "BETWEEN"
+                    self.set_year_field(2)
+                elif choice == 2:
+                    self.condition.operator = "!="
+                    self.set_year_field(1)
+                elif choice == 3:
+                    self.condition.operator = "NOT BETWEEN"
+                    self.set_year_field(2)
+                elif choice == 4:
+                    self.condition.operator = "<"
+                    self.set_year_field(1)
+                elif choice == 5:
+                    self.condition.operator = ">"
+                    self.set_year_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            elif self.typeDetails == "time":
+                if choice == 0:
+                    self.condition.operator = "=="
+                    self.set_time_field(1)
+                elif choice == 1:
+                    self.condition.operator = "BETWEEN"
+                    self.set_time_field(2)
+                elif choice == 2:
+                    self.condition.operator = "!="
+                    self.set_time_field(1)
+                elif choice == 3:
+                    self.condition.operator = "NOT BETWEEN"
+                    self.set_time_field(2)
+                elif choice == 4:
+                    self.condition.operator = "<"
+                    self.set_time_field(1)
+                elif choice == 5:
+                    self.condition.operator = ">"
+                    self.set_time_field(1)
+            elif self.typeDetails == "datetime":
+                if choice == 0:
+                    self.condition.operator = "=="
+                    self.set_datetime_field(1)
+                elif choice == 1:
+                    self.condition.operator = "BETWEEN"
+                    self.set_datetime_field(2)
+                elif choice == 2:
+                    self.condition.operator = "!="
+                    self.set_datetime_field(1)
+                elif choice == 3:
+                    self.condition.operator = "NOT BETWEEN"
+                    self.set_datetime_field(2)
+                elif choice == 4:
+                    self.condition.operator = "<"
+                    self.set_datetime_field(1)
+                elif choice == 5:
+                    self.condition.operator = ">"
+                    self.set_datetime_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            elif self.typeDetails[0] == "int":
+                if choice == 0:
+                    self.condition.operator = "=="
+                    self.set_int_field(1)
+                elif choice == 1:
+                    self.condition.operator = "BETWEEN"
+                    self.set_int_field(2)
+                elif choice == 2:
+                    self.condition.operator = "!="
+                    self.set_int_field(1)
+                elif choice == 3:
+                    self.condition.operator = "NOT BETWEEN"
+                    self.set_int_field(2)
+                elif choice == 4:
+                    self.condition.operator = "<"
+                    self.set_int_field(1)
+                elif choice == 5:
+                    self.condition.operator = ">"
+                    self.set_int_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            elif self.typeDetails[0] == "numeric":
+                if choice == 0:
+                    self.condition.operator = "=="
+                    self.set_numeric_field(1)
+                elif choice == 1:
+                    self.condition.operator = "BETWEEN"
+                    self.set_numeric_field(2)
+                elif choice == 2:
+                    self.condition.operator = "!="
+                    self.set_numeric_field(1)
+                elif choice == 3:
+                    self.condition.operator = "NOT BETWEEN"
+                    self.set_numeric_field(2)
+                elif choice == 4:
+                    self.condition.operator = "<"
+                    self.set_numeric_field(1)
+                elif choice == 5:
+                    self.condition.operator = ">"
+                    self.set_numeric_field(1)
+                self.editor.paramSizer.Add(self.editor.paramWidget)
+            
             #sizers and stuff need updating
             self.editor.topSizer.Layout()
             self.whereController.update_wherepanel()
-
-    def setup_field_widgets(self):
-        """Setup field widgets"""
-        if self.typeDetails == "string":
-            if choice == 0:
-                self.condition.operator = "LIKE"
-            elif choice == 1:
-                self.condition.operator = "=="
-            elif choice == 2:
-                self.condition.operator = "NOT LIKE"
-            elif choice == 3:
-                self.condition.operator = "!="
-            self.editor.paramSizer.Clear(True)
-            self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
-                                                      update_state = self.whereController.change_made, \
-                                                      condition = self.condition)
-        elif self.typeDetails == "date":
-            if choice == 0:
-                self.condition.operator = "=="
-                self.set_date_field(1)
-            elif choice == 1:
-                self.condition.operator = "BETWEEN"
-                self.set_date_field(2)
-            elif choice == 2:
-                self.condition.operator = "!="
-                self.set_date_field(1)
-            elif choice == 3:
-                self.condition.operator = "NOT BETWEEN"
-                self.set_date_field(2)
-            elif choice == 4:
-                self.condition.operator = "<"
-                self.set_date_field(1)
-            elif choice == 5:
-                self.condition.operator = ">"
-                self.set_date_field(1)
-        elif self.typeDetails == "year":
-            if choice == 0:
-                self.condition.operator = "=="
-                self.set_year_field(1)
-            elif choice == 1:
-                self.condition.operator = "BETWEEN"
-                self.set_year_field(2)
-            elif choice == 2:
-                self.condition.operator = "!="
-                self.set_year_field(1)
-            elif choice == 3:
-                self.condition.operator = "NOT BETWEEN"
-                self.set_year_field(2)
-            elif choice == 4:
-                self.condition.operator = "<"
-                self.set_year_field(1)
-            elif choice == 5:
-                self.condition.operator = ">"
-                self.set_year_field(1)
-        elif self.typeDetails == "time":
-            if choice == 0:
-                self.condition.operator = "=="
-                self.set_time_field(1)
-            elif choice == 1:
-                self.condition.operator = "BETWEEN"
-                self.set_time_field(2)
-            elif choice == 2:
-                self.condition.operator = "!="
-                self.set_time_field(1)
-            elif choice == 3:
-                self.condition.operator = "NOT BETWEEN"
-                self.set_time_field(2)
-            elif choice == 4:
-                self.condition.operator = "<"
-                self.set_time_field(1)
-            elif choice == 5:
-                self.condition.operator = ">"
-                self.set_time_field(1)
-        elif self.typeDetails == "datetime":
-            if choice == 0:
-                self.condition.operator = "=="
-                self.set_datetime_field(1)
-            elif choice == 1:
-                self.condition.operator = "BETWEEN"
-                self.set_datetime_field(2)
-            elif choice == 2:
-                self.condition.operator = "!="
-                self.set_datetime_field(1)
-            elif choice == 3:
-                self.condition.operator = "NOT BETWEEN"
-                self.set_datetime_field(2)
-            elif choice == 4:
-                self.condition.operator = "<"
-                self.set_datetime_field(1)
-            elif choice == 5:
-                self.condition.operator = ">"
-                self.set_datetime_field(1)
-        elif self.typeDetails[0] == "int":
-            if choice == 0:
-                self.condition.operator = "=="
-                self.set_int_field(1)
-            elif choice == 1:
-                self.condition.operator = "BETWEEN"
-                self.set_int_field(2)
-            elif choice == 2:
-                self.condition.operator = "!="
-                self.set_int_field(1)
-            elif choice == 3:
-                self.condition.operator = "NOT BETWEEN"
-                self.set_int_field(2)
-            elif choice == 4:
-                self.condition.operator = "<"
-                self.set_int_field(1)
-            elif choice == 5:
-                self.condition.operator = ">"
-                self.set_int_field(1)
-        elif self.typeDetails[0] == "numeric":
-            if choice == 0:
-                self.condition.operator = "=="
-                self.set_numeric_field(1)
-            elif choice == 1:
-                self.condition.operator = "BETWEEN"
-                self.set_numeric_field(2)
-            elif choice == 2:
-                self.condition.operator = "!="
-                self.set_numeric_field(1)
-            elif choice == 3:
-                self.condition.operator = "NOT BETWEEN"
-                self.set_numeric_field(2)
-            elif choice == 4:
-                self.condition.operator = "<"
-                self.set_numeric_field(1)
-            elif choice == 5:
-                self.condition.operator = ">"
-                self.set_numeric_field(1)
 
     def set_date_field(self, num):
         """This sets up the date fields"""

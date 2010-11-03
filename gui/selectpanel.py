@@ -6,8 +6,10 @@ from wx.lib.agw.customtreectrl import CustomTreeCtrl
 from pyreportcreator.datahandler import datahandler, querybuilder
 from pyreportcreator.profile import query, profile
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
-
+from pubsub import pub
 import querypanel
+import sqlalchemy
+
 
 class PickTable(wx.Dialog):
     """Table picker"""
@@ -111,14 +113,22 @@ class DataItemsDialogController(object):
                     
                         f = self.dlg.treeDataItems.AppendItem(j, colDesc)
                         self.dlg.treeDataItems.SetItemPyData(f, (tableName, colTuple))
-            
+
+        except sqlalchemy.exc.OperationalError:
+            pub.sendMessage('disconnected', connID = self.query.engineID)
+            self.dlg.Destroy()
         except IndexError:
             print IndexError, "update_view"
             self.dlg.Close()
+        
         #load select items
-        for t in self.query.selectItems:
-            columns = datahandler.DataHandler.get_columns(connID, t)
-            
+        try:
+            for t in self.query.selectItems:
+                columns = datahandler.DataHandler.get_columns(connID, t)
+        except sqlalchemy.exc.OperationalError:
+            pub.sendMessage('disconnected', connID = self.query.engineID)
+            self.dlg.Destroy()
+
     def close(self, evt):
         """Close dialog without adding select items"""
         self.update = False
@@ -164,14 +174,16 @@ class DataItemsDialogController(object):
 
     def add_chosen(self, evt):
         """Close dialog and add selected items"""
-        if len(self.selected_index) > 0:
-            for i in self.selected_index: #add new select items to query
-                self.query.add_select_item(i[0], i[1][0])
-            self.update = True
-        else:
-            self.update = False
-        self.dlg.Close()
-
+        try:
+            if len(self.selected_index) > 0:
+                for i in self.selected_index: #add new select items to query
+                    self.query.add_select_item(i[0], i[1][0])
+                self.update = True
+            else:
+                self.update = False
+            self.dlg.Close()
+        except sqlalchemy.exc.OperationalError:
+            pub.sendMessage('disconnected', connID = self.query.engineID)
 #---------------------------------------------------------
 
 
@@ -187,7 +199,7 @@ class SelectController(object):
         self.selectPanel = view
         self.query = query
         self.profile = profile
-        #self.selectItems = dict()
+        self.selectItems = dict()
         #load any existing items from a saved query
         if self.query.state == 'saved':
             self.load_elements()
@@ -217,7 +229,7 @@ class SelectController(object):
             self.selectPanel.selectList.SetStringItem(count, 1, i[0])
             id = wx.NewId()
             self.selectPanel.selectList.SetItemData(a, id)
-            #self.selectItems[id] = i
+            self.selectItems[id] = i
         self.selectPanel.selectList.Thaw()
 
     def load_elements(self):

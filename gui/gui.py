@@ -7,7 +7,6 @@ class MainToolBar(object):
     def __init__(self, parent):
         self.mainToolbar = parent.CreateToolBar( wx.TB_HORIZONTAL, wx.ID_ANY )
         self.mainToolbar.AddLabelTool(1, u"Add a New Data Source", wx.Bitmap( u"gui/icons/db_add.png", wx.BITMAP_TYPE_ANY ), wx.NullBitmap, wx.ITEM_NORMAL, u"Add a New Data Source", u"Launch New Data Source Wizard", None)
-
         self.mainToolbar.Realize()
 
 class MainMenu(object):
@@ -46,6 +45,29 @@ class MainMenu(object):
         parent.SetMenuBar( self.menuBar )
 
 #----------------------------------------------------------------------------------#
+
+class DataContextMenu(wx.Menu):
+    def __init__(self, parent):
+        wx.Menu.__init__(self)
+
+        self.parent = parent
+
+        minimize = wx.MenuItem(self, wx.NewId(), 'Minimize')
+        self.AppendItem(minimize)
+        self.Bind(wx.EVT_MENU, self.OnMinimize, id=minimize.GetId())
+
+        close = wx.MenuItem(self, wx.NewId(), 'Close')
+        self.AppendItem(close)
+        self.Bind(wx.EVT_MENU, self.OnClose, id=close.GetId())
+
+
+    def OnMinimize(self, event):
+        self.parent.Iconize()
+
+    def OnClose(self, event):
+        self.parent.Close()
+
+#-------------------------------------------------------
 
 class DataPanel(object):
     """This defines the data object panel and it's presentation"""

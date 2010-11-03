@@ -3,7 +3,7 @@ import query
 from pyreportcreator.datahandler import datahandler
 import jsonpickle
 import zipfile
-import time
+import shutil
 #OK, query object's condition expression consists of conditions which each specify their parent and left sibling (except the leftmost, which is set to Null
 # ThisAllows multiple nested sets
 
@@ -25,9 +25,9 @@ class Profile(object):
     """A profile object. This stores query, report and data connection objects"""
     def __init__(self):
         self._fileName = ""
-        self.documents = set() #stores document id index
+        self.document_index = dict() #stores document id index
         self.connections = dict()
-
+        self.connState = "saved"
         pub.subscribe(self.add_connection, 'dataconnection.save')
 
     def conn_not_exist(self, dbType, dbName, serverAddress, serverPort = None, dbUser = None, dbPassword = None):
@@ -42,7 +42,11 @@ class Profile(object):
         """Add connection to Profile"""
         self.connections[connID] = [type, address, dbName, username, password, port]
         if self._fileName != "":
-            self.save_profile(self._fileName)
+            self.write_connections_to_file()
+        else:
+            self.connState = "altered"
+            
+            
     
     def get_name(self, connID):
         """return database name"""
@@ -52,32 +56,22 @@ class Profile(object):
             raise AttributeError
         return name
 
-    def save_query(self, query, queryID):
-        """Save query to dictionary with key being the id for the database connection"""
-        self.documents[queryID] = query
+    def write_connections_to_file(self):
+        """Write the data connections to disk"""
+        zf = zipfile.ZipFile(self._fileName, 'a', zipfile.ZIP_DEFLATED)
+        print "saving doc", zf.namelist()
+        pickled = jsonpickle.encode(self.connections)
+        print pickled, "<--pickled"
+        info = zipfile.ZipInfo("connections")
+        info.compress_type = zipfile.ZIP_DEFLATED
+        zf.writestr(info, pickled)
+        zf.close()
+        self.connState = "saved"
 
-    def remove_query(self, queryID):
-        """Remove query"""
-        try:
-            del self.documents[queryID]
-            return True
-        except IndexError:
-            return False
-
-    def run_query(self, queryID):
-        """Run the query and return the result"""
-        q = self.documents[queryID].build_query() #might need to optimize this later so already built objects just get run
-        engine = datahandler.ConnectionManager.dataConnections[self.queries[queryID].engineID]
-        return engine.execute(q)
-
-    def save_connection(self, connID, address, databaseName, user = None, password = None, port = None, driver = None):
-        """Save the database connection"""
-        try:
-            self.connections[connID] = (address, databaseName, user, password, port, driver)
-            return True
-        except:
-            return False
-
+    def load_connections(self):
+        """Load connections to memory"""
+        
+        
     def save_profile(self, fileName):
         """Pickles profile to file"""
         self._fileName = fileName
@@ -92,13 +86,25 @@ class Profile(object):
         print "saved profile"
         zf.close()
 
+    def copy_and_save(self, newFile, openDocs):
+        """
+        This method accepts a new filename and dict of open docs
+        """
+        try:
+            shutil.copyfile(self._fileName, newFile)
+            self._fileName = newFile
+            for i in openDocs:
+                self.save_doc(openDocs[i])
+        except IOError:
+            self._fileName = newFile
+
+            
+
     def open_profile(self, fileName):
         """Opens file and completely erases old objects"""
         self._fileName = fileName
-        self.connections = dict()
-        self.documents = dict()
         self.document_index = dict()
-        zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
+        zf = zipfile.ZipFile(self._fileName, 'r', zipfile.ZIP_DEFLATED)
         items = zf.namelist()
         for i in items:
             if str(i) != 'connections':
@@ -110,6 +116,8 @@ class Profile(object):
                     docType = 'report'
                 self.document_index[doc.documentID] = docType
                 pub.sendMessage('newdocument', name = self.documents[i].name, docId = doc.documentID, docType = docType)
+        #load connections
+        self.connections = jsonpickle.decode(zf.open(zf.getinfo(docID)).read())
         print "opened profile" 
         zf.close()
 
@@ -170,9 +178,9 @@ class Profile(object):
         import uuid
         if docType == 'query':
             documentID = str(uuid.uuid4())
-            while documentID in self.documents:
+            while documentID in self.document_index:
                 documentID = str(uuid.uuid4())
-            self.documents.add(documentID)
+            self.document_index[documentID] = 'query'
             return Query(documentID, engineID)
         else:
             return False #TODO: change to raise unknown doc type error

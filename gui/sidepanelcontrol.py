@@ -1,8 +1,10 @@
 """This is the control code for the side panel"""
 from pyreportcreator.datahandler import datahandler
 from pyreportcreator.profile import profile
+from pyreportcreator.gui import gui
 from pubsub import pub
 import wx
+
 
 class DataPanelControl(object):
     """This controls events connected with the data panel/treeview"""
@@ -13,8 +15,17 @@ class DataPanelControl(object):
         self.dataIndex = dict()
         self.profile = profile
         self.tree = self.view.treeCtrlDataItems
+        #bind to events
+        self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.context_menu)
+
         #subscribe to data add events
         pub.subscribe(self.update_view, 'databaseadded')
+        pub.subscribe(self.db_reconnected, 'connectionfixed')
+        pub.subscribe(self.db_disconnected, 'disconnected')
+
+    def context_menu(self, evt):
+        if self.tree.GetItemData(evt.GetItem()).GetData()[1] == "disconnected":
+            self.tree.PopupMenu(gui.DataContextMenu(self), evt.GetPoint())
 
     def check_if_item_not_exist(self, connID):
         """
@@ -26,12 +37,40 @@ class DataPanelControl(object):
             return self.dataIndex[connID]
         except KeyError:
             return False #not in there
+        
+    def db_disconnected(self, connID):
+        """Update view to reflect the fact that one data connection is offline"""
+        root = self.tree.GetRootItem()
+        print "disconnected", connID
+        (child, cookie) = self.tree.GetFirstChild(root)
+        while child.IsOk():
+            print self.tree.GetData(child).GetData()[0]
+            if self.tree.GetData(child).GetData()[0] == connID:
+                self.tree.SetPyData(child, (connID, "disconnected"))
+                text = self.tree.GetItemText(child)
+                self.tree.SetItemText(child, "[off] " + text)
+                print "changed text"
+                break
+            (child, cookie) = self.tree.GetNextChild(root, cookie)
 
-    def update_view(self, connID):
+    def db_reconnected(self, connID):
+        """Update view to reflect fact that db has reconnected"""
+        root = self.tree.GetRootItem()
+        (child, cookie) = self.tree.GetFirstChild(sroot)
+        while child.IsOk():
+            if self.tree.GetData(child).GetData()[0] == connID:
+                self.tree.SetPyData(child, (connID, "connected"))
+                text = self.tree.GetItemText(child)
+                self.tree.SetItemText(child, text[6:])
+                break
+            (child, cookie) = self.tree.GetNextChild(root, cookie)
+
+    def update_view(self, connID, connected = True):
         """This grabs the connection ID and populates the view with the data information"""
  
         try:
             name = self.profile.connections[connID][2]
+            address = self.profile.connections[connID][1]
         except AttributeError:
             name = connID
             print AttributeError, "update_view"
@@ -41,7 +80,12 @@ class DataPanelControl(object):
             self.tree.DeleteChildren(item)
             
         else:
-            d = self.tree.AppendItem(self.view.root, name + str(connID))
+            if connected == True:
+                d = self.tree.AppendItem(self.view.root, name + "@" + address)
+                self.tree.SetPyData(d, (connID, "connected"))
+            else:
+                d = self.tree.AppendItem(self.view.root, "[off] " + name + "@" + address)
+                self.tree.SetPyData(d, (connID, "disconnected"))
             self.dataIndex[connID] = d #need to keep data index as an easy way of insuring we don't display the same database twice
             
         tables = datahandler.DataHandler.get_tables(connID)
