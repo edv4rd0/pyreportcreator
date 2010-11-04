@@ -629,6 +629,7 @@ class WhereController(object):
             view = SetEditor(self.wherePanel, self.query.conditions.firstObj.condID)
             self.elementControllers[self.query.conditions.firstObj.condID] = SetEditorControl(view,\
                                                self.query.conditions.firstObj, whereController = self)
+            self.elementControllers[self.query.conditions.firstObj.condID].load_set()
             self.wherePanel.topSizer.Insert(0, view, 0, wx.EXPAND | wx.ALL)
             self.wherePanel.topSizer.Layout()
             self.wherePanel.layout_magic()
@@ -641,31 +642,33 @@ class WhereController(object):
             self.wherePanel.topSizer.Layout()
             self.wherePanel.layout_magic()
             print "loaded a condition"
-
-        conditionObj = self.query.conditions.firstObj.nextObj
-        index = 1
-        while conditionObj:
-            #load all top level conditions/sets - the sets will load their children
-            if isinstance(conditionObj, query.Condition):
-                view = ConditionEditor(self.wherePanel, conditionObj.condID)
-                self.elementControllers[conditionObj.condID] = ConditionEditorControl(view,\
-                                                 conditionObj, whereController = self)
-                self.elementControllers[conditionObj.condID].load_condition()#load condition
-                self.wherePanel.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
-                self.wherePanel.topSizer.Layout()
-                self.wherePanel.layout_magic()
-            elif isinstance(conditionObj, query.ConditionSet):
-                view = SetEditor(self.wherePanel, conditionObj.condID)
-                self.elementControllers[conditionObj.condID] = SetEditorControl(view,\
-                                                 conditionObj, whereController = self)
-                self.elementControllers[conditionObj.condID].load_set()#load condition
-                self.wherePanel.topSizer.Insert(index, view, 0, wx.EXPAND | wx.ALL)
-                self.wherePanel.topSizer.Layout()
-                self.wherePanel.layout_magic()
-                print "loaded set"
-            index += 1
-            conditionObj = conditionObj.nextObj
-
+            
+        try:
+            conditionObj = self.query.conditions.firstObj.nextObj
+            index = 1
+            while conditionObj:
+                #load all top level conditions/sets - the sets will load their children
+                if isinstance(conditionObj, query.Condition):
+                    view = ConditionEditor(self.wherePanel, conditionObj.condID)
+                    self.elementControllers[conditionObj.condID] = ConditionEditorControl(view,\
+                                                     conditionObj, whereController = self)
+                    self.elementControllers[conditionObj.condID].load_condition()#load condition
+                    self.wherePanel.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
+                    self.wherePanel.topSizer.Layout()
+                    self.wherePanel.layout_magic()
+                elif isinstance(conditionObj, query.ConditionSet):
+                    view = SetEditor(self.wherePanel, conditionObj.condID)
+                    self.elementControllers[conditionObj.condID] = SetEditorControl(view,\
+                                                     conditionObj, whereController = self)
+                    self.elementControllers[conditionObj.condID].load_set()#load condition
+                    self.wherePanel.topSizer.Insert(index, view, 0, wx.EXPAND | wx.ALL)
+                    self.wherePanel.topSizer.Layout()
+                    self.wherePanel.layout_magic()
+                    print "loaded set"
+                index += 1
+                conditionObj = conditionObj.nextObj
+        except AttributeError:
+            pass
 
 
     def update_wherepanel(self):
@@ -998,30 +1001,32 @@ class SetEditorControl(object):
             self.editor.choiceLogic.SetSelection( 1 )
         else:
             self.editor.choiceLogic.SetSelection( 0 )
-        if isinstance(self.query.conditions.firstObj, query.Condition):
-            view = ConditionEditor(self.editor, self.query.conditions.firstObj.condID)
-            self.elementControllers[self.query.conditions.firstObj.condID] = \
-                                  ConditionEditorControl(view, self.query.conditions.firstObj, whereController = self)
-            self.elementControllers[self.query.conditions.firstObj.condID].load_condition()#load condition
-            self.editor.topSizer.Insert(0, view.topSizer, 0, wx.EXPAND | wx.ALL)
-            self.editor.topSizer.Layout()
-            self.wherePanel.layout_magic()
-            print "loaded a condition"
         try:
-            conditionObj = self.query.conditions.firstObj.nextObj
-            index = 1
-            while conditionObj:
-                #load all top level conditions/sets - the sets will load their children
-                view = ConditionEditor(self.editor, conditionObj.condID)
-                self.elementControllers[conditionObj.condID] = ConditionEditorControl(view,\
-                                                 conditionObj, whereController = self)
-                self.elementControllers[conditionObj.condID].load_condition()#load condition
-                self.editor.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
-                self.editor.topSizer.Layout()
-                self.wherePanel.layout_magic()
-                index += 1
-                conditionObj = conditionObj.nextObj
-        except AttributeError:
+            view = ConditionEditor(self.editor, self.cond.firstObj.condID, indentation = 30)
+            self.whereController.elementControllers[self.cond.firstObj.condID] = \
+                                  ConditionEditorControl(view, self.cond.firstObj, whereController = self.whereController, top = False)
+            self.whereController.elementControllers[self.cond.firstObj.condID].load_condition()#load condition
+            self.editor.topSizer.Insert(1, view.topSizer, 0, wx.EXPAND | wx.ALL)
+            self.editor.topSizer.Layout()
+            self.whereController.update_wherepanel()
+            print "loaded a condition"
+            try:
+                conditionObj = self.cond.firstObj.nextObj
+                index = 2
+                while conditionObj:
+                    #load all top level conditions/sets - the sets will load their children
+                    view = ConditionEditor(self.editor, conditionObj.condID, indentation = 30)
+                    self.whereController.elementControllers[conditionObj.condID] = ConditionEditorControl(view,\
+                                                     conditionObj, whereController = self.whereController, top = False)
+                    self.whereController.elementControllers[conditionObj.condID].load_condition()#load condition
+                    self.editor.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
+                    self.editor.topSizer.Layout()
+                    self.whereController.update_wherepanel()
+                    index += 1
+                    conditionObj = conditionObj.nextObj
+            except AttributeError:
+                pass
+        except IOError:
             pass
 
     def alter_boolval(self, evt):
