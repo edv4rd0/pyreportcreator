@@ -14,7 +14,7 @@ from sqlalchemy.dialects.mysql import \
         TINYBLOB, TINYINT, TINYTEXT, VARBINARY, VARCHAR, YEAR
 from sqlalchemy import types
 from pyreportcreator.datahandler import datahandler
-from pyreportcreator.profile import timestampconv
+from pyreportcreator.profile import timestampconv, query
 
 def get_generic_type(columnType):
     """Recieves the type and returns the correct details for the GUI"""
@@ -86,7 +86,7 @@ class NumericCtrl(masked.NumCtrl):
     """
     Numeric control. Accepts params for num of numerals and then decimal places.
     """
-    def __init__(self, parent, width, update_state, condition, typeDetails):
+    def __init__(self, parent, width, update_state, condition, typeDetails, isLoading = False):
         masked.NumCtrl.__init__(self, parent = parent, id = -1, value = 0, pos = wx.DefaultPosition,\
                                 size = (width, -1), style = 0, validator = wx.DefaultValidator, \
                                 integerWidth = typeDetails[1], fractionWidth = typeDetails[2], allowNone = False, \
@@ -97,8 +97,11 @@ class NumericCtrl(masked.NumCtrl):
                                 invalidBackgroundColour = "Yellow", autoSize = True)
         self.condition = condition
         self.update_state = update_state
-        self.condition.field2 = 0
-        self.update_state()
+        if isLoading:
+            self.SetValue(self.condition.field2)
+        else:
+            self.condition.field2 = 0
+            self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
     def assign_value(self, evt):
@@ -141,12 +144,15 @@ class CustomIntCtrl(intctrl.IntCtrl):
     @Param: update_state is a reference to the method of the profile.Query class being edited.
     It is run to change state to 'altered'.
     """
-    def __init__(self, parent, width, update_state, condition, minimum, maximum, longBool):
+    def __init__(self, parent, width, update_state, condition, minimum, maximum, longBool, isLoading = False):
         intctrl.IntCtrl.__init__(self, parent, -1, min = minimum, max = maximum, limited = True, allow_none = False, allow_long = longBool, size = (width, -1))
         self.condition = condition
         self.update_state = update_state
-        self.condition.field2 = 0
-        self.update_state()
+        if isLoading:
+            self.SetValue(self.condition.field2)
+        else:
+            self.condition.field2 = 0
+            self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
     def GetValue(self):
@@ -303,7 +309,7 @@ class DateTimeCtrl(CustomMaskedCtrl):
 
 class BetweenValue(wx.Panel):
     """This class allows a date, time or date time range control to be built"""
-    def __init__(self, parent, width, update_state, condition, typeDetails):
+    def __init__(self, parent, width, update_state, condition, typeDetails, isLoading = False):
         wx.Panel.__init__(self, parent, -1, size = (width, -1))
         self.condition = condition
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -326,14 +332,16 @@ class BetweenValue(wx.Panel):
                                 selectOnEntry = True, foregroundColour = "Black", signedForegroundColour = "Red",\
                                 emptyBackgroundColour = "White", validBackgroundColour = "White", \
                                 invalidBackgroundColour = "Yellow", autoSize = True)
-            self.lastValues = [0, 0]
-            self.condition.field2 = self.lastValues
-            self.update_state()
             
         elif typeDetails[0] == 'int':
             
             self.ctrl1 = BaseIntCtrl(self, width = 200, minimum = typeDetails[1], maximum = typeDetails[2], longBool = typeDetails[3])
             self.ctrl2 = BaseIntCtrl(self, width = 200, minimum = typeDetails[1], maximum = typeDetails[2], longBool = typeDetails[3])
+        if isLoading:
+            self.ctrl1.SetValue(self.condition.field2[0])
+            self.ctrl2.SetValue(self.condition.field2[1])
+            self.lastValues = [self.condition.field2[0], self.condition.field2[1]]
+        else:
             self.lastValues = [0, 0]
             self.condition.field2 = self.lastValues
             self.update_state()
@@ -360,7 +368,7 @@ class BetweenValue(wx.Panel):
 
 class DateBetweenValue(wx.Panel):
     """This class allows a date, time or date time range control to be built"""
-    def __init__(self, parent, width, update_state, condition, typeDetails):
+    def __init__(self, parent, width, update_state, condition, typeDetails, isLoading = False):
         wx.Panel.__init__(self, parent, -1, size = (width, -1))
         self.update_state = update_state
         self.condition = condition
@@ -369,28 +377,115 @@ class DateBetweenValue(wx.Panel):
         if typeDetails == 'date':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "#{4} ## ##", value = "2010 12 01", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "#{4} ## ##", value = "2010 12 31", size = (200, -1))
-            self.lastCtrlValue = ["2010 12 01", "2010 12 31"]
-            self.condition.field2 = [timestampconv.date_conv("2010 12 01"), timestampconv.date_conv("2010 12 31")]
-            self.update_state()
+            if isLoading:
+                month1 = str(self.condition.field2[0].month)
+                if len(month1) == 1:
+                    month1 = '0' + month1
+                day1 = str(self.condition.field2[0].day)
+                if len(day1) == 1:
+                    day1 = '0' + day1
+                month2 = str(self.condition.field2[1].month)
+                if len(month2) == 1:
+                    month2 = '0' + month2
+                day2 = str(self.condition.field2[1].day)
+                if len(day2) == 1:
+                    day2 = '0' + day2
+
+                self.lastCtrlValue = [str(self.condition.field2[0].year) + " " + month1 + " " + day1,\
+                                  str(self.condition.field2[1].year) + " " + month2 + " " + day2]
+                self.ctrl1.SetValue(self.lastCtrlValue[0])
+                self.ctrl2.SetValue(self.lastCtrlValue[1])
+   
+            else:
+                self.lastCtrlValue = ["2010 12 01", "2010 12 31"]
+                self.condition.field2 = [timestampconv.date_conv("2010 12 01"), timestampconv.date_conv("2010 12 31")]
+                self.update_state()
         elif typeDetails == 'time':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "##:## ##", value = "23:00 00", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "##:## ##", value = "24:00 00", size = (200, -1))
-            self.lastCtrlValue = ["23:00 00", "24:00 00"]
-            self.condition.field2 = [timestampconv.time_conv("23:00 00"), timestampconv.time_conv("24:00 00")]
-            self.update_state()
+            if isLoading:
+                hour1 = str(self.condition.field2[0].hour)
+                if len(hour1) == 1:
+                    hour1 = '0' + hour1
+                minute1 = str(self.condition.field2[0].minute)
+                if len(minute1) == 1:
+                    minute1 = '0' + minute1
+                second1 = str(self.condition.field2[0].second)
+                if len(second1) == 1:
+                    second1 = '0' + second1
+                hour2 = str(self.condition.field2[1].hour)
+                if len(hour2) == 1:
+                    hour2 = '0' + hour2
+                minute2 = str(self.condition.field2[1].minute)
+                if len(minute2) == 1:
+                    minute2 = '0' + minute2
+                second2 = str(self.condition.field2[1].second)
+                if len(second2) == 1:
+                    second2 = '0' + second2
+                self.lastCtrlValue = [hour1 + ":" + minute1 + " " + second1, hour2 + ":" + minute2 + " " + second2]
+                self.ctrl1.SetValue(self.lastCtrlValue[0])
+                self.ctrl2.SetValue(self.lastCtrlValue[1])
+            else:
+                self.lastCtrlValue = ["23:00 00", "24:00 00"]
+                self.condition.field2 = [timestampconv.time_conv("23:00 00"), timestampconv.time_conv("24:00 00")]
+                self.update_state()
         elif typeDetails == 'datetime':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "#{4} ## ## - ##:## ##", value = "2009 12 31 - 24:00 00", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "#{4} ## ## - ##:## ##", value = "2010 12 31 - 24:00 00", size = (200, -1))
-            self.lastCtrlValue = ["2009 12 01 - 24:00 00", "2010 12 31 - 24:00 00"]
-            self.condition.field2 = [timestampconv.datetime_conv("2009 12 01 - 24:00 00"),\
+            if isLoading:
+                month1 = str(self.condition.field2[0].month)
+                if len(month1) == 1:
+                    month1 = '0' + month1
+                day1 = str(self.condition.field2[0].day)
+                if len(day1) == 1:
+                    day1 = '0' + day1
+                hour1 = str(self.condition.field2[0].hour)
+                if len(hour1) == 1:
+                    hour1 = '0' + hour1
+                minute1 = str(self.condition.field2[0].minute)
+                if len(minute1) == 1:
+                    minute1 = '0' + minute1
+                second1 = str(self.condition.field2[0].second)
+                if len(second1) == 1:
+                    second1 = '0' + second1
+                month2 = str(self.condition.field2[1].month)
+                if len(month2) == 1:
+                    month2 = '0' + month2
+                day2 = str(self.condition.field2[1].day)
+                if len(day2) == 1:
+                    day2 = '0' + day2
+                hour2 = str(self.condition.field2[1].hour)
+                if len(hour2) == 1:
+                    hour2 = '0' + hour2
+                minute2 = str(self.condition.field2[1].minute)
+                if len(minute2) == 1:
+                    minute2 = '0' + minute2
+                second2 = str(self.condition.field2[1].second)
+                if len(second2) == 1:
+                    second2 = '0' + second2
+
+                self.lastCtrlValue = [str(self.condition.field2[0].year) + " " + month1 + " "\
+                                      + day1 + " - " + hour1 + ":" + minute1 + " " + second1,\
+                                  str(self.condition.field2[1].year) + " " + month2 + " " + day2\
+                                      + " - " + hour2 + ":" + minute2 + " " + second2]
+                self.ctrl1.SetValue(self.lastCtrlValue[0])
+                self.ctrl2.SetValue(self.lastCtrlValue[1])
+            else:
+                self.lastCtrlValue = ["2009 12 01 - 24:00 00", "2010 12 31 - 24:00 00"]
+                self.condition.field2 = [timestampconv.datetime_conv("2009 12 01 - 24:00 00"),\
                                      timestampconv.datetime_conv("2010 12 31 - 24:00 00")]
-            self.update_state()
+                self.update_state()
         elif typeDetails == 'year':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "#{4}", value = "2010", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "#{4}", value = "2010", size = (200, -1))
-            self.lastCtrlValue = ["2009", "2010"]
-            self.condition.field2 = [timestampconv.year_conv("2009"), timestampconv.year_conv("2010")]
-            self.update_state()
+            if isLoading:
+                self.lastCtrlValue = [str(self.condition.field2[0]), str(self.condition.field2[1])]
+                self.ctrl1.SetValue(self.lastCtrlValue[0])
+                self.ctrl2.SetValue(self.lastCtrlValue[1])
+            else:
+                self.lastCtrlValue = ["2009", "2010"]
+                self.condition.field2 = [timestampconv.year_conv("2009"), timestampconv.year_conv("2010")]
+                self.update_state()
 
         self.label = wx.StaticText(self, -1, label = "and", size = (40,-1))
         sizer.Add(self.ctrl1, 1)
@@ -507,13 +602,57 @@ class WhereController(object):
         self.query = query
         self.whereEditor = view
         self.wherePanel = view.panel
-        #if self.query.state == "saved":
-        #    self.load_conditions()
+        if self.query.state == "saved":
+            self.load_conditions()
         #bind to events
         self.whereEditor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
         self.whereEditor.btnSub.Bind(wx.EVT_BUTTON, self.add_set)
         #boolval for top set of query
         self.whereEditor.choiceLogic.Bind(wx.EVT_CHOICE, self.alter_boolval)
+
+    def load_conditions(self):
+        """Load condition objects"""
+        print "Ok, loading"
+        if self.query.conditions.boolVal == "or":
+            self.whereEditor.choiceLogic.SetSelection( 1 )
+        else:
+            self.whereEditor.choiceLogic.SetSelection( 0 )
+        if isinstance(self.query.conditions.firstObj, query.ConditionSet):
+            view = SetEditor(self.wherePanel, self.query.conditions.firstObj.condID)
+            self.elementControllers[self.query.conditions.firstObj.condID] = SetEditorControl(view,\
+                                               self.query.conditions.firstObj, whereController = self)
+            self.wherePanel.topSizer.Insert(0, view, 0, wx.EXPAND | wx.ALL)
+            self.wherePanel.topSizer.Layout()
+            self.wherePanel.layout_magic()
+        elif isinstance(self.query.conditions.firstObj, query.Condition):
+            view = ConditionEditor(self.wherePanel, self.query.conditions.firstObj.condID)
+            self.elementControllers[self.query.conditions.firstObj.condID] = \
+                                  ConditionEditorControl(view, self.query.conditions.firstObj, whereController = self)
+            self.wherePanel.topSizer.Insert(0, view.topSizer, 0, wx.EXPAND | wx.ALL)
+            self.wherePanel.topSizer.Layout()
+            self.wherePanel.layout_magic()
+            print "loaded a condition"
+        conditionObj = self.query.conditions.firstObj.NextObj
+        index = 1
+        while conditionObj:
+            #load all top level conditions/sets - the sets will load their children
+            if isinstance(conditionObj, query.Condition):
+                view = ConditionEditor(self.wherePanel, conditionObj.condID)
+                self.elementControllers[conditionObj.condID] = ConditionEditorControl(view,\
+                                                 conditionObj, whereController = self)
+                self.wherePanel.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
+                self.wherePanel.topSizer.Layout()
+                self.wherePanel.layout_magic()
+            elif isinstance(conditionObj, query.ConditionSet):
+                view = SetEditor(self.wherePanel, conditionObj.condID)
+                self.elementControllers[conditionObj.condID] = SetEditorControl(view,\
+                                                 conditionObj, whereController = self)
+                self.wherePanel.topSizer.Insert(index, view, 0, wx.EXPAND | wx.ALL)
+                self.wherePanel.topSizer.Layout()
+                self.wherePanel.layout_magic()
+            index += 1
+            conditionObj = conditionObj.nextObj
+
 
     def update_wherepanel(self):
         self.wherePanel.topSizer.Layout()
@@ -534,7 +673,10 @@ class WhereController(object):
     def alter_boolval(self, evt):
         """Change the joining bool of the top set of the query"""
         index = self.whereEditor.choiceLogic.GetCurrentSelection()
-        self.query.conditions.boolVal = self.whereEditor.logicChoices[index]
+        if index == 0:
+            self.query.conditions.boolVal = "and"
+        else:
+            self.query.conditions.boolVal = "or"
         self.query.change_made() #change state to altered
 
     def add_condition(self, evt):
@@ -553,7 +695,7 @@ class WhereController(object):
     def add_set(self, evt):
         """Add condition set to top level"""
         cond = self.query.add_set(self.query.conditions)
-        view = SetEditor(self.wherePanel, 6)
+        view = SetEditor(self.wherePanel, cond.condID)
         self.elementControllers[cond.condID] = SetEditorControl(view, cond, whereController = self)
         self.wherePanel.topSizer.Insert(0, view, 0, wx.EXPAND | wx.ALL)
         self.wherePanel.topSizer.Layout()
@@ -1023,18 +1165,26 @@ class ConditionEditorControl(object):
             self.whereController.update_wherepanel()
 
 
-    def load_condition(self, condition):
+    def load_condition(self):
         """
         This method accepts a condition object and loads it into the widget
         """
-        self.condition = condition
         #Now load any elements into appropriate controls
+        
+        #self.editor.paramSizer.Layout()
+        #self.editor.topSizer.Layout()
+        #self.whereController.update_wherepanel()
+        return
+    
         try:
-            typeObject = datahandler.DataHandler.get_column_type_object(self.query.engineID, self.condition.field1[0],\
+            typeObject = datahandler.DataHandler.get_column_type_object(self.whereController.query.engineID, self.condition.field1[0],\
                                                                    self.condition.field1[1])
         except sqlalchemy.exc.OperationalError:
             wx.MessageBox("Failure to determine column type - database cannot be reached. Please fix and then try again.", "Database Disconnected", parent = wx.GetApp().GetTopWindow())
             pub.sendMessage('failureclose', documentID = self.whereController.query.documentID)
+        except IndexError:
+            #no column selected
+            pass
             
         try:
             self.editor.tcColumn.ChangeValue(self.condition.field1[0]+"."+self.condition.field1[1])
@@ -1051,131 +1201,138 @@ class ConditionEditorControl(object):
                     self.editor.choiceOperator.SetSelection( 2 )
                 elif self.condition.operator == "!=":
                     self.editor.choiceOperator.SetSelection( 3 )
+                self.editor.paramSizer.Clear(True)
+                self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
+                                                          update_state = self.whereController.change_made, \
+                                                          condition = self.condition)
+                self.editor.paramWidget.SetValue(self.condition.field2)
             elif self.typeDetails == "date":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
-                    self.set_date_field(1)
+                    self.set_date_field(1, True)
                 elif self.condition.operator == "BETWEEN":
                     self.editor.choiceOperator.SetSelection( 1 )
-                    self.set_date_field(2)
+                    self.set_date_field(2, True)
                 elif self.condition.operator == "!=":
                     self.editor.choiceOperator.SetSelection( 2 )
-                    self.set_date_field(1)
+                    self.set_date_field(1, True)
                 elif self.condition.operator == "NOT BETWEEN":
                     self.editor.choiceOperator.SetSelection( 3 )
-                    self.set_date_field(2)
+                    self.set_date_field(2, True)
                 elif self.condition.operator == "<":
                     self.editor.choiceOperator.SetSelection( 4)
-                    self.set_date_field(1)
+                    self.set_date_field(1, True)
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5)
-                    self.set_date_field(1)
+                    self.set_date_field(1, True)
                 self.editor.paramSizer.Add(self.editor.paramWidget)
             elif self.typeDetails == "year":
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
-                    self.set_year_field(1)
+                    self.set_year_field(1, True)
                 elif self.condition.operator == "BETWEEN":
                     self.editor.choiceOperator.SetSelection( 1 )
-                    self.set_year_field(2)
+                    self.set_year_field(2, True)
                 elif self.condition.operator == "!=":
                     self.editor.choiceOperator.SetSelection( 2 )
-                    self.set_year_field(1)
+                    self.set_year_field(1, True)
                 elif self.condition.operator == "NOT BETWEEN":
                     self.editor.choiceOperator.SetSelection( 3 )
-                    self.set_year_field(2)
+                    self.set_year_field(2, True)
                 elif self.condition.operator == "<":
                     self.editor.choiceOperator.SetSelection( 4 )
-                    self.set_year_field(1)
+                    self.set_year_field(1, True)
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5 )
-                    self.set_year_field(1)
+                    self.set_year_field(1, True)
                 self.editor.paramSizer.Add(self.editor.paramWidget)
             elif self.typeDetails == "time":
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
-                    self.set_time_field(1)
+                    self.set_time_field(1, True)
                 elif self.condition.operator == "BETWEEN":
                     self.editor.choiceOperator.SetSelection( 1 )
-                    self.set_time_field(2)
+                    self.set_time_field(2, True)
                 elif self.condition.operator == "!=":
                     self.editor.choiceOperator.SetSelection( 2 )
-                    self.set_time_field(1)
+                    self.set_time_field(1, True)
                 elif self.condition.operator == "NOT BETWEEN":
                     self.editor.choiceOperator.SetSelection( 3 )
-                    self.set_time_field(2)
+                    self.set_time_field(2, True)
                 elif self.condition.operator == "<":
                     self.editor.choiceOperator.SetSelection( 4 )
-                    self.set_time_field(1)
+                    self.set_time_field(1, True)
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5 )
-                    self.set_time_field(1)
+                    self.set_time_field(1, True)
             elif self.typeDetails == "datetime":
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
-                    self.set_datetime_field(1)
+                    self.set_datetime_field(1, True)
                 elif self.condition.operator == "BETWEEN":
                     self.editor.choiceOperator.SetSelection( 1 )
-                    self.set_datetime_field(2)
+                    self.set_datetime_field(2, True)
                 elif self.condition.operator == "!=":
                     self.editor.choiceOperator.SetSelection( 2 )
-                    self.set_datetime_field(1)
+                    self.set_datetime_field(1, True)
                 elif self.condition.operator == "NOT BETWEEN":
                     self.editor.choiceOperator.SetSelection( 3 )
-                    self.set_datetime_field(2)
+                    self.set_datetime_field(2, True)
                 elif self.condition.operator == "<":
                     self.editor.choiceOperator.SetSelection( 4 )
-                    self.set_datetime_field(1)
+                    self.set_datetime_field(1, True)
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5 )
-                    self.set_datetime_field(1)
+                    self.set_datetime_field(1, True)
                 self.editor.paramSizer.Add(self.editor.paramWidget)
             elif self.typeDetails[0] == "int":
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
-                    self.set_int_field(1)
+                    self.set_int_field(1, True)
                 elif self.condition.operator == "BETWEEN":
                     self.editor.choiceOperator.SetSelection( 1 )
-                    self.set_int_field(2)
+                    self.set_int_field(2, True)
                 elif self.condition.operator == "!=":
                     self.editor.choiceOperator.SetSelection( 2 )
-                    self.set_int_field(1)
+                    self.set_int_field(1, True)
                 elif self.condition.operator == "NOT BETWEEN":
                     self.editor.choiceOperator.SetSelection( 3 )
-                    self.set_int_field(2)
+                    self.set_int_field(2, True)
                 elif self.condition.operator == "<":
                     self.editor.choiceOperator.SetSelection( 4 )
-                    self.set_int_field(1)
+                    self.set_int_field(1, True)
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5 )
-                    self.set_int_field(1)
+                    self.set_int_field(1, True)
                 self.editor.paramSizer.Add(self.editor.paramWidget)
             elif self.typeDetails[0] == "numeric":
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
-                    self.set_numeric_field(1)
+                    self.set_numeric_field(1, True)
                 elif self.condition.operator == "BETWEEN":
                     self.editor.choiceOperator.SetSelection( 1 )
-                    self.set_numeric_field(2)
+                    self.set_numeric_field(2, True)
                 elif self.condition.operator == "!=":
                     self.editor.choiceOperator.SetSelection( 2 )
-                    self.set_numeric_field(1)
+                    self.set_numeric_field(1, True)
                 elif self.condition.operator == "NOT BETWEEN":
                     self.editor.choiceOperator.SetSelection( 3 )
-                    self.set_numeric_field(2)
+                    self.set_numeric_field(2, True)
                 elif self.condition.operator == "<":
                     self.editor.choiceOperator.SetSelection( 4 )
-                    self.set_numeric_field(1)
+                    self.set_numeric_field(1, True)
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5 )
-                    self.set_numeric_field(1)
+                    self.set_numeric_field(1, True)
                 self.editor.paramSizer.Add(self.editor.paramWidget)
 
         except IndexError, TypeError:
-            pass
-
-        
+            print "failed loading condition"
+        #self.editor.paramSizer.Layout()
+        self.editor.topSizer.Layout()
+        self.whereController.update_wherepanel()
+        print "updated ppanel, loading stuff"
 
     def add_condition(self, evt):
         """This handles the event and sends a message with the object"""
@@ -1341,63 +1498,63 @@ class ConditionEditorControl(object):
             self.editor.topSizer.Layout()
             self.whereController.update_wherepanel()
 
-    def set_date_field(self, num):
+    def set_date_field(self, num, loading = False):
         """This sets up the date fields"""
         self.editor.paramSizer.Clear(True)
         if num == 1:
             self.editor.paramWidget = DateCtrl( parent = self.editor.parent, width = 450, \
                                             update_state = self.whereController.change_made, \
-                                            condition = self.condition)
+                                            condition = self.condition, isLoading = loading)
         else:
             self.editor.paramWidget = DateBetweenValue(self.editor.parent, width = 450, update_state = self.whereController.change_made,\
-                                                       condition = self.condition, typeDetails = self.typeDetails)
+                                                       condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
 
-    def set_datetime_field(self, num):
+    def set_datetime_field(self, num, loading = False):
         """This sets up the date fields"""
         self.editor.paramSizer.Clear(True)
         if num == 1:
             self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
                                             update_state = self.whereController.change_made, \
-                                            condition = self.condition)
+                                            condition = self.condition, isLoading = loading)
         else:
             self.editor.paramWidget = DateBetweenValue(self.editor.parent, width = 450, update_state = self.whereController.change_made,\
-                                                       condition = self.condition, typeDetails = self.typeDetails)
+                                                       condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
 
 
-    def set_time_field(self, num):
+    def set_time_field(self, num, loading = False):
         """This sets up the date fields"""
         self.editor.paramSizer.Clear(True)
         if num == 1:
             self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
                                             update_state = self.whereController.change_made, \
-                                            condition = self.condition)
+                                            condition = self.condition, isLoading = loading)
         else:
             self.editor.paramWidget = DateBetweenValue(self.editor.parent, width = 450, update_state = self.whereController.change_made,\
-                                                       condition = self.condition, typeDetails = self.typeDetails)
+                                                       condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
 
-    def set_year_field(self, num):
+    def set_year_field(self, num, loading = False):
         """This sets up the date fields"""
         self.editor.paramSizer.Clear(True)
         if num == 1:
             self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
                                             update_state = self.whereController.change_made, \
-                                            condition = self.condition)
+                                            condition = self.condition, isLoading = loading)
         else:
             self.editor.paramWidget = DateBetweenValue(self.editor.parent, width = 450, update_state = self.whereController.change_made,\
-                                                       condition = self.condition, typeDetails = self.typeDetails)
+                                                       condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
 
 
-    def set_int_field(self, num):
+    def set_int_field(self, num, loading = False):
         """This sets up the date fields"""
         self.editor.paramSizer.Clear(True)
         if num == 1:
             self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
                                                     update_state = self.whereController.change_made,\
                                                     condition = self.condition, minimum = self.typeDetails[1],\
-                                                    maximum = self.typeDetails[2], longBool = self.typeDetails[3])
+                                                    maximum = self.typeDetails[2], longBool = self.typeDetails[3], isLoading = loading)
         else:
             self.editor.paramWidget = BetweenValue(self.editor.parent, width = 450, update_state = self.whereController.change_made,\
-                                                       condition = self.condition, typeDetails = self.typeDetails)
+                                                       condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
  
             
     def set_value_widgets(self, single = True):
