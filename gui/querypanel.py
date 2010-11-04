@@ -708,6 +708,8 @@ class WhereController(object):
         self.wherePanel.topSizer.Layout()
         self.wherePanel.layout_magic()
         self.query.change_made() #change state to altered
+        for i in self.query.conditions.conditions:
+            print ["add_condition", i.condID, i.nextID, i.prevID, i.nextObj, i.prevObj]
         
     def add_set(self, evt):
         """Add condition set to top level"""
@@ -797,7 +799,8 @@ class WhereController(object):
         self.wherePanel.layout_magic()
         self.query.change_made() #change state to altered
         #get sizer and index
-
+        for i in self.query.conditions.conditions:
+            print ["add_sibling_condition", i.condID, i.nextID, i.prevID, i.nextObj, i.prevObj]
 
     def add_sibling_set(self, sizer, panel, ind, condObj):
         """
@@ -876,7 +879,8 @@ class WhereEditor(wx.Panel):
 	self.choiceLogic.SetSelection( 0 )
 	fgSizer3.Add( self.choiceLogic, 0, wx.ALL, 5 )
 	
-	self.stDesc2 = wx.StaticText( self, wx.ID_ANY, u"of the following conditions:", wx.DefaultPosition, wx.DefaultSize, 0 )
+	self.stDesc2 = wx.StaticText( self, wx.ID_ANY, u"of the following conditions:",\
+                                      wx.DefaultPosition, wx.DefaultSize, 0 )
 	self.stDesc2.Wrap( -1 )
 	fgSizer3.Add( self.stDesc2, 0, wx.ALL, 5 )
 
@@ -924,7 +928,8 @@ class SetEditor(QueryCondEditor, wx.Panel):
     def __init__(self, parent, condId, indentation = 0):
         """Initialise the set"""
         QueryCondEditor.__init__(self, parent, indentation)
-        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL)
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition,\
+                            size = wx.Size( 500,300 ), style = wx.TAB_TRAVERSAL)
         
         self.condId = condId
         self.SetBackgroundColour('#C9C0BB')
@@ -1639,7 +1644,8 @@ class ConditionEditorControl(object):
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
-                                                    condition = self.condition, numerals = self.typeDetails[1], decimalPlaces = self.typeDetails[2])
+                                                    condition = self.condition, numerals = self.typeDetails[1],\
+                                                    decimalPlaces = self.typeDetails[2])
 
 
 

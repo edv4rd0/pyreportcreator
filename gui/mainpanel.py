@@ -5,6 +5,7 @@ import wx.lib.agw.flatnotebook as fnb
 from pubsub import pub
 import selectpanel
 from pyreportcreator.profile import profile
+from pyreportcreator.datahandler import querybuilder
 
 class DataSourceDialog(wx.Dialog):
     """This is the dialog box for users to add new columns to the select from clause"""
@@ -117,6 +118,12 @@ class DocumentEditorController(object):
         pub.subscribe(self.new_document, 'new_query')
         pub.subscribe(self.open_document, 'open_document')
         pub.subscribe(self.fail_close, 'failureclose')
+        pub.subscribe(self.view_sql, 'viewsql')
+
+    def view_sql(self):
+        """Get current doc and then generate sql"""
+        query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
+        print "Generate SQL: ", querybuilder.build_query(query)
 
     def fail_close(self, documentID):
         """This runs in the event of a database related error when opening a query"""

@@ -97,9 +97,9 @@ class ConditionSet(AbstractCondition):
                     item.nextID = item.prevObj.nextID
                     item.nextObj = item.prevObj.nextObj
                     item.nextObj.prevID = item.condID
-                    item.nextObj.prevObj = item    
+                    item.nextObj.prevObj = item
                 item.prevObj.nextID = item.condID
-                item.prevObj.nextOBj = item
+                item.prevObj.nextObj = item
             elif item.prevID == None: #prev == none, means it's now first in sequence
                 self.firstObj.prevID = item.condID
                 self.firstObj.prevObj = item

@@ -47,7 +47,7 @@ def get_condition(condition, engineID):
         if condition.field2[0] == "range": #range of values, for an IN statement
             field2 = condition.field2[1]
         else:
-            field2 = (condition.field2[1], condition.field2[2]) #two values, for a BETWEEN statement
+            field2 = (condition.field2[0], condition.field2[1]) #two values, for a BETWEEN statement
     elif isinstance(condition.field2, profile.Query):
         field2 = build_query(condition.field2)
         if field2 == False:
@@ -70,13 +70,13 @@ def get_condition(condition, engineID):
     elif condition.operator == "NOT IN":
         return ~field1.in_(field2)
     elif condition.operator == "LIKE":
-        return field1.like_("%"+field2)
+        return field1.like("%"+field2)
     elif condition.operator == "IS IN":
         return field1.in_(field2)
     elif condition.operator == "BETWEEN":
-        return field1.between_(field2[0], field2[1])
+        return field1.between(field2[0], field2[1])
     elif condition.operator == "NOT BETWEEN":
-        return ~field1.between_(field2[0], field2[1])
+        return ~field1.between(field2[0], field2[1])
     else:
         raise ConditionException()
 
@@ -94,11 +94,15 @@ def return_where_conditions(condObj, engineID):
     iterate over and concatenate all of the conditions. As such,
     it is started with condObj = query.condition.firstObj.
     """
-
+    try:
+        print condObj.conditions
+    except:
+        print condObj
     if isinstance(condObj, query.ConditionSet): #if the thing is a condition set
         try:
             if condObj.boolVal == 'and':
                 v = return_where_conditions(condObj.firstObj, engineID)
+                
                 return and_(*v), return_where_conditions(condObj.nextObj, engineID) #put brackets around a condition 'set'
             elif condObj.boolVal == 'or':
                 v = return_where_conditions(condObj.firstObj, engineID)
@@ -107,10 +111,16 @@ def return_where_conditions(condObj, engineID):
             try:
                 if condObj.boolVal == 'and':
                     a = return_where_conditions(condObj.firstObj, engineID)
-                    return and_(*a)
+                    try:
+                        return and_(*a)
+                    except TypeError:
+                        return a
                 elif condObj.boolVal == 'or':
                     a = return_where_conditions(condObj.firstObj, engineID)
-                    return or_(*a)
+                    try:
+                        return or_(*a)
+                    except TypeError:
+                        return a
             except ConditionException:
                 raise ClauseException() #We have to fail, because otherwise we will be running an improperly built query
         except ConditionException:

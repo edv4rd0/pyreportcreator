@@ -2,9 +2,7 @@ import wx
 import wx.xrc as xrc
 from wx.lib.wordwrap import wordwrap
 import wizards
-import gui
-import mainpanel
-import sidepanelcontrol
+from pyreportcreator.gui import gui, mainpanel, sidepanelcontrol
 from pyreportcreator.profile import profile
 from pubsub import pub
 import os
@@ -72,7 +70,6 @@ class Application(wx.App):
         # initialize menus and toolbars
         self.menu = gui.MainMenu(self.frame)
         self.toolbar = gui.MainToolBar(self.frame)
-
         #menu events
         self.Bind(wx.EVT_MENU, self.OnClose, self.menu.menuFileQuit)
         ## bind file/profile events
@@ -85,10 +82,18 @@ class Application(wx.App):
         self.Bind(wx.EVT_MENU, self.about_dialog, self.menu.menuHelpAbout)
         # bind toolbar events
         self.Bind(wx.EVT_TOOL, self.add_data_source, id = 1)
+        self.Bind(wx.EVT_TOOL, self.view_sql, id = 4)
         #start app
         self.frame.Maximize()
         self.frame.Show()
         return True
+
+    def view_sql(self, evt):
+        """
+        Just redirects the event with a pubsub message, the mainpanel will pick it
+        up and detect the current document and then deal with the rest
+        """
+        pub.sendMessage('viewsql')
 
     def new_query(self, evt):
         pub.sendMessage('new_query', docType = 'query')
