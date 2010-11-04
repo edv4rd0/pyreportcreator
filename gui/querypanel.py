@@ -112,12 +112,15 @@ class CustomTextCtrl(wx.TextCtrl):
     """
     Just adding a little controller code into the textctrl widget
     """
-    def __init__(self, parent, width, update_state, condition):
+    def __init__(self, parent, width, update_state, condition, isLoading = False):
         wx.TextCtrl.__init__(self, parent, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (width, -1), 0)
         self.condition = condition
         self.update_state = update_state
-        self.condition.field2 = ""
-        self.update_state()
+        if isLoading:
+            self.SetValue(self.condition.field2)
+        else:
+            self.condition.field2 = ""
+            self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
     def assign_value(self, evt):
@@ -151,7 +154,9 @@ class CustomIntCtrl(intctrl.IntCtrl):
         if isLoading:
             self.SetValue(self.condition.field2)
         else:
+            print "not loading int"
             self.condition.field2 = 0
+            print self.condition.field2
             self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
@@ -312,6 +317,7 @@ class BetweenValue(wx.Panel):
     def __init__(self, parent, width, update_state, condition, typeDetails, isLoading = False):
         wx.Panel.__init__(self, parent, -1, size = (width, -1))
         self.condition = condition
+        self.SetBackgroundColour('#C9C0BB')
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.condition = condition
         self.update_state = update_state
@@ -371,6 +377,7 @@ class DateBetweenValue(wx.Panel):
     def __init__(self, parent, width, update_state, condition, typeDetails, isLoading = False):
         wx.Panel.__init__(self, parent, -1, size = (width, -1))
         self.update_state = update_state
+        self.SetBackgroundColour('#C9C0BB')
         self.condition = condition
         self.condition.field2 = ["", ""]
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -613,6 +620,7 @@ class WhereController(object):
     def load_conditions(self):
         """Load condition objects"""
         print "Ok, loading"
+        print self.query.conditions, self.query.conditions.firstID
         if self.query.conditions.boolVal == "or":
             self.whereEditor.choiceLogic.SetSelection( 1 )
         else:
@@ -628,11 +636,13 @@ class WhereController(object):
             view = ConditionEditor(self.wherePanel, self.query.conditions.firstObj.condID)
             self.elementControllers[self.query.conditions.firstObj.condID] = \
                                   ConditionEditorControl(view, self.query.conditions.firstObj, whereController = self)
+            self.elementControllers[self.query.conditions.firstObj.condID].load_condition()#load condition
             self.wherePanel.topSizer.Insert(0, view.topSizer, 0, wx.EXPAND | wx.ALL)
             self.wherePanel.topSizer.Layout()
             self.wherePanel.layout_magic()
             print "loaded a condition"
-        conditionObj = self.query.conditions.firstObj.NextObj
+
+        conditionObj = self.query.conditions.firstObj.nextObj
         index = 1
         while conditionObj:
             #load all top level conditions/sets - the sets will load their children
@@ -640,6 +650,7 @@ class WhereController(object):
                 view = ConditionEditor(self.wherePanel, conditionObj.condID)
                 self.elementControllers[conditionObj.condID] = ConditionEditorControl(view,\
                                                  conditionObj, whereController = self)
+                self.elementControllers[conditionObj.condID].load_condition()#load condition
                 self.wherePanel.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
                 self.wherePanel.topSizer.Layout()
                 self.wherePanel.layout_magic()
@@ -647,11 +658,14 @@ class WhereController(object):
                 view = SetEditor(self.wherePanel, conditionObj.condID)
                 self.elementControllers[conditionObj.condID] = SetEditorControl(view,\
                                                  conditionObj, whereController = self)
+                self.elementControllers[conditionObj.condID].load_set()#load condition
                 self.wherePanel.topSizer.Insert(index, view, 0, wx.EXPAND | wx.ALL)
                 self.wherePanel.topSizer.Layout()
                 self.wherePanel.layout_magic()
+                print "loaded set"
             index += 1
             conditionObj = conditionObj.nextObj
+
 
 
     def update_wherepanel(self):
@@ -768,8 +782,12 @@ class WhereController(object):
         index = panel.topSizer.GetChildren().index(szItem)
             
         index += 1 #insert below element
-        view = ConditionEditor(panel, cond.condID, ind)
-        self.elementControllers[cond.condID] = ConditionEditorControl(view, cond, whereController = self) 
+        view = ConditionEditor(panel, cond.condID, indentation = ind)
+        if ind > 0:
+            top = False
+        else:
+            top = True
+        self.elementControllers[cond.condID] = ConditionEditorControl(view, cond, whereController = self, top = top) 
         panel.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
         panel.Layout()
         self.wherePanel.Layout()
@@ -882,17 +900,15 @@ class QueryCondEditor(object):
     """
     This is the abstract class for the editor for query conditions
     """
-    parent = None
-    indent = None
 
-    def __init__(self, parent, condId, indentation = 0):
+    def __init__(self, parent, ind = 0):
         """
         initialise the editor
 
         The 'indentation' param is for specifying how many spacers to put in.
         """
         self.parent = parent
-        self.indentation = indentation
+        self.indentation = ind
 
 
 class SetEditor(QueryCondEditor, wx.Panel):
@@ -962,11 +978,6 @@ class SetEditor(QueryCondEditor, wx.Panel):
 
 class SetEditorControl(object):
     """This class implements a row of widgets for specifying a condition"""
-
-    condition = None
-    condType = None
-    editor = None
-
     
     def __init__(self, conView, cond, whereController):
         """Setup editor control, bind to events"""
@@ -977,25 +988,47 @@ class SetEditorControl(object):
         self.whereController = whereController
         self.cond = cond
         self.editor.btnAdd.Bind(wx.EVT_BUTTON, self.add_condition)
-        self.editor.btnDel.Bind(wx.EVT_BUTTON, self.remove_set)
-
+        self.editor.btnDel.Bind(wx.EVT_BUTTON, self.remove_set) 
         #boolval for top set of query
         self.editor.choiceLogic.Bind(wx.EVT_CHOICE, self.alter_boolval)
+
+    def load_set(self):
+        """This is code to load a saved set and any child conditions"""
+        if self.cond.boolVal == "or":
+            self.editor.choiceLogic.SetSelection( 1 )
+        else:
+            self.editor.choiceLogic.SetSelection( 0 )
+        if isinstance(self.query.conditions.firstObj, query.Condition):
+            view = ConditionEditor(self.editor, self.query.conditions.firstObj.condID)
+            self.elementControllers[self.query.conditions.firstObj.condID] = \
+                                  ConditionEditorControl(view, self.query.conditions.firstObj, whereController = self)
+            self.elementControllers[self.query.conditions.firstObj.condID].load_condition()#load condition
+            self.editor.topSizer.Insert(0, view.topSizer, 0, wx.EXPAND | wx.ALL)
+            self.editor.topSizer.Layout()
+            self.wherePanel.layout_magic()
+            print "loaded a condition"
+        try:
+            conditionObj = self.query.conditions.firstObj.nextObj
+            index = 1
+            while conditionObj:
+                #load all top level conditions/sets - the sets will load their children
+                view = ConditionEditor(self.editor, conditionObj.condID)
+                self.elementControllers[conditionObj.condID] = ConditionEditorControl(view,\
+                                                 conditionObj, whereController = self)
+                self.elementControllers[conditionObj.condID].load_condition()#load condition
+                self.editor.topSizer.Insert(index, view.topSizer, 0, wx.EXPAND | wx.ALL)
+                self.editor.topSizer.Layout()
+                self.wherePanel.layout_magic()
+                index += 1
+                conditionObj = conditionObj.nextObj
+        except AttributeError:
+            pass
 
     def alter_boolval(self, evt):
         """Change the joining bool of the top set of the query"""
         index = self.editor.choiceLogic.GetCurrentSelection()
         self.cond.boolVal = self.editor.logicChoices[index]
         self.whereController.change_made() #change state to altered
-        
-    def load_condition(self, condition):
-        """
-        This method accepts a condition object and loads it into the widget
-        """
-        self.condition = condition
-        #Now load any elements into appropriate controls
-        
-        #Must check type of column/field1 to determine what widgets to load
 
     def add_condition(self, evt):
         """This handles the event and sends a message with the object"""
@@ -1022,11 +1055,12 @@ class ConditionEditor(QueryCondEditor):
     
     def __init__(self, parent, condId, indentation = 0):
         """Initialise editor interface"""
-        QueryCondEditor.__init__(self, parent, indentation)
+        QueryCondEditor.__init__(self, parent, ind = indentation)
+        self.indentation = indentation
         parent.ClearBackground()
         self.parent = parent
         #We are not going to have hugely deep nested conditions in this version
-        if indentation == 0:
+        if self.indentation == 0:
             self.topSizer = wx.FlexGridSizer( 1, 5, 1, 1 )
         else:
             self.topSizer = wx.FlexGridSizer(1, 4, 1, 1)
@@ -1038,7 +1072,7 @@ class ConditionEditor(QueryCondEditor):
         
         hBoxSizer = wx.BoxSizer( wx.HORIZONTAL )
 
-        if indentation > 0:
+        if self.indentation > 0:
             hBoxSizer.AddSpacer(indentation, -1)
         
 	#The column selector
@@ -1067,19 +1101,18 @@ class ConditionEditor(QueryCondEditor):
 	self.topSizer.Add( self.btnAdd, 1, wx.ALL, 5 )
 
         #We are not going to have hugely deep nested conditions in this version
-        if indentation == 0:
+        if self.indentation == 0:
             self.btnSub = wx.Button( parent, wx.ID_ANY, u"...", wx.DefaultPosition, size = (40, -1))
             self.topSizer.Add( self.btnSub, 1, wx.ALL, 5 )
 
 
 class ConditionEditorControl(object):
     """This class implements a row of widgets for specifying a condition"""
-    id = None
-    condition = None
-    condType = None
-    editor = None
-    lastChoice = None
-    
+ 
+
+    operations = ['contains', 'equals', 'does not contain', 'not equal to']
+    date_opr = ['equals', 'between', 'not equal to', 'not between', 'less than', 'greater than']
+
     def __init__(self, conView, condition, whereController, top = True):
         """Set up editor control, bind to events"""
         
@@ -1092,9 +1125,8 @@ class ConditionEditorControl(object):
         if top == True:
             self.editor.btnSub.Bind(wx.EVT_BUTTON, self.add_sub)
         self.editor.btnColumn.Bind(wx.EVT_BUTTON, self.set_column)
-        self.typeDetails = "string"
-
-
+        self.typeDetails = ("string", None)
+        self.lastChoice = None
         
     def set_column(self, evt):
         """
@@ -1115,42 +1147,48 @@ class ConditionEditorControl(object):
             if self.typeDetails[0] == "int":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
-            
+                self.condition.operator = "=="
                 self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
                                                         update_state = self.whereController.change_made,\
                                                         condition = self.condition, minimum = self.typeDetails[1],\
                                                         maximum = self.typeDetails[2], longBool = self.typeDetails[3])
             elif self.typeDetails[0] == "string":
+                self.condition.operator = "LIKE"
                 self.editor.choiceOperator.AppendItems(self.editor.operations)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
                                                           update_state = self.whereController.change_made, \
                                                           condition = self.condition)
             elif self.typeDetails == "date":
+                self.condition.operator = "=="
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = DateCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
                                                     condition = self.condition)
             elif self.typeDetails == "datetime":
+                self.condition.operator = "=="
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
                                                         update_state = self.whereController.change_made, \
                                                         condition = self.condition)
             elif self.typeDetails == "time":
+                self.condition.operator = "=="
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
                                                     condition = self.condition)
             elif self.typeDetails == "year":
+                self.condition.operator = "=="
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
                                                     update_state = self.whereController.change_made, \
                                                     condition = self.condition)
             elif self.typeDetails[0] == "numeric":
+                self.condition.operator = "=="
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
                 self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
@@ -1170,11 +1208,6 @@ class ConditionEditorControl(object):
         This method accepts a condition object and loads it into the widget
         """
         #Now load any elements into appropriate controls
-        
-        #self.editor.paramSizer.Layout()
-        #self.editor.topSizer.Layout()
-        #self.whereController.update_wherepanel()
-        return
     
         try:
             typeObject = datahandler.DataHandler.get_column_type_object(self.whereController.query.engineID, self.condition.field1[0],\
@@ -1191,8 +1224,9 @@ class ConditionEditorControl(object):
             self.typeDetails = get_mysql_types(typeObject)
             #Must check type of column/field1 to determine what widgets to load
             self.editor.choiceOperator.Clear()
-            if self.typeDetails == "string":
-                self.editor.choiceOperator.AppendItems(self.editor.operations)
+            if self.typeDetails[0] == "string":
+                self.editor.choiceOperator.AppendItems(self.operations)
+                print self.operations
                 if self.condition.operator == "LIKE":
                     self.editor.choiceOperator.SetSelection( 0 )
                 elif self.condition.operator == "==":
@@ -1201,11 +1235,14 @@ class ConditionEditorControl(object):
                     self.editor.choiceOperator.SetSelection( 2 )
                 elif self.condition.operator == "!=":
                     self.editor.choiceOperator.SetSelection( 3 )
+                else:
+                    self.editor.choiceOperator.SetSelection( 0 )
+                    self.condition.operator = "LIKE"
                 self.editor.paramSizer.Clear(True)
                 self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
                                                           update_state = self.whereController.change_made, \
-                                                          condition = self.condition)
-                self.editor.paramWidget.SetValue(self.condition.field2)
+                                                          condition = self.condition, isLoading = True)
+                #self.editor.paramSizer.Layout()
             elif self.typeDetails == "date":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 if self.condition.operator == "==":
@@ -1226,8 +1263,8 @@ class ConditionEditorControl(object):
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5)
                     self.set_date_field(1, True)
-                self.editor.paramSizer.Add(self.editor.paramWidget)
             elif self.typeDetails == "year":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
                     self.set_year_field(1, True)
@@ -1246,7 +1283,6 @@ class ConditionEditorControl(object):
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5 )
                     self.set_year_field(1, True)
-                self.editor.paramSizer.Add(self.editor.paramWidget)
             elif self.typeDetails == "time":
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
@@ -1267,6 +1303,7 @@ class ConditionEditorControl(object):
                     self.editor.choiceOperator.SetSelection( 5 )
                     self.set_time_field(1, True)
             elif self.typeDetails == "datetime":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
                     self.set_datetime_field(1, True)
@@ -1287,6 +1324,7 @@ class ConditionEditorControl(object):
                     self.set_datetime_field(1, True)
                 self.editor.paramSizer.Add(self.editor.paramWidget)
             elif self.typeDetails[0] == "int":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
                     self.set_int_field(1, True)
@@ -1305,8 +1343,8 @@ class ConditionEditorControl(object):
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5 )
                     self.set_int_field(1, True)
-                self.editor.paramSizer.Add(self.editor.paramWidget)
             elif self.typeDetails[0] == "numeric":
+                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 if self.condition.operator == "==":
                     self.editor.choiceOperator.SetSelection( 0 )
                     self.set_numeric_field(1, True)
@@ -1325,10 +1363,10 @@ class ConditionEditorControl(object):
                 elif self.condition.operator == ">":
                     self.editor.choiceOperator.SetSelection( 5 )
                     self.set_numeric_field(1, True)
-                self.editor.paramSizer.Add(self.editor.paramWidget)
+            self.editor.paramSizer.Add(self.editor.paramWidget)
 
-        except IndexError, TypeError:
-            print "failed loading condition"
+        except IndexError:
+            print IndexError,"No column"
         #self.editor.paramSizer.Layout()
         self.editor.topSizer.Layout()
         self.whereController.update_wherepanel()
@@ -1338,6 +1376,7 @@ class ConditionEditorControl(object):
         """This handles the event and sends a message with the object"""
         
         sizer = self.editor.topSizer
+        print "adding simbling with indentation: ", self.editor.indentation
         self.whereController.add_sibling_condition(sizer = sizer, panel = self.editor.parent, ind = self.editor.indentation, condObj = self.condition)
 
     def add_sub(self, evt):

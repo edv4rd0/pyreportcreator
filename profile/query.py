@@ -31,13 +31,14 @@ class Condition(AbstractCondition):
     """
     Defines a condition (a la, column LIKE '%term')
     """
-    field1 = tuple()
-    columnType = ""
-    field2 = tuple()
-    operator = None
+
     
     def __init__(self, condID, parent = None, prev = None):
         AbstractCondition.__init__(self, condID, parent, prev)
+        self.field1 = tuple()
+        self.columnType = ""
+        self.field2 = tuple()
+        self.operator = None
 
     def configure_condition(self, field1, field2, condition):
         """
@@ -72,10 +73,7 @@ class ConditionSet(AbstractCondition):
     """
     Defines a set of conditions. It's a container for related conditions which are seperated using OR, AND and NOT.
     """
-    firstID = None
-    firstObj = None
-    boolVal = None
-    conditions = list()
+
     
 
     def __init__(self, condID, parent = None, prev = None, boolVal = 'and'):
@@ -85,6 +83,8 @@ class ConditionSet(AbstractCondition):
         AbstractCondition.__init__(self, condID, parent, prev)
         self.boolVal = boolVal
         self.conditions = []
+        self.firstID = None
+        self.firstObj = None
     
     def add_child_member(self, item):
         """

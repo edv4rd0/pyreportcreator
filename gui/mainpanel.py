@@ -180,7 +180,7 @@ class DocumentEditorController(object):
                 document = self.profile.load_doc(documentID)
                 print "loaded da fricking doc"
                 print document.documentID, documentID
-                self.documentsOpen[documentID] = selectpanel.QueryController(self.view, document, self.profile)
+                self.documentsOpen[document.documentID] = selectpanel.QueryController(self.view, document, self.profile)
                 print "opening", document.selectItems
 
     def close_tab(self, evt):
