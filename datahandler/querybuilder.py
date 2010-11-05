@@ -74,6 +74,7 @@ def get_condition(condition, engineID):
     elif condition.operator == "IS IN":
         return field1.in_(field2)
     elif condition.operator == "BETWEEN":
+        print field2
         return field1.between(field2[0], field2[1])
     elif condition.operator == "NOT BETWEEN":
         return ~field1.between(field2[0], field2[1])
@@ -102,11 +103,16 @@ def return_where_conditions(condObj, engineID):
         try:
             if condObj.boolVal == 'and':
                 v = return_where_conditions(condObj.firstObj, engineID)
-                
-                return and_(*v), return_where_conditions(condObj.nextObj, engineID) #put brackets around a condition 'set'
+                try:
+                    return and_(*v), return_where_conditions(condObj.nextObj, engineID) #put brackets around a condition 'set'
+                except TypeError:
+                    return v #for solo BETWEEN clauses which raise this before AttributeError
             elif condObj.boolVal == 'or':
                 v = return_where_conditions(condObj.firstObj, engineID)
-                return or_(*v), return_where_conditions(condObj.nextObj, engineID)
+                try:
+                    return or_(*v), return_where_conditions(condObj.nextObj, engineID)
+                except TypeError:
+                    return v #for solo BETWEEN clauses which raise this before AttributeError
         except AttributeError:
             try:
                 if condObj.boolVal == 'and':
@@ -126,6 +132,7 @@ def return_where_conditions(condObj, engineID):
         except ConditionException:
             raise ClauseException()
     else:
+        print [condObj.nextObj, condObj.nextID, condObj, condObj.parentObj]
         try:
             return get_condition(condObj, engineID), return_where_conditions(condObj.nextObj, engineID)
         except AttributeError:

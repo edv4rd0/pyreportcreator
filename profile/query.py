@@ -10,15 +10,14 @@ class AbstractCondition(object):
     """
     Defines an abstract class for condition elements to inherit from
     """
-    condID = None
-    parentObj = None
-    parentID = None
-    prevID = None
-    prevObj = None
-    nextID = None
-    nextObj = None
-
     def __init__(self, condID, parent = None, prev = None):
+        """Initialize object"""
+        self.parentObj = None
+        self.parentID = None
+        self.prevID = None
+        self.prevObj = None
+        self.nextID = None
+        self.nextObj = None
         if parent != None:
             self.parentObj = parent
             self.parentID = self.parentObj.condID
@@ -176,7 +175,7 @@ def find_set(parentID, theset):
                 return j
     return False
         
-def condition_factory(type, condID, parentObj = None, prev = None, boolVal = None):
+def condition_factory(type, condID, parentObj = None, prev = None, boolVal = 'and'):
     """
     Creates conditions and sets
     """

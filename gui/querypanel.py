@@ -322,16 +322,16 @@ class BetweenValue(wx.Panel):
         self.condition = condition
         self.update_state = update_state
         if typeDetails[0] == 'numeric':
-            self.ctrl1 = masked.NumCtrl.__init__(self, parent = parent, id = -1, value = 0, pos = wx.DefaultPosition,\
-                                size = (width, -1), style = 0, validator = wx.DefaultValidator, \
+            self.ctrl1 = masked.NumCtrl(self, id = -1, value = 0, pos = wx.DefaultPosition,\
+                                size = (200, -1), style = 0, validator = wx.DefaultValidator, \
                                 integerWidth = typeDetails[1], fractionWidth = typeDetails[2], allowNone = False, \
                                 allowNegative = True, useParensForNegatives = False, groupDigits = False, groupChar = ',', \
                                 decimalChar = '.', min = None, max = None, limited = False, limitOnFieldChange = False, \
                                 selectOnEntry = True, foregroundColour = "Black", signedForegroundColour = "Red",\
                                 emptyBackgroundColour = "White", validBackgroundColour = "White", \
                                 invalidBackgroundColour = "Yellow", autoSize = True)
-            self.ctrl2 = masked.NumCtrl.__init__(self, parent = parent, id = -1, value = 0, pos = wx.DefaultPosition,\
-                                size = (width, -1), style = 0, validator = wx.DefaultValidator, \
+            self.ctrl2 = masked.NumCtrl(self, id = -1, value = 0, pos = wx.DefaultPosition,\
+                                size = (200, -1), style = 0, validator = wx.DefaultValidator, \
                                 integerWidth = typeDetails[1], fractionWidth = typeDetails[2], allowNone = False, \
                                 allowNegative = True, useParensForNegatives = False, groupDigits = False, groupChar = ',', \
                                 decimalChar = '.', min = None, max = None, limited = False, limitOnFieldChange = False, \
@@ -847,6 +847,8 @@ class WhereController(object):
         self.wherePanel.topSizer.Layout()
         self.wherePanel.layout_magic()
         self.query.change_made() #change state to altered
+        for i in parentSet.conditions:
+            print ["add_sibling_condition", i.condID, i.nextID, i.prevID, i.nextObj, i.prevObj, "parent", i.parentObj, "parentfirstobj", i.parentObj.firstObj]
             
 
 class WhereEditor(wx.Panel):
@@ -1037,7 +1039,10 @@ class SetEditorControl(object):
     def alter_boolval(self, evt):
         """Change the joining bool of the top set of the query"""
         index = self.editor.choiceLogic.GetCurrentSelection()
-        self.cond.boolVal = self.editor.logicChoices[index]
+        if index == 0:
+            self.cond.boolVal = 'and'
+        else:
+            self.cond.boolVal = 'or'
         self.whereController.change_made() #change state to altered
 
     def add_condition(self, evt):
@@ -1593,6 +1598,18 @@ class ConditionEditorControl(object):
                                                        condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
 
 
+    def set_numeric_field(self, num, loading = False):
+        """This sets up the date fields"""
+        self.editor.paramSizer.Clear(True)
+        if num == 1:
+            self.editor.paramWidget = NumericCtrl(parent = self.editor.parent, width = 450,\
+                                                    update_state = self.whereController.change_made,\
+                                                    condition = self.condition, minimum = self.typeDetails[1],\
+                                                    maximum = self.typeDetails[2], longBool = self.typeDetails[3], isLoading = loading)
+        else:
+            self.editor.paramWidget = BetweenValue(self.editor.parent, width = 450, update_state = self.whereController.change_made,\
+                                                       condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
+
     def set_int_field(self, num, loading = False):
         """This sets up the date fields"""
         self.editor.paramSizer.Clear(True)
@@ -1606,48 +1623,6 @@ class ConditionEditorControl(object):
                                                        condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
  
             
-    def set_value_widgets(self, single = True):
-
-            if self.typeDetails[0] == "int":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                
-                self.editor.paramWidget = CustomIntCtrl(parent = self.editor.parent, width = 450,\
-                                                        update_state = self.whereController.change_made,\
-                                                        condition = self.condition, minimum = self.typeDetails[1],\
-                                                        maximum = self.typeDetails[2], longBool = self.typeDetails[3])
-            elif self.typeDetails[0] == "string":
-                self.editor.choiceOperator.AppendItems(self.editor.operations)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = CustomTextCtrl( parent = self.editor.parent, width = 450,\
-                                                          update_state = self.whereController.change_made, \
-                                                          condition = self.condition, chars = self.typeDetails[1])
-
-            elif self.typeDetails == "datetime":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = DateTimeCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition)
-            elif self.typeDetails == "time":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = TimeCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition)
-            elif self.typeDetails == "year":
-                self.editor.paramWidget = YearCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition)
-            elif self.typeDetails[0] == "numeric":
-                self.editor.choiceOperator.AppendItems(self.editor.date_opr)
-                self.editor.choiceOperator.SetSelection( 0 )
-                self.editor.paramWidget = NumericCtrl( parent = self.editor.parent, width = 450, \
-                                                    update_state = self.whereController.change_made, \
-                                                    condition = self.condition, numerals = self.typeDetails[1],\
-                                                    decimalPlaces = self.typeDetails[2])
-
-
 
 class QueryPanel(wx.ScrolledWindow):
     """The panel for a query editor"""
