@@ -106,9 +106,7 @@ class JoinDialog(wx.Dialog):
             self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
             self.leftSelectionsTypes.append(i[1])
             self.leftColumnNames.append(i[1])
-            print str(i[1])
         self.panel.choiceRight.Append(self.rightSelections[0])
-        print self.columnsLeft, self.leftSelectionsTypes
         if amEditing:
             #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
             # self.query.add_join()
@@ -149,7 +147,6 @@ class JoinDialog(wx.Dialog):
             self.panel.choiceRight.Append(self.rightSelections[0])
             self.panel.choiceLeft.SetSelection(0)
             self.panel.choiceRight.SetSelection(0)
-        print self.rightSelections, self.rightSelectionsTypes
         #Bind events
         self.slider.Bind(wx.EVT_SCROLL, self.change_join_type)
         self.panel.choiceLeft.Bind(wx.EVT_CHOICE, self.left_choice)
@@ -179,7 +176,6 @@ class JoinDialog(wx.Dialog):
             choiceType = self.leftSelectionsTypes[choice]
             self.rightSelections = ['Choose a compatible column...']
             for k in self.rightSelectionsTypes[1:]:
-                print str(k[1]), "other thing", str(choiceType)
                 if str(k[1]) == str(choiceType):
                     self.rightSelections.append((k[0], k[2]))
             self.panel.choiceRight.Clear()
