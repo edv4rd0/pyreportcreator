@@ -15,7 +15,7 @@ class JoinPanel( wx.Panel ):
     """The layout code for the JoinPanel for the join dialog"""
     def __init__( self, parent, leftTable, rightTable):
         wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 640,400 ), style = wx.TAB_TRAVERSAL )
-        self.textExplanations = ["Include all records from the " + leftTable + "table but only those from the "\
+        self.textExplain = ["Include all records from the " + leftTable + "table but only those from the "\
                                  + rightTable + "table which match.", "Include only those records which match in both tables.",\
                                  "Include all records from the " + rightTable + "table but only those from the " + leftTable\
                                  + "table which match."]
@@ -53,18 +53,19 @@ class JoinPanel( wx.Panel ):
 
         sizerExplain = wx.BoxSizer( wx.HORIZONTAL )
 
-        self.tcExplain = wx.TextCtrl( self, wx.ID_ANY, self.textExplain[1], wx.DefaultPosition, wx.Size( 600,200 ), style = wx.TR_MULTILINE | wx.TR_READONLY)
+        self.tcExplain = wx.TextCtrl( self, wx.ID_ANY, self.textExplain[1], wx.DefaultPosition, wx.Size( 600,200 ),\
+                                      style = wx.TE_MULTILINE | wx.TE_READONLY)
         sizerExplain.Add( self.tcExplain, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
 
         bSizer3.Add( sizerExplain, 1, wx.ALL|wx.EXPAND, 5 )
 
         self.btnCancel = wx.Button(self, -1, "Cancel", size = (-1, -1))
         self.btnOk = wx.Button(self, -1, "Ok", size = (-1, -1))
-        self.btnOk.Enabled(False)
+        self.btnOk.Disable()
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         buttonSizer.Add(self.btnCancel, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
-        buttonSizer.Add(self.btnOK, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        buttonSizer.Add(self.btnOk, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         bSizer3.Add(buttonSizer, 0, wx.ALIGN_RIGHT)
 
         bSizer1.Add( bSizer3, 1, wx.EXPAND, 5 )
@@ -99,13 +100,15 @@ class JoinDialog(wx.Dialog):
         self.leftSelections = ['Choose a column...']
         self.leftSelectionsTypes = [""]
         self.leftColumnNames = [""]
-        self.rightSelectionsTypes = [""]
+        self.rightSelectionsTypes = [None]
         self.rightSelections = ['Choose a compatible column...']
         for i in self.columnsLeft:
             self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
             self.leftSelectionsTypes.append(i[1])
             self.leftColumnNames.append(i[1])
-        self.panel.choiceRight.AppendItem(self.rightSelections[0])
+            print str(i[1])
+        self.panel.choiceRight.Append(self.rightSelections[0])
+        print self.columnsLeft, self.leftSelectionsTypes
         if amEditing:
             #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
             # self.query.add_join()
@@ -128,7 +131,7 @@ class JoinDialog(wx.Dialog):
                 self.rightSelectionsTypes.append((r[0] + "\t" + r[1].__visit_name__, r[1], r[0]))
                 if r[1] == self.leftSelectionTypes[ind][1]:
                     self.rightSelections.append((r[0] + "\t" + r[1].__visit_name__, r[0]))
-                    self.panel.choiceRight.AppendItem(r[0] + "\t" + r[1].__visit_name__)
+                    self.panel.choiceRight.Append(r[0] + "\t" + r[1].__visit_name__)
                     if r[0] == self.workingJoin['joiningValue']:
                         choiceInd = len(self.rightSelections) - 1
             self.panel.choiceRight.SetSelection(choiceInd)
@@ -141,18 +144,18 @@ class JoinDialog(wx.Dialog):
             for r in self.columnsRight:
                 self.rightSelections.append((r[0] + "\t" + r[1].__visit_name__, r[0]))
                 self.rightSelectionsTypes.append((r[0] + "\t" + r[1].__visit_name__, r[1], r[0]))
-                self.panel.choiceRight.AppendItem(r[0] + "\t" + r[1].__visit_name__)
+                self.panel.choiceRight.Append(r[0] + "\t" + r[1].__visit_name__)
             self.panel.choiceLeft.AppendItems(self.leftSelections)
-            self.panel.choiceRight.AppendItem(self.rightSelections[0])
+            self.panel.choiceRight.Append(self.rightSelections[0])
             self.panel.choiceLeft.SetSelection(0)
             self.panel.choiceRight.SetSelection(0)
-
+        print self.rightSelections, self.rightSelectionsTypes
         #Bind events
         self.slider.Bind(wx.EVT_SCROLL, self.change_join_type)
         self.panel.choiceLeft.Bind(wx.EVT_CHOICE, self.left_choice)
         self.panel.choiceRight.Bind(wx.EVT_CHOICE, self.right_choice)
         self.panel.btnCancel.Bind(wx.EVT_BUTTON, self.cancel)
-        self.panel.btnOk.Bind(wx.EVT_OK, self.confirm)
+        self.panel.btnOk.Bind(wx.EVT_BUTTON, self.confirm)
 
     def left_choice(self, evt):
         """Sets the left column and updates the available columns in the right choice"""
@@ -162,12 +165,12 @@ class JoinDialog(wx.Dialog):
             self.workingJoin['joiningValue'] = None
             self.panel.choiceRight.Clear()
             self.rightSelections = ['Choose a compatible column...']
-            self.panel.choiceRight.AppendItem(self.rightSelections[0])
+            self.panel.choiceRight.Append(self.rightSelections[0])
             for i in self.rightSelectionsTypes:
                 self.rightSelections.append((i[0], i[2]))
-                self.panel.choiceRight.AppendItem(i[0])
+                self.panel.choiceRight.Append(i[0])
             self.panel.rightChoice.SetSelection(0)
-            self.panel.btnOk.Enabled(False)
+            self.panel.btnOk.Enable(False)
         else:
             #set values
             self.workingJoin['tableValue'] = self.leftColumnNames[choice]
@@ -175,28 +178,29 @@ class JoinDialog(wx.Dialog):
             #load up compatible columns into right hand side
             choiceType = self.leftSelectionsTypes[choice]
             self.rightSelections = ['Choose a compatible column...']
-            for k in self.rightSelectionsTypes:
-                if k[1] == choiceType:
+            for k in self.rightSelectionsTypes[1:]:
+                print str(k[1]), "other thing", str(choiceType)
+                if str(k[1]) == str(choiceType):
                     self.rightSelections.append((k[0], k[2]))
             self.panel.choiceRight.Clear()
-            self.panel.choiceRight.AppendItem(self.rightSelections[0])
+            self.panel.choiceRight.Append(self.rightSelections[0])
             for i in self.rightSelections[1:]:
-                self.panel.choiceRight.Appenditem(i[0])
+                self.panel.choiceRight.Append(i[0])
             self.panel.choiceRight.SetSelection(0)
-            self.panel.btnOk.Enabled(False)
+            self.panel.btnOk.Enable(False)
 
     def right_choice(self, evt):
         """Handles CHOICE event from the right hand one"""
         choice = self.panel.choiceRight.GetCurrentSelection()
         if choice == 0:
             self.workingJoin['joiningValue'] = None
-            self.panel.btnOk.Enabled(False)
+            self.panel.btnOk.Enable(False)
         else:
             self.workingJoin['joiningValue'] = self.rightSelections[choice][1]
             if self.panel.choiceLeft.GetCurrentSelection() == 0:
-                self.panel.btnOk.Enabled(False)
+                self.panel.btnOk.Enable(False)
             else:
-                self.panel.btnOk.Enabled(True)
+                self.panel.btnOk.Enable(True)
 
     def change_join_type(self, evt):
         """Activated when the user moves the slider. This changes the join type and updates the view."""
@@ -404,13 +408,16 @@ class SelectController(object):
         #Button events
         self.selectPanel.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_select_item)
         self.selectPanel.btnRemoveItem.Bind(wx.EVT_BUTTON, self.remove_items)
-        self.selectPanel.joinButton(wx.EVT_BUTTON, self.configure_join)
+        self.selectPanel.joinButton.Bind(wx.EVT_BUTTON, self.configure_join)
         #ListCtrl events
         self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_SELECTED, self.activate_remove_btn)
         self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
 
     def configure_join(self, evt):
-        pass
+        dlg = JoinDialog(wx.GetApp().GetTopWindow(), self.query, 'tblproduct', 'tblavailability')
+        dlg.ShowModal()
+        print dlg.wrote
+        dlg.Destroy()
     
     def add_select_item(self, evt):
         """This opens a dialog to allow the user to add a select item"""
