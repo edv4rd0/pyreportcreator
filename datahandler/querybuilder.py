@@ -95,53 +95,32 @@ def return_where_conditions(condObj, engineID):
     iterate over and concatenate all of the conditions. As such,
     it is started with condObj = query.condition.firstObj.
     """
-    try:
-        print condObj.conditions
-    except:
-        print condObj
-    if isinstance(condObj, query.ConditionSet): #if the thing is a condition set
-        try:
-            if condObj.boolVal == 'and':
-                v = return_where_conditions(condObj.firstObj, engineID)
-                try:
-                    return and_(*v), return_where_conditions(condObj.nextObj, engineID) #put brackets around a condition 'set'
-                except TypeError:
-                    return v #for solo BETWEEN clauses which raise this before AttributeError
-            elif condObj.boolVal == 'or':
-                v = return_where_conditions(condObj.firstObj, engineID)
-                try:
-                    return or_(*v), return_where_conditions(condObj.nextObj, engineID)
-                except TypeError:
-                    return v #for solo BETWEEN clauses which raise this before AttributeError
-        except AttributeError:
+    conditions = []
+    itrCond = condObj
+    while itrCond:
+        if isinstance(itrCond, query.ConditionSet): #if the thing is a condition set
             try:
-                if condObj.boolVal == 'and':
-                    a = return_where_conditions(condObj.firstObj, engineID)
-                    try:
-                        return and_(*a)
-                    except TypeError:
-                        return a
-                elif condObj.boolVal == 'or':
-                    a = return_where_conditions(condObj.firstObj, engineID)
-                    try:
-                        return or_(*a)
-                    except TypeError:
-                        return a
-            except ConditionException:
-                raise ClauseException() #We have to fail, because otherwise we will be running an improperly built query
-        except ConditionException:
-            raise ClauseException()
-    else:
-        print [condObj.nextObj, condObj.nextID, condObj, condObj.parentObj]
-        try:
-            return get_condition(condObj, engineID), return_where_conditions(condObj.nextObj, engineID)
-        except AttributeError:
-            try:
-                return get_condition(condObj, engineID)
+                if itrCond.firstObj == None:
+                    pass
+                elif itrCond.firstObj.nextObj == None:
+                    condition.append(return_where_conditions(itrCond.firstObj, engineID))
+                else:
+                    if itrCond.boolVal == 'and':
+                        v = return_where_conditions(itrCond.firstObj, engineID)
+                        conditions.append(and_(*v))
+                    elif itrCond.boolVal == 'or':
+                        v = return_where_conditions(itrCond.firstObj, engineID)
+                        conditions.append(or_(*v))
             except ConditionException:
                 raise ClauseException()
-        except ConditionException:
-            raise ClauseException
+        else:
+            try:
+                conditions.append(get_condition(itrCond, engineID))
+            except ConditionException:
+                raise ClauseException()
+        itrCond = itrCond.nextObj #increment
+    #return result set
+    return conditions
 
 
 def build_query(query):
@@ -174,5 +153,6 @@ def build_query(query):
         SQLAQuery = select(columns)
 
     if len(query.conditions.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
-        SQLAQuery = SQLAQuery.where(return_where_conditions(query.conditions, query.engineID))
+
+        SQLAQuery = SQLAQuery.where(*return_where_conditions(query.conditions, query.engineID))
     return SQLAQuery

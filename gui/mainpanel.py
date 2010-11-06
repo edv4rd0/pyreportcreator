@@ -123,6 +123,8 @@ class DocumentEditorController(object):
     def view_sql(self):
         """Get current doc and then generate sql"""
         query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
+        for i in query.conditions.conditions:
+            print i.field1, i.operator, i.nextObj
         print "Generate SQL: ", querybuilder.build_query(query)
 
     def fail_close(self, documentID):

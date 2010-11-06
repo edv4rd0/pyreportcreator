@@ -84,7 +84,7 @@ class JoinDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, "Configure Join", size=(640,400))
         if tableOne:
             self.panel = JoinPanel(self, tableOne, tableTwo)
-        self.slider = self.panel.sliderJoin
+        
         #data - editing query.joins
         self.query = query
         #get the colums for each table
@@ -105,7 +105,7 @@ class JoinDialog(wx.Dialog):
         for i in self.columnsLeft:
             self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
             self.leftSelectionsTypes.append(i[1])
-            self.leftColumnNames.append(i[1])
+            self.leftColumnNames.append(i[0])
         self.panel.choiceRight.Append(self.rightSelections[0])
         if amEditing:
             #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
@@ -122,6 +122,8 @@ class JoinDialog(wx.Dialog):
                                     'fakeRight': self.query.joins[-1]}
             #because of the whole weird left/right joins we need to instantiate the panel here when editing
             self.panel = JoinPanel(self, tableOne = self.workingJoin['leftTable'], tableTwo = self.workingJoin['joiningTable'])
+            
+            
             ind = self.leftColumnNames.index(self.workingJoin['tableValue'])
             self.choiceLeft.SetSelection(ind)
             #Now, build the right choice options and set selection
@@ -133,7 +135,6 @@ class JoinDialog(wx.Dialog):
                     if r[0] == self.workingJoin['joiningValue']:
                         choiceInd = len(self.rightSelections) - 1
             self.panel.choiceRight.SetSelection(choiceInd)
-                    
         else:
             #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
             # self.query.add_join()
@@ -147,6 +148,9 @@ class JoinDialog(wx.Dialog):
             self.panel.choiceRight.Append(self.rightSelections[0])
             self.panel.choiceLeft.SetSelection(0)
             self.panel.choiceRight.SetSelection(0)
+            
+        self.slider = self.panel.sliderJoin #panel is instantiated in one of two places depending on whther it's a load,
+        #or first time edit
         #Bind events
         self.slider.Bind(wx.EVT_SCROLL, self.change_join_type)
         self.panel.choiceLeft.Bind(wx.EVT_CHOICE, self.left_choice)
@@ -178,6 +182,8 @@ class JoinDialog(wx.Dialog):
             for k in self.rightSelectionsTypes[1:]:
                 if str(k[1]) == str(choiceType):
                     self.rightSelections.append((k[0], k[2]))
+                    print k, k[2]
+            print self.rightSelections
             self.panel.choiceRight.Clear()
             self.panel.choiceRight.Append(self.rightSelections[0])
             for i in self.rightSelections[1:]:
@@ -193,6 +199,7 @@ class JoinDialog(wx.Dialog):
             self.panel.btnOk.Enable(False)
         else:
             self.workingJoin['joiningValue'] = self.rightSelections[choice][1]
+            print self.rightSelections[choice]
             if self.panel.choiceLeft.GetCurrentSelection() == 0:
                 self.panel.btnOk.Enable(False)
             else:
@@ -410,10 +417,19 @@ class SelectController(object):
         self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
 
     def configure_join(self, evt):
-        dlg = JoinDialog(wx.GetApp().GetTopWindow(), self.query, 'tblproduct', 'tblavailability')
-        dlg.ShowModal()
-        print dlg.wrote
-        dlg.Destroy()
+        """Run the join dialog and configure the join"""
+        if self.query.joins == [] and len(self.query.selectItems.keys()) == 2:
+            tables = self.query.selectItems.keys()
+            dlg = JoinDialog(wx.GetApp().GetTopWindow(), self.query, tables[0], tables[1])
+            dlg.ShowModal()
+            print dlg.wrote
+            dlg.Destroy()
+        elif self.query.joins != []:
+            dlg = JoinDialog(wx.GetApp().GetTopWindow(), self.query, None, None, True)
+            dlg.ShowModal()
+            print dlg.wrote
+            dlg.Destroy()
+        print self.query.selectItems.keys(), self.query.joins
     
     def add_select_item(self, evt):
         """This opens a dialog to allow the user to add a select item"""

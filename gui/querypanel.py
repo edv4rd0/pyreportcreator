@@ -1602,8 +1602,8 @@ class ConditionEditorControl(object):
         if num == 1:
             self.editor.paramWidget = NumericCtrl(parent = self.editor.parent, width = 450,\
                                                     update_state = self.whereController.change_made,\
-                                                    condition = self.condition, minimum = self.typeDetails[1],\
-                                                    maximum = self.typeDetails[2], longBool = self.typeDetails[3], isLoading = loading)
+                                                    condition = self.condition, typeDetails = self.typeDetails,\
+                                                  isLoading = loading)
         else:
             self.editor.paramWidget = BetweenValue(self.editor.parent, width = 450, update_state = self.whereController.change_made,\
                                                        condition = self.condition, typeDetails = self.typeDetails, isLoading = loading)
