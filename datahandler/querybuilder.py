@@ -158,20 +158,18 @@ def build_query(query):
             for c in query.selectItems[t]:
                 columns.append(datahandler.DataHandler.get_column_object(t, query.engineID, c[0]))
     try:
-        i = []
-        for j in query.joins:
-            i.append(j)
+        join = query.joins
         #check join type
-        leftTable = datahandler.DataHandler.get_table_object(i[0][1][0], query.engineID)
-        rightTable = datahandler.DataHandler.get_table_object(i[0][2][0], query.engineID)
-        leftCol = datahandler.DataHandler.get_column_object(i[0][1][0], query.engineID, i[0][1][1])
-        rightCol = datahandler.DataHandler.get_column_object(i[0][2][0], query.engineID, i[0][2][1])
-        if i[0] == 'left':
-            if i[3] == '==':
+        leftTable = datahandler.DataHandler.get_table_object(join[1][0], query.engineID)
+        joinTable = datahandler.DataHandler.get_table_object(join[2][0], query.engineID)
+        leftCol = datahandler.DataHandler.get_column_object(join[1][0], query.engineID, join[1][1])
+        rightCol = datahandler.DataHandler.get_column_object(join[2][0], query.engineID, join[2][1])
+        if join[0] == 'left':
+            if join[3] == '==':
                 SQLAQuery = select(columns, from_obj = [leftTable.outerjoin(joinTable, leftCol==rightCol)])
-        elif i[0] == 'inner':
-            if i[3] == '==':
-                SQLAQuery = select(columns, from_obj = [leftTable.join(joinTable, leftCol==rightCol)])                
+        elif join[0] == 'inner':
+            if join[3] == '==':
+                SQLAQuery = select(columns, from_obj = [leftTable.join(joinTable, leftCol==rightCol)])
     except IndexError:
         SQLAQuery = select(columns)
 

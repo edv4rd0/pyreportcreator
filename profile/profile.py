@@ -228,7 +228,7 @@ class Query(Document):
         self.selectItems = dict()
         self.group_by = dict() #dict of {'table': 'column'}
         self.order_by = dict() #dict of {'table': ('column', 'direction')}
-        self.joins = dict() #firstjoin => join info, secondJoin => join info""
+        self.joins = []
         self.conditionIndex = dict() #for code to check for dependent conditions before deleting select items
         
     def change_name(self, newName):
@@ -237,17 +237,20 @@ class Query(Document):
         pub.sendMessage('document.name_change', name = self.name, documentID = self.documentID)
         self.change_made()
 
-    def check_for_relations(self, table, selTables):
+    def check_for_relations(self, table, selTable = None):
         """
         This runs through the tables already added and checks for relations and returns any mapped relations.
         Need to have the type of relation figured out and returned by the DataHandler module I think.
+        Relations are returned as a list of dicts from the datahandler module like so:
+        {'local_table': t2, 'local_columns': i['constrained_columns'], \
+        'foreign_table': t1, 'foreign_columns': i['referred_columns'], 'unique': True|False})
         """
         relations = []
-        if selTables == 1 and len(self.joins.keys()) == 0:
+        if selTable == None:
             for t in self.selectItems.keys(): #the keys are table names
                 result = datahandler.return_relationship_info(self.engineID, t, table)
                 if result != False:
-                    joinInfo[(t, table)]
+                    
                     pub.sendMessage('query.compose_join', join = joinInfo, documentID = self.documentID)
                 else:
                     pub.sendMessage('query.compose_join', documentID = self.documentID)                    
@@ -365,7 +368,7 @@ class Query(Document):
         """Removes condition from query definition"""
         condition.remove_self()
 
-    def add_join(self, leftTable, joiningTable, type, tableValue, joiningValue, opr):
+    def add_join(self, leftTable, joiningTable, type, tableValue, joiningValue, opr, fakeRight = False):
         """
         Add a join to the query definition.
         @params: leftTable is the table name of the left, or main table.
@@ -375,20 +378,24 @@ class Query(Document):
                 joiningValue: the column or value connected with the jooining table
                 opr: the operator ('==', etc)
         """
-        try:
-            if (leftTable, joiningTable) in self.joins.keys():
-                self.joins[(leftTable, joiningTable)] = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr]
-            elif (joiningTable, leftTable) in self.joins.keys():
-                del self.joins[(joiningTable, leftTable)]
-                self.joins[(leftTable, joiningTable)] = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr]
-            else:
-                self.joins[(leftTable, joiningTable)] = (type, (leftTable, tableValue), (joiningTable, joiningValue), opr)
-            pub.sendMessage('query.add_join.success', documentID, self.documentID, join = (leftTable, joiningTable))
-            self.change_made()
-            return True
-        except:
-            pub.sendMessage('query.add_join.failure', documentID = self.documentID) 
-            return False
+        #try:
+        #if (leftTable, joiningTable) in self.joins.keys():
+        if fakeRight:
+            self.joins = [type, (joiningTable, joiningValue), (leftTable, tableValue), opr, fakeRight]
+        else:
+            self.joins = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr, fakeRight]
+        print self.joins
+        #elif (joiningTable, leftTable) in self.joins.keys():
+        #    del self.joins[(joiningTable, leftTable)]
+        #    self.joins[(leftTable, joiningTable)] = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr]
+        #else:
+        #    self.joins[(leftTable, joiningTable)] = (type, (leftTable, tableValue), (joiningTable, joiningValue), opr)
+        #pub.sendMessage('query.add_join.success', documentID, self.documentID, join = (leftTable, joiningTable))
+        self.change_made()
+        return True
+        #except:
+        #    pub.sendMessage('query.add_join.failure', documentID = self.documentID) 
+        #    return False
 
 
     def remove_join(self, table1, table2):
@@ -409,20 +416,6 @@ class Query(Document):
             pub.sendMessage('query.remove_join.failure', documentID = self.documentID) 
             return False
 
-    def describe_join(self):
-        """
-        Describe the join
-        """
-        if self.queryDefinition['joinInfo']:
-            description = "This is a join to " + str(self.queryDefinition['joinInfo'][0]) + " with the condition: " 
-            if self.queryDefinition['joinInfo'][1] == '=':
-                description += str(self.queryDefinition['joinInfo'][2]) + " equal " + str(self.queryDefinition['joinInfo'][3])
-            elif self.queryDefinition['joinInfo'][1] == 'like':
-                description += str(self.queryDefinition['joinInfo'][2]) + " is like "+ str(self.queryDefinition['joinInfo'][3])
-            return description
-        else:
-            return "There is no join."
-        
     def group(self, table, column):
         """Set up GROUP BY on a particular column"""
         try:

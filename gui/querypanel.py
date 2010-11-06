@@ -338,9 +338,7 @@ class BetweenValue(wx.Panel):
                                 selectOnEntry = True, foregroundColour = "Black", signedForegroundColour = "Red",\
                                 emptyBackgroundColour = "White", validBackgroundColour = "White", \
                                 invalidBackgroundColour = "Yellow", autoSize = True)
-            
         elif typeDetails[0] == 'int':
-            
             self.ctrl1 = BaseIntCtrl(self, width = 200, minimum = typeDetails[1], maximum = typeDetails[2], longBool = typeDetails[3])
             self.ctrl2 = BaseIntCtrl(self, width = 200, minimum = typeDetails[1], maximum = typeDetails[2], longBool = typeDetails[3])
         if isLoading:

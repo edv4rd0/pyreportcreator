@@ -50,7 +50,8 @@ class QueryBuilderTest(unittest.TestCase):
         self.queryObjNested.conditions.firstObj.firstObj.nextObj.configure_condition(('tblproduct', 'productID'), 5L, '==')
         self.queryObjNested.conditions.firstObj.nextObj.firstObj.configure_condition(('tblproduct', 'price'), 13, '>')
         self.queryObjNested.conditions.firstObj.nextObj.firstObj.nextObj.configure_condition(('tblproduct', 'productID'), 5L, '==')
-       
+        #join
+        self.queryObjNested.add_join('tblproduct', 'tblavailability', 'inner', 'availability', 'id', '==')
     def test_build_single_table_query(self):
         """
         Test a simple, single table query with no conditions.

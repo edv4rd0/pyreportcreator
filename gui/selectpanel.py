@@ -11,27 +11,225 @@ import querypanel
 import sqlalchemy
 
 
-class PickTable(wx.Dialog):
-    """Table picker"""
-    def __init__(self, parent):
-        """Init"""
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        listBox = wx.ListBox(self, -1)
+class JoinPanel( wx.Panel ):
+    """The layout code for the JoinPanel for the join dialog"""
+    def __init__( self, parent, leftTable, rightTable):
+        wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 640,400 ), style = wx.TAB_TRAVERSAL )
+        self.textExplanations = ["Include all records from the " + leftTable + "table but only those from the "\
+                                 + rightTable + "table which match.", "Include only those records which match in both tables.",\
+                                 "Include all records from the " + rightTable + "table but only those from the " + leftTable\
+                                 + "table which match."]
+        bSizer1 = wx.BoxSizer( wx.VERTICAL )
+		
+        gSizer1 = wx.GridSizer( 2, 2, 0, 0 )
+    	
+        self.m_staticText1 = wx.StaticText( self, wx.ID_ANY, u"Table: " + leftTable, wx.DefaultPosition, (300, -1), 0 )
+        self.m_staticText1.Wrap( -1 )
+        gSizer1.Add( self.m_staticText1, 0, wx.ALL, 5 )
+
+        self.m_staticText3 = wx.StaticText( self, wx.ID_ANY, u"Table: " + rightTable, wx.DefaultPosition, (300, -1), 0 )
+        self.m_staticText3.Wrap( -1 )
+        gSizer1.Add( self.m_staticText3, 0, wx.ALL, 5 )
+		
+        m_choice1Choices = []
+        self.choiceLeft = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.Size( 300,-1 ), m_choice1Choices, 0 )
+        self.choiceLeft.SetSelection( 0 )
+        gSizer1.Add( self.choiceLeft, 0, wx.ALL, 5 )
+
+        m_choice3Choices = []
+        self.choiceRight = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.Size( 300,-1 ), m_choice3Choices, 0 )
+        self.choiceRight.SetSelection( 0 )
+        gSizer1.Add( self.choiceRight, 0, wx.ALL, 5 )
+        bSizer1.Add( gSizer1, 0, wx.EXPAND, 5 )
+
+        bSizer3 = wx.BoxSizer( wx.VERTICAL )
+
+        self.m_staticText4 = wx.StaticText( self, wx.ID_ANY, u"Set the join type...", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText4.Wrap( -1 )
+        bSizer3.Add( self.m_staticText4, 0, wx.ALL, 5 )
+
+        self.sliderJoin = wx.Slider( self, wx.ID_ANY, 1, 0, 2, wx.DefaultPosition, wx.Size( 600,-1 ), wx.SL_HORIZONTAL )
+        bSizer3.Add( self.sliderJoin, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
+
+        sizerExplain = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.tcExplain = wx.TextCtrl( self, wx.ID_ANY, self.textExplain[1], wx.DefaultPosition, wx.Size( 600,200 ), style = wx.TR_MULTILINE | wx.TR_READONLY)
+        sizerExplain.Add( self.tcExplain, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
+
+        bSizer3.Add( sizerExplain, 1, wx.ALL|wx.EXPAND, 5 )
+
+        self.btnCancel = wx.Button(self, -1, "Cancel", size = (-1, -1))
+        self.btnOk = wx.Button(self, -1, "Ok", size = (-1, -1))
+        self.btnOk.Enabled(False)
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        buttonSizer.Add(self.btnCancel, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        buttonSizer.Add(self.btnOK, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        bSizer3.Add(buttonSizer, 0, wx.ALIGN_RIGHT)
+
+        bSizer1.Add( bSizer3, 1, wx.EXPAND, 5 )
+
+        self.SetSizer( bSizer1 )
+        self.Layout()
+
+        def __del__( self ):
+            pass
+
 
 class JoinDialog(wx.Dialog):
     """This allows users to configure a join between two tables"""
-    def __init__(self, parent):
+    def __init__(self, parent, query, tableOne = False, tableTwo = False, amEditing = False):
         """Initialize elements and bind"""
-        wx.Dialog.__init__(self, parent, -1, "Configure Join", size=(600,400))
-        panel = wx.Panel(self, -1)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.tableSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.tcTable1 = wx.TextCtrl(self, -1, "Set left table", size = (-1,-1), style = wx.TE_READONLY)
-        self.tableSizer.Add(self.tcTable1, 1)
-        self.sizer.Add(self,tableSizer, 0)
-        self.SetSizer(self.sizer)
+        wx.Dialog.__init__(self, parent, -1, "Configure Join", size=(640,400))
+        if tableOne:
+            self.panel = JoinPanel(self, tableOne, tableTwo)
+        self.slider = self.panel.sliderJoin
+        #data - editing query.joins
+        self.query = query
+        #get the colums for each table
+        try:
+            self.columnsLeft = datahandler.DataHandler.get_columns(self.query.engineID, tableOne)
+            self.columnsRight = datahandler.DataHandler.get_columns(self.query.engineID, tableTwo)
+        except sqlalchemy.exc.OperationalError:
+            self.wrote = False
+            pub.sendMessage('disconnected', connID = self.query.engineID)
+            self.Close()
+        #load up the data into the view
+        #setup selections and data types for compatibility checks
+        self.leftSelections = ['Choose a column...']
+        self.leftSelectionsTypes = [""]
+        self.leftColumnNames = [""]
+        self.rightSelectionsTypes = [""]
+        self.rightSelections = ['Choose a compatible column...']
+        for i in self.columnsLeft:
+            self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
+            self.leftSelectionsTypes.append(i[1])
+            self.leftColumnNames.append(i[1])
+        self.panel.choiceRight.AppendItem(self.rightSelections[0])
+        if amEditing:
+            #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
+            # self.query.add_join()
+            if self.query.joins[-1]:
+                self.workingJoin = {'leftTable': self.query.joins[2][0], 'joiningTable': self.query.joins[1][0], \
+                                    'type': self.query.joins[0], 'tableValue': self.query.joins[2][1], \
+                                    'joiningValue': self.query.joins[1][1], 'opr': self.query.joins[3], \
+                                    'fakeRight': self.query.joins[-1]}
+            else:
+                self.workingJoin = {'leftTable': self.query.joins[1][0], 'joiningTable': self.query.joins[2][0], \
+                                    'type': self.query.joins[0], 'tableValue': self.query.joins[1][1], \
+                                    'joiningValue': self.query.joins[2][1], 'opr': self.query.joins[3], \
+                                    'fakeRight': self.query.joins[-1]}
+            #because of the whole weird left/right joins we need to instantiate the panel here when editing
+            self.panel = JoinPanel(self, tableOne = self.workingJoin['leftTable'], tableTwo = self.workingJoin['joiningTable'])
+            ind = self.leftColumnNames.index(self.workingJoin['tableValue'])
+            self.choiceLeft.SetSelection(ind)
+            #Now, build the right choice options and set selection
+            for r in self.columnsRight:
+                self.rightSelectionsTypes.append((r[0] + "\t" + r[1].__visit_name__, r[1], r[0]))
+                if r[1] == self.leftSelectionTypes[ind][1]:
+                    self.rightSelections.append((r[0] + "\t" + r[1].__visit_name__, r[0]))
+                    self.panel.choiceRight.AppendItem(r[0] + "\t" + r[1].__visit_name__)
+                    if r[0] == self.workingJoin['joiningValue']:
+                        choiceInd = len(self.rightSelections) - 1
+            self.panel.choiceRight.SetSelection(choiceInd)
+                    
+        else:
+            #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
+            # self.query.add_join()
+            self.workingJoin = {'leftTable': tableOne, 'joiningTable': tableTwo, 'type': 'inner', \
+                                'tableValue': "", 'joiningValue': "", 'opr': '==', 'fakeRight': False}
+            for r in self.columnsRight:
+                self.rightSelections.append((r[0] + "\t" + r[1].__visit_name__, r[0]))
+                self.rightSelectionsTypes.append((r[0] + "\t" + r[1].__visit_name__, r[1], r[0]))
+                self.panel.choiceRight.AppendItem(r[0] + "\t" + r[1].__visit_name__)
+            self.panel.choiceLeft.AppendItems(self.leftSelections)
+            self.panel.choiceRight.AppendItem(self.rightSelections[0])
+            self.panel.choiceLeft.SetSelection(0)
+            self.panel.choiceRight.SetSelection(0)
 
-        
+        #Bind events
+        self.slider.Bind(wx.EVT_SCROLL, self.change_join_type)
+        self.panel.choiceLeft.Bind(wx.EVT_CHOICE, self.left_choice)
+        self.panel.choiceRight.Bind(wx.EVT_CHOICE, self.right_choice)
+        self.panel.btnCancel.Bind(wx.EVT_BUTTON, self.cancel)
+        self.panel.btnOk.Bind(wx.EVT_OK, self.confirm)
+
+    def left_choice(self, evt):
+        """Sets the left column and updates the available columns in the right choice"""
+        choice = self.panel.choiceLeft.GetCurrentSelection()
+        if choice == 0:
+            self.workingJoin['tableValue'] = None
+            self.workingJoin['joiningValue'] = None
+            self.panel.choiceRight.Clear()
+            self.rightSelections = ['Choose a compatible column...']
+            self.panel.choiceRight.AppendItem(self.rightSelections[0])
+            for i in self.rightSelectionsTypes:
+                self.rightSelections.append((i[0], i[2]))
+                self.panel.choiceRight.AppendItem(i[0])
+            self.panel.rightChoice.SetSelection(0)
+            self.panel.btnOk.Enabled(False)
+        else:
+            #set values
+            self.workingJoin['tableValue'] = self.leftColumnNames[choice]
+            self.workingJoin['joiningValue'] = None
+            #load up compatible columns into right hand side
+            choiceType = self.leftSelectionsTypes[choice]
+            self.rightSelections = ['Choose a compatible column...']
+            for k in self.rightSelectionsTypes:
+                if k[1] == choiceType:
+                    self.rightSelections.append((k[0], k[2]))
+            self.panel.choiceRight.Clear()
+            self.panel.choiceRight.AppendItem(self.rightSelections[0])
+            for i in self.rightSelections[1:]:
+                self.panel.choiceRight.Appenditem(i[0])
+            self.panel.choiceRight.SetSelection(0)
+            self.panel.btnOk.Enabled(False)
+
+    def right_choice(self, evt):
+        """Handles CHOICE event from the right hand one"""
+        choice = self.panel.choiceRight.GetCurrentSelection()
+        if choice == 0:
+            self.workingJoin['joiningValue'] = None
+            self.panel.btnOk.Enabled(False)
+        else:
+            self.workingJoin['joiningValue'] = self.rightSelections[choice][1]
+            if self.panel.choiceLeft.GetCurrentSelection() == 0:
+                self.panel.btnOk.Enabled(False)
+            else:
+                self.panel.btnOk.Enabled(True)
+
+    def change_join_type(self, evt):
+        """Activated when the user moves the slider. This changes the join type and updates the view."""
+        value = self.slider.GetValue()
+        if value == 0:
+            self.workingJoin['type'] = 'left'
+            self.workingJoin['fakeRight'] = False
+            self.panel.tcExplain.SetValue(self.panel.textExplain[0])
+        elif value == 1:
+            self.workingJoin['type'] = 'inner'
+            self.workingJoin['fakeRight'] = False
+            self.panel.tcExplain.SetValue(self.panel.textExplain[1])
+        else:
+            self.workingJoin['type'] = 'inner'
+            self.workingJoin['fakeRight'] = True
+            self.panel.tcExplain.SetValue(self.panel.textExplain[2])
+
+    def cancel(self, evt):
+        """Just quit without saving"""
+        self.wrote = False
+        self.Close()
+
+    def confirm(self, evt):
+        """Write stuff to query and close"""
+        self.query.add_join(leftTable = self.workingJoin['leftTable'], joiningTable = self.workingJoin['joiningTable'], \
+                            type = self.workingJoin['type'], tableValue = self.workingJoin['tableValue'], \
+                            joiningValue = self.workingJoin['joiningValue'], opr = self.workingJoin['opr'],\
+                            fakeRight = self.workingJoin['fakeRight'])
+        self.query.change_made()
+        self.wrote = True
+        self.Close()
+    
+
 class DataItemsDialog(wx.Dialog):
     """This is the dialog box for users to add new columns to the select from clause"""
     def __init__(self, parent, id, title):
@@ -206,10 +404,14 @@ class SelectController(object):
         #Button events
         self.selectPanel.btnAddSelect.Bind(wx.EVT_BUTTON, self.add_select_item)
         self.selectPanel.btnRemoveItem.Bind(wx.EVT_BUTTON, self.remove_items)
+        self.selectPanel.joinButton(wx.EVT_BUTTON, self.configure_join)
         #ListCtrl events
         self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_SELECTED, self.activate_remove_btn)
         self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
-        
+
+    def configure_join(self, evt):
+        pass
+    
     def add_select_item(self, evt):
         """This opens a dialog to allow the user to add a select item"""
         dlg = DataItemsDialog(wx.GetApp().GetTopWindow(), -1, "Select Data Items")
@@ -288,7 +490,6 @@ class SelectPanel(wx.Panel):
 
     def __init__( self, parent ):
         """Initialize panel"""
-        
 	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = (-1,-1), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         #select items area
@@ -317,12 +518,13 @@ class SelectPanel(wx.Panel):
         self.SetSizer( self.topSizer )
 	self.Layout()
 
+    #----------------------------------------------------------------------
+
 class QueryToolbook(wx.Toolbook):
     """
     Toolbook class
     """
- 
-    #----------------------------------------------------------------------
+
     def __init__(self, parent, documentID):
         """Constructor"""
         wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=
@@ -348,6 +550,7 @@ class QueryToolbook(wx.Toolbook):
  
         self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGING, self.OnPageChanging)
+        
  
     #----------------------------------------------------------------------
     def OnPageChanged(self, event):

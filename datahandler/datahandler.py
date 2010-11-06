@@ -93,21 +93,30 @@ class DataHandler(object):
         try:
             for i in insp.get_foreign_keys(t1):
                 if i['referred_table'] == t2:
-                    relations.append({'local_table': t1, 'local_columns': i['constrained_columns'], 'foreign_table': t2, 'foreign_columns': i['referred_columns']})
+                    #check if a one to one relationship (unique constraint)
+                    indexes = insp.get_indexes(t2)
+                    oneToOne = False
+                    for index in indexes:
+                        if index['unique'] == True:
+                            if i['referred_columns'] in index['column_names']:
+                                oneToOne = True
+                    #append relationship
+                    relations.append({'local_table': t1, 'local_columns': i['constrained_columns'], \
+                                      'foreign_table': t2, 'foreign_columns': i['referred_columns'], 'unique': oneToOne})
             for i in insp.get_foreign_keys(t2):
                 if i['referred_table'] == t1:
-                    relations.append({'local_table': t2, 'local_columns': i['constrained_columns'], 'foreign_table': t1, 'foreign_columns': i['referred_columns']})
+                    indexes = insp.get_indexes(t1)
+                    oneToOne = False
+                    for index in indexes:
+                        if index['unique'] == True:
+                            if i['referred_columns'] in index['column_names']:
+                                oneToOne = True
+                    relations.append({'local_table': t2, 'local_columns': i['constrained_columns'], \
+                                      'foreign_table': t1, 'foreign_columns': i['referred_columns'], 'unique': oneToOne})
         except exc.NoSuchTableError:
             return False
-        if len(relations) == 1:
-            #check for a one to one relationship (unique constraint on foreign key)
-            indexes = insp.get_indexes(relations[0]['foreign_table'])
-            oneToOne = False
-            for i in indexes:
-                if i['unique'] == True:
-                    if relations[0]['foreign_columns'] in i['column_names']:
-                        oneToOne = True
-            return (relations, oneToOne)
+        if len(relations) > 0:
+            return relations
         else:
             return False
 
