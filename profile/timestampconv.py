@@ -12,14 +12,14 @@ def datetime_conv(var):
 def time_conv(var):
     """Coverting: '22:43 45', With: '%H:%M %S' """
     try:
-        return datetime.strptime(var, "%H:%M %S").time()
+        return datetime.strptime(var, "%H:%M %S")
     except ValueError:
         return False
 
 def date_conv(var):
     """Coverting: '2010 12 14', With: '%Y %m %d' """
     try:
-        return datetime.strptime(var, "%Y %m %d").date()
+        return datetime.strptime(var, "%Y %m %d")
     except ValueError:
         return False
 

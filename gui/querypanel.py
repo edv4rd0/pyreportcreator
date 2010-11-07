@@ -203,9 +203,11 @@ class DateCtrl(CustomMaskedCtrl):
             self.lastValue = str(self.condition.field2.year) + " " + month + " " + day
             self.SetValue(self.lastValue)
         else:
+            print self.condition.field2, "first"
             self.lastValue = "2010 12 31"
-            self.condition.field2 = self.lastValue
+            self.condition.field2 = timestampconv.date_conv(self.lastValue)
             self.update_state()
+            print self.condition.field2, "bb"
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
     def assign_value(self, evt):
@@ -229,7 +231,7 @@ class YearCtrl(CustomMaskedCtrl):
             self.SetValue(self.lastValue)
         else:
             self.lastValue = "2010"
-            self.condition.field2 = self.lastValue
+            self.condition.field2 = timestampconv.year_conv(self.lastValue)
             self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
@@ -261,7 +263,7 @@ class TimeCtrl(CustomMaskedCtrl):
             self.lastValue = hour + ":" + minute + " " + second
             self.SetValue(self.lastValue)
         self.lastValue = "24:00 00"
-        self.condition.field2 = self.lastValue
+        self.condition.field2 = timestampconv.time_conv(self.lastValue)
         self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
@@ -299,7 +301,7 @@ class DateTimeCtrl(CustomMaskedCtrl):
             self.SetValue(self.lastValue)
         else:
             self.lastValue = "2010 12 31 - 24:00 00"
-            self.condition.field2 = self.lastValue
+            self.condition.field2 = timestampconv.datetime_conv(self.lastValue)
             self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
         
@@ -377,12 +379,13 @@ class DateBetweenValue(wx.Panel):
         self.update_state = update_state
         self.SetBackgroundColour('#C9C0BB')
         self.condition = condition
-        self.condition.field2 = ["", ""]
         sizer = wx.BoxSizer(wx.HORIZONTAL)
+        print self.condition.field2, "a"
         if typeDetails == 'date':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "#{4} ## ##", value = "2010 12 01", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "#{4} ## ##", value = "2010 12 31", size = (200, -1))
             if isLoading:
+                print self.condition.field2, self.condition.field2[0].month
                 month1 = str(self.condition.field2[0].month)
                 if len(month1) == 1:
                     month1 = '0' + month1
@@ -400,11 +403,12 @@ class DateBetweenValue(wx.Panel):
                                   str(self.condition.field2[1].year) + " " + month2 + " " + day2]
                 self.ctrl1.SetValue(self.lastCtrlValue[0])
                 self.ctrl2.SetValue(self.lastCtrlValue[1])
-   
             else:
+                print self.condition.field2
                 self.lastCtrlValue = ["2010 12 01", "2010 12 31"]
                 self.condition.field2 = [timestampconv.date_conv("2010 12 01"), timestampconv.date_conv("2010 12 31")]
                 self.update_state()
+                print self.condition.field2
         elif typeDetails == 'time':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "##:## ##", value = "23:00 00", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "##:## ##", value = "24:00 00", size = (200, -1))
