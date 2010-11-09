@@ -82,19 +82,21 @@ class JoinDialog(wx.Dialog):
     def __init__(self, parent, query, tableOne = False, tableTwo = False, amEditing = False):
         """Initialize elements and bind"""
         wx.Dialog.__init__(self, parent, -1, "Configure Join", size=(640,400))
-        if tableOne:
-            self.panel = JoinPanel(self, tableOne, tableTwo)
-        
         #data - editing query.joins
         self.query = query
-        #get the colums for each table
-        try:
-            self.columnsLeft = datahandler.DataHandler.get_columns(self.query.engineID, tableOne)
-            self.columnsRight = datahandler.DataHandler.get_columns(self.query.engineID, tableTwo)
-        except sqlalchemy.exc.OperationalError:
-            self.wrote = False
-            pub.sendMessage('disconnected', connID = self.query.engineID)
-            self.Close()
+        if tableOne:
+            self.panel = JoinPanel(self, tableOne, tableTwo)
+            #get the colums for each table
+            try:
+                self.columnsLeft = datahandler.DataHandler.get_columns(self.query.engineID, tableOne)
+                self.columnsRight = datahandler.DataHandler.get_columns(self.query.engineID, tableTwo)
+            except sqlalchemy.exc.OperationalError:
+                self.wrote = False
+                pub.sendMessage('disconnected', connID = self.query.engineID)
+                self.Close()
+        
+
+
         #load up the data into the view
         #setup selections and data types for compatibility checks
         self.leftSelections = ['Choose a column...']
@@ -102,11 +104,7 @@ class JoinDialog(wx.Dialog):
         self.leftColumnNames = [""]
         self.rightSelectionsTypes = [None]
         self.rightSelections = ['Choose a compatible column...']
-        for i in self.columnsLeft:
-            self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
-            self.leftSelectionsTypes.append(i[1])
-            self.leftColumnNames.append(i[0])
-        self.panel.choiceRight.Append(self.rightSelections[0])
+
         if amEditing:
             #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
             # self.query.add_join()
@@ -120,22 +118,44 @@ class JoinDialog(wx.Dialog):
                                     'type': self.query.joins[0], 'tableValue': self.query.joins[1][1], \
                                     'joiningValue': self.query.joins[2][1], 'opr': self.query.joins[3], \
                                     'fakeRight': self.query.joins[-1]}
+            #get the colums for each table
+            try:
+                self.columnsLeft = datahandler.DataHandler.get_columns(self.query.engineID, self.workingJoin['leftTable'])
+                self.columnsRight = datahandler.DataHandler.get_columns(self.query.engineID, self.workingJoin['joiningTable'])
+            except sqlalchemy.exc.OperationalError:
+                self.wrote = False
+                pub.sendMessage('disconnected', connID = self.query.engineID)
+                self.Close()
+
             #because of the whole weird left/right joins we need to instantiate the panel here when editing
-            self.panel = JoinPanel(self, tableOne = self.workingJoin['leftTable'], tableTwo = self.workingJoin['joiningTable'])
-            
-            
+            self.panel = JoinPanel(self, self.workingJoin['leftTable'], self.workingJoin['joiningTable'])
+            #build select columns
+            for i in self.columnsLeft:
+                self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
+                self.leftSelectionsTypes.append(i[1])
+                self.leftColumnNames.append(i[0])
+
+            self.panel.choiceLeft.AppendItems(self.leftSelections)
             ind = self.leftColumnNames.index(self.workingJoin['tableValue'])
-            self.choiceLeft.SetSelection(ind)
+            self.panel.choiceLeft.SetSelection(ind)
+            
+            self.panel.choiceRight.Append(self.rightSelections[0])
             #Now, build the right choice options and set selection
             for r in self.columnsRight:
                 self.rightSelectionsTypes.append((r[0] + "\t" + r[1].__visit_name__, r[1], r[0]))
-                if r[1] == self.leftSelectionTypes[ind][1]:
+                if str(r[1]) == str(self.leftSelectionsTypes[ind]):
                     self.rightSelections.append((r[0] + "\t" + r[1].__visit_name__, r[0]))
                     self.panel.choiceRight.Append(r[0] + "\t" + r[1].__visit_name__)
                     if r[0] == self.workingJoin['joiningValue']:
                         choiceInd = len(self.rightSelections) - 1
             self.panel.choiceRight.SetSelection(choiceInd)
         else:
+
+            for i in self.columnsLeft:
+                self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
+                self.leftSelectionsTypes.append(i[1])
+                self.leftColumnNames.append(i[0])
+            self.panel.choiceRight.Append(self.rightSelections[0])
             #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
             # self.query.add_join()
             self.workingJoin = {'leftTable': tableOne, 'joiningTable': tableTwo, 'type': 'inner', \
@@ -149,7 +169,7 @@ class JoinDialog(wx.Dialog):
             self.panel.choiceLeft.SetSelection(0)
             self.panel.choiceRight.SetSelection(0)
             
-        self.slider = self.panel.sliderJoin #panel is instantiated in one of two places depending on whther it's a load,
+        self.slider = self.panel.sliderJoin #panel is instantiated in one of two places depending on whether it's a load,
         #or first time edit
         #Bind events
         self.slider.Bind(wx.EVT_SCROLL, self.change_join_type)
@@ -282,10 +302,16 @@ class DataItemsDialog(wx.Dialog):
 class DataItemsDialogController(object):
     """This is the controller for the dialog to add data items"""
     def __init__(self, dlg, query):
-        """Initialise and bind to controls"""
-        
+        """
+        Initialise and bind to controls
+        @params:
+        dlg - the dialog view object
+        query - the query object which we are editing
+        """
+        self.selectedTables = dict()
         self.query = query
         self.selected_index = [] #keep track of selected items
+        self.itemsDisabled = False #boolean for whether the other table items have been disabled or not
         #bind to controls
         self.dlg = dlg
         self.dlg.btnOK.Bind(wx.EVT_BUTTON, self.add_chosen)
@@ -296,9 +322,10 @@ class DataItemsDialogController(object):
         #compile list of current select items to check against
         self.itemsAlreadySelected = []
         for t in self.query.selectItems.keys():
+            self.selectedTables[t] = ["query"]
             for c in self.query.selectItems[t]:
                 self.itemsAlreadySelected.append((t, c[0]))
-             
+
         #load data
         connID = self.query.engineID
         try:
@@ -306,7 +333,7 @@ class DataItemsDialogController(object):
             tables = datahandler.DataHandler.get_tables(connID)
             for tableName in tables:
                 j = self.dlg.treeDataItems.AppendItem(d, tableName)
-                self.dlg.treeDataItems.SetItemPyData(j, "table")
+                self.dlg.treeDataItems.SetItemPyData(j, tableName)
             
                 columns = datahandler.DataHandler.get_columns(connID, tableName)
                 for colTuple in columns:
@@ -334,10 +361,29 @@ class DataItemsDialogController(object):
             pub.sendMessage('disconnected', connID = self.query.engineID)
             self.dlg.Destroy()
 
+        if len(self.selectedTables.keys()) > 1:
+            self.disable_other_tables()
+
     def close(self, evt):
         """Close dialog without adding select items"""
         self.update = False
         self.dlg.Close()
+
+    def disable_other_tables(self):
+        """Enable all treectrl items for other previously disabled and unselected tables"""
+        selectedTables = self.selectedTables.keys()
+        tables = self.dlg.treeDataItems.GetRootItem().GetChildren()
+        for tableToDisable in tables:
+            print "pydata", self.dlg.treeDataItems.GetItemPyData(tableToDisable)
+            if self.dlg.treeDataItems.GetItemPyData(tableToDisable) not in selectedTables:
+                tableToDisable.Collapse()
+                tableToDisable.Enable(False)
+
+    def enable_other_tables(self):
+        """Enable all treectrl items for other previously disabled and unselected tables"""
+        tables = self.dlg.treeDataItems.GetRootItem().GetChildren()
+        for tableToEnable in tables:
+            tableToEnable.Enable(True)
 
     def remove_item(self, evt):
         """Remove the selected item"""
@@ -358,6 +404,12 @@ class DataItemsDialogController(object):
                 self.dlg.treeDataItems.AppendItem(t, colDesc, data = colTuple)
         self.dlg.lbSelect.Delete(index)
         
+        self.selectedTables[colTuple[0]].remove(colTuple[1][0])
+        if len(self.selectedTables[colTuple[0]]) == 0:
+               del self.selectedTables[colTuple[0]]
+               self.enable_other_tables()
+
+        
     def add_item(self, evt):
         """add selected item"""
         item = self.dlg.treeDataItems.GetSelection()
@@ -375,6 +427,13 @@ class DataItemsDialogController(object):
             else:
                 self.selected_index.append((table, column))
                 self.dlg.lbSelect.Append(column[0] + " " + column[1].__visit_name__ + " - " + table, (table, column))
+        #deal with the constraints
+        if data[0] in self.selectedTables.keys():
+            self.selectedTables[data[0]].append(data[1][0])
+        else:
+            self.selectedTables[data[0]] = [data[1][0]]
+        if len(self.selectedTables.keys()) > 1:
+            self.disable_other_tables()
             
 
     def add_chosen(self, evt):
