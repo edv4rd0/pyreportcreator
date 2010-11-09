@@ -150,7 +150,6 @@ class JoinDialog(wx.Dialog):
                         choiceInd = len(self.rightSelections) - 1
             self.panel.choiceRight.SetSelection(choiceInd)
         else:
-
             for i in self.columnsLeft:
                 self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
                 self.leftSelectionsTypes.append(i[1])
@@ -588,7 +587,7 @@ class SelectPanel(wx.Panel):
         #join area
         self.joinSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.joinText = wx.StaticText(self, -1, label = "Configure join...", size = (-1,-1))
-        self.joinButton = wx.Button(self, -1, "Join", size = (-1, -1))
+        self.joinButton = wx.Button(self, -1, "Configure Join", size = (-1, -1))
         self.joinSizer.Add(self.joinText, 1, wx.EXPAND | wx.ALL, 5)
         self.joinSizer.Add(self.joinButton, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
         self.topSizer.Add(self.joinSizer, 0, wx.EXPAND)
@@ -659,6 +658,7 @@ class QueryController(object):
         self.document = document #need to keep tabs on the document we're editing
         self.toolbook = QueryToolbook(self.parentView, self.document.documentID)
         self.page = self.parentView.AddPage(self.toolbook, document.name, select = True)
+        print document.name
         self.profile = profile
 
         #sub controllers

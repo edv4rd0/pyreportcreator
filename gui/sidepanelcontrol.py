@@ -130,6 +130,8 @@ class ProfilePanelControl(object):
         #subscribe to data add events
         pub.subscribe(self.add_document, 'newdocument')
         pub.subscribe(self.remove_query, 'removequery')
+        pub.subscribe(self.name_changed, 'namechanged')
+
 
     def remove_query(self, docId):
         """Remove listing of query document in tree ctrl"""
@@ -137,8 +139,23 @@ class ProfilePanelControl(object):
         while child.IsOk(): 
             # do something with child
             c = self.tree.GetItemData(child).GetData()
+            print c, "query doc data"
             if c == docId:
                 self.tree.Delete(child)
+                print "deleted"
+                break
+            (child, cookie) = self.tree.GetNextChild(self.queryNode, cookie)
+
+    def name_changed(self, docId, name):
+        """Remove listing of query document in tree ctrl"""
+        print "actually changing name"
+        (child, cookie) = self.tree.GetFirstChild(self.queryNode)
+        while child.IsOk(): 
+            # do something with child
+            c = self.tree.GetItemData(child).GetData()
+            if c == docId:
+                self.tree.SetItemText(child, name)
+                break
             (child, cookie) = self.tree.GetNextChild(self.queryNode, cookie)
 
     def right_click(self, evt):

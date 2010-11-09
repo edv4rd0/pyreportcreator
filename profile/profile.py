@@ -125,6 +125,7 @@ class Profile(object):
         """Save a document to the zip file"""
         zf = zipfile.ZipFile(self._fileName, 'a', zipfile.ZIP_DEFLATED)
         print "saving doc", zf.namelist()
+        print document.name, "saving"
         pickled = jsonpickle.encode(document)
         print pickled, "<--pickled"
         info = zipfile.ZipInfo(document.documentID)
@@ -168,7 +169,7 @@ class Profile(object):
                     i.prevObj == j
                     j.nextObj == i
         zf.close()
-        print unpickled.selectItems, "prof:"
+        print unpickled.name, "prof:"
         unpickled.was_saved() #otherwise will appear altered
         #self.documents[unpickled.documentID] = unpickled
         return unpickled
@@ -189,15 +190,15 @@ class Profile(object):
 
 class Document(object):
     """Abstract document class"""
-    __STATE_SAVED = 'saved'
-    __STATE_NEW = 'new'
-    __STATE_ALTERED = 'altered'
-    state = __STATE_NEW
-    name = ""
-    documentID = 0
-    def __init__(self, documentID, name = ""):
+
+    
+    def __init__(self, documentID):
+        self.__STATE_SAVED = 'saved'
+        self.__STATE_NEW = 'new'
+        self.__STATE_ALTERED = 'altered'
         self.documentID = documentID
-        self.name = name
+        #self.name = ""
+        self.state = self.__STATE_NEW
 
     def change_made(self):
         """This allows items like save buttons on toolbars to realise it now needs to be saved"""
@@ -218,9 +219,9 @@ class Query(Document):
     #data definition
     
 
-    def __init__(self, documentID, engineID, name = "Untitled Query"):
+    def __init__(self, documentID, engineID):
         """This initializes the query object from some supplied definitions"""
-        Document.__init__(self, documentID, name)
+        Document.__init__(self, documentID)
         self.conditions = query.ConditionSet(0)
         self.counter = 1 #condition id 0 reserved for top condition set
         self.engineID = engineID
@@ -230,6 +231,7 @@ class Query(Document):
         self.order_by = dict() #dict of {'table': ('column', 'direction')}
         self.joins = []
         self.conditionIndex = dict() #for code to check for dependent conditions before deleting select items
+        self.name = "Untitled Query"
         
     def change_name(self, newName):
         """Change name of query"""
