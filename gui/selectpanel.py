@@ -108,16 +108,31 @@ class JoinDialog(wx.Dialog):
         if amEditing:
             #Below: the join we work on in this dialog. If user confirms changes it gets passed as arguments to
             # self.query.add_join()
+            #because of the whole weird left/right joins we need to instantiate the panel here when editing
+            
             if self.query.joins[-1]:
                 self.workingJoin = {'leftTable': self.query.joins[2][0], 'joiningTable': self.query.joins[1][0], \
                                     'type': self.query.joins[0], 'tableValue': self.query.joins[2][1], \
                                     'joiningValue': self.query.joins[1][1], 'opr': self.query.joins[3], \
                                     'fakeRight': self.query.joins[-1]}
+                
             else:
                 self.workingJoin = {'leftTable': self.query.joins[1][0], 'joiningTable': self.query.joins[2][0], \
                                     'type': self.query.joins[0], 'tableValue': self.query.joins[1][1], \
                                     'joiningValue': self.query.joins[2][1], 'opr': self.query.joins[3], \
                                     'fakeRight': self.query.joins[-1]}
+
+
+            self.panel = JoinPanel(self, self.workingJoin['leftTable'], self.workingJoin['joiningTable'])
+            self.slider = self.panel.sliderJoin
+            if self.query.joins[0] == 'left':
+                if self.query.joins[-1]: #fake right
+                    self.slider.SetValue(2)
+                    self.panel.tcExplain.SetValue(self.panel.textExplain[2])
+                else:
+                    self.slider.SetValue(0)
+                    self.panel.tcExplain.SetValue(self.panel.textExplain[0])
+                    
             #get the colums for each table
             try:
                 self.columnsLeft = datahandler.DataHandler.get_columns(self.query.engineID, self.workingJoin['leftTable'])
@@ -127,8 +142,6 @@ class JoinDialog(wx.Dialog):
                 pub.sendMessage('disconnected', connID = self.query.engineID)
                 self.Close()
 
-            #because of the whole weird left/right joins we need to instantiate the panel here when editing
-            self.panel = JoinPanel(self, self.workingJoin['leftTable'], self.workingJoin['joiningTable'])
             #build select columns
             for i in self.columnsLeft:
                 self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
@@ -167,8 +180,7 @@ class JoinDialog(wx.Dialog):
             self.panel.choiceRight.Append(self.rightSelections[0])
             self.panel.choiceLeft.SetSelection(0)
             self.panel.choiceRight.SetSelection(0)
-            
-        self.slider = self.panel.sliderJoin #panel is instantiated in one of two places depending on whether it's a load,
+            self.slider = self.panel.sliderJoin #panel is instantiated in one of two places depending on whether it's a load,
         #or first time edit
         #Bind events
         self.slider.Bind(wx.EVT_SCROLL, self.change_join_type)
@@ -236,9 +248,12 @@ class JoinDialog(wx.Dialog):
             self.workingJoin['fakeRight'] = False
             self.panel.tcExplain.SetValue(self.panel.textExplain[1])
         else:
-            self.workingJoin['type'] = 'inner'
+            self.workingJoin['type'] = 'left'
             self.workingJoin['fakeRight'] = True
             self.panel.tcExplain.SetValue(self.panel.textExplain[2])
+        if self.panel.choiceLeft.GetCurrentSelection() != 0 and self.panel.choiceRight.GetCurrentSelection() != 0:
+            self.panel.btnOk.Enable(True)
+
 
     def cancel(self, evt):
         """Just quit without saving"""
@@ -475,19 +490,35 @@ class SelectController(object):
         self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
 
     def configure_join(self, evt):
-        """Run the join dialog and configure the join"""
+        """
+        Run the join dialog and configure the join.
+        Update view in main panel to represent join
+        """
         if self.query.joins == [] and len(self.query.selectItems.keys()) == 2:
             tables = self.query.selectItems.keys()
             dlg = JoinDialog(wx.GetApp().GetTopWindow(), self.query, tables[0], tables[1])
             dlg.ShowModal()
-            print dlg.wrote
+            self.update_join_view()
             dlg.Destroy()
         elif self.query.joins != []:
             dlg = JoinDialog(wx.GetApp().GetTopWindow(), self.query, None, None, True)
             dlg.ShowModal()
-            print dlg.wrote
+            self.update_join_view()
             dlg.Destroy()
-        print self.query.selectItems.keys(), self.query.joins
+
+    def update_join_view(self):
+        """Update the small view of the join details in the main select panel"""
+        try:
+            text = "Join between " + self.query.joins[1][0] + " and " + self.query.joins[2][0]
+            if self.query.joins[0] == "inner":
+                text = text + " if the value in " + self.query.joins[1][1] + " equals the value in " + self.query.joins[2][1]
+            else:
+                text = text + ". Include every record from the " + self.query.joins[1][0] + "table and those records in the "\
+                       + self.query.joins[2][0] + " where " + self.query.joins[2][1] + " equals the value in "\
+                       + self.query.joins[1][1]
+            self.selectPanel.joinText.SetValue(text)
+        except IndexError, AttributeError:
+            self.selectPanel.joinText.SetValue("Configure join...")
     
     def add_select_item(self, evt):
         """This opens a dialog to allow the user to add a select item"""
@@ -519,6 +550,8 @@ class SelectController(object):
             for c in self.query.selectItems[t]:
                 items.append((t, c))
         self.update_select_view(items) # <-- add selectItems to view
+        if self.query.joins != []:
+            self.update_join_view()
         
         
     def activate_remove_btn(self, evt):
@@ -586,7 +619,7 @@ class SelectPanel(wx.Panel):
         self.topSizer.Add(self.sizerButtons, 0, wx.ALIGN_RIGHT)
         #join area
         self.joinSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.joinText = wx.StaticText(self, -1, label = "Configure join...", size = (-1,-1))
+        self.joinText = wx.TextCtrl(self, -1, "Configure join...", size = (-1,80), style = wx.TE_READONLY | wx.TE_MULTILINE)
         self.joinButton = wx.Button(self, -1, "Configure Join", size = (-1, -1))
         self.joinSizer.Add(self.joinText, 1, wx.EXPAND | wx.ALL, 5)
         self.joinSizer.Add(self.joinButton, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
