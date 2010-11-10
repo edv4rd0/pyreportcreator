@@ -39,22 +39,25 @@ def get_condition(condition, engineID):
 
     The condition object contains the needed condition definition.
     """
-    field1 = datahandler.DataHandler.get_column_object(condition.field1[0], engineID, condition.field1[1])
-    if isinstance(condition.field2, list):
-        #TODO: add proper error checking code here
-        if condition.field2[0] == "column":
-            field2 = datahandler.DataHandler.get_column_object(condition.field1[1], engineID, condition.field2[2])
-        if condition.field2[0] == "range": #range of values, for an IN statement
-            field2 = condition.field2[1]
+    try:
+        field1 = datahandler.DataHandler.get_column_object(condition.field1[0], engineID, condition.field1[1])
+        if isinstance(condition.field2, list):
+            #TODO: add proper error checking code here
+            if condition.field2[0] == "column":
+                field2 = datahandler.DataHandler.get_column_object(condition.field1[1], engineID, condition.field2[2])
+            if condition.field2[0] == "range": #range of values, for an IN statement
+                field2 = condition.field2[1]
+            else:
+                field2 = (condition.field2[0], condition.field2[1]) #two values, for a BETWEEN statement
+        elif isinstance(condition.field2, profile.Query):
+            field2 = build_query(condition.field2)
+            if field2 == False:
+                raise ConditionException()
+        elif condition.field2 != None:
+            field2 = condition.field2
         else:
-            field2 = (condition.field2[0], condition.field2[1]) #two values, for a BETWEEN statement
-    elif isinstance(condition.field2, profile.Query):
-        field2 = build_query(condition.field2)
-        if field2 == False:
             raise ConditionException()
-    elif condition.field2 != None:
-        field2 = condition.field2
-    else:
+    except IndexError:
         raise ConditionException()
     #compile condition:
     if condition.operator == "==":
@@ -103,7 +106,7 @@ def return_where_conditions(condObj, engineID):
                 if itrCond.firstObj == None:
                     pass
                 elif itrCond.firstObj.nextObj == None:
-                    condition.append(return_where_conditions(itrCond.firstObj, engineID))
+                    conditions.append(return_where_conditions(itrCond.firstObj, engineID))
                 else:
                     if itrCond.boolVal == 'and':
                         v = return_where_conditions(itrCond.firstObj, engineID)

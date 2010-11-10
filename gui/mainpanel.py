@@ -6,6 +6,26 @@ from pubsub import pub
 import selectpanel
 from pyreportcreator.profile import profile
 from pyreportcreator.datahandler import querybuilder
+import sqlalchemy
+
+class ViewSQLDialog(wx.Dialog):
+    """This dialog box displays the SQL for a query"""
+    def __init__(self, parent, sqlaQuery):
+        """Init view and display query"""
+        wx.Dialog.__init__(self, parent, -1, "Display SQL", size=(450,300))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.tcSQL = wx.TextCtrl(self, -1, sqlaQuery, size = (-1,80), style = wx.TE_READONLY | wx.TE_MULTILINE |\
+                                 wx.BORDER_SUNKEN | wx.VSCROLL)
+        self.btnOk = wx.Button(self, -1, "Close")
+        sizer.Add(self.tcSQL, 1, wx.EXPAND| wx.BOTTOM, 5)
+        sizer.Add(self.btnOk, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.SetSizer(sizer)
+
+        self.btnOk.Bind(wx.EVT_BUTTON, self.close)
+
+    def close(self, evt):
+        """Close"""
+        self.Close()
 
 class DataSourceDialog(wx.Dialog):
     """This is the dialog box for users to add new columns to the select from clause"""
@@ -123,7 +143,24 @@ class DocumentEditorController(object):
     def view_sql(self):
         """Get current doc and then generate sql"""
         query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
-        print "Generate SQL: ", querybuilder.build_query(query)
+        try:
+            builtQuery = querybuilder.build_query(query)
+            dlg = ViewSQLDialog(wx.GetApp().GetTopWindow(), builtQuery.__str__())
+            dlg.ShowModal()
+            dlg.Destroy()
+        except querybuilder.ClauseException:
+            dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
+                                   message = "One or more of the query conditions are either empty or missing parameters, please check them and try again.",\
+                                   caption = "Query Building Error", style = wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+        except sqlalchemy.exc.OperationalError:
+            dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
+                                   message = "There was an error connecting to the database. Please make sure it's up and try again.", \
+                                   caption = "Database Connectivity Error", style = wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+            
 
     def fail_close(self, documentID):
         """This runs in the event of a database related error when opening a query"""

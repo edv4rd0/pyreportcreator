@@ -288,13 +288,6 @@ class Query(Document):
             self.change_made()
             pub.sendMessage('query.add_select.success', column = (table, column), documentID = self.documentID)
 
-    def check_for_dependent_join(self, table):
-        """Checks for any dependent joins"""
-        for i in self.joins.keys():
-            if table in i:
-                return True
-        return False
-
     def remove_select_item(self, table, column, force = False):
         """
         Remove a select item from the query.
@@ -303,24 +296,12 @@ class Query(Document):
         """
         try:
             if len(self.selectItems[table]) is 1:
-                if self.check_for_dependent_join(table) is True:
-                    if f == False:
-                        #pub.sendMessage('query.del_select.join_exists_error', tbl = table, col = column, documentID = self.documentID)
-                        raise JoinException()
-                    else:
-                        try:
-                            del self.selectItems[table] #it's the last column, remove table
-                            self.change_made()
-                            pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self.documentID)
-                        except KeyError:
-                            pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self.documentID)
-                else:
-                    try:
-                        del self.selectItems[table]
-                        self.change_made()
-                        pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self.documentID)
-                    except KeyError, IndexError:
-                        pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self.documentID)
+                try:
+                    del self.selectItems[table]
+                    self.change_made()
+                    pub.sendMessage('query.del_select.success', tbl = table, col = column, documentID = self.documentID)
+                except KeyError, IndexError:
+                    pub.sendMessage('query.del_select.not_exist', tbl = table, col = column, documentID = self.documentID)
             elif len(self.selectItems[table]) > 1:
                 try:
                     for i in self.selectItems[table]:

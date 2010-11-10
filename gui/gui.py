@@ -87,7 +87,8 @@ class DataPanel(object):
         
         self.panel.SetSizer(self.sizer)
 
-        self.treeCtrlDataItems = wx.TreeCtrl(self.panel, -1, size = (-1,250), style = wx.TR_HIDE_ROOT | wx.EXPAND | wx.ALL | wx.TR_HAS_BUTTONS)
+        self.treeCtrlDataItems = wx.TreeCtrl(self.panel, -1, size = (-1,270), style = wx.TR_HIDE_ROOT | wx.EXPAND |\
+                                             wx.ALL | wx.TR_HAS_BUTTONS)
         self.root = self.treeCtrlDataItems.AddRoot('root')
         self.sizer.Add(self.treeCtrlDataItems, 1, wx.EXPAND, 0)
         self.sizer.Fit(self.panel)
@@ -110,7 +111,8 @@ class SidePanel(wx.Panel):
         self.dataPanel = DataPanel(self.fpb) #initialize Data Panel
         # profile objects
         self.panelProfile = self.fpb.AddFoldPanel("Profile Objects")
-        self.treeProfileObjects = wx.TreeCtrl(self.panelProfile, 1, size = (-1, 250), style = wx.TR_HIDE_ROOT |  wx.TR_HAS_BUTTONS)
+        self.treeProfileObjects = wx.TreeCtrl(self.panelProfile, 1, size = (-1, 270), style = wx.TR_HIDE_ROOT |\
+                                              wx.TR_HAS_BUTTONS | wx.SUNKEN_BORDER)
         w2 = self.fpb.AddFoldPanelWindow(self.panelProfile, self.treeProfileObjects, wx.EXPAND | fpb.FPB_ALIGN_WIDTH)
         self.sizer.Add(self.fpb, 1, wx.EXPAND)
         #self.sizer.Add(self.panelProfile, 1, wx.EXPAND)

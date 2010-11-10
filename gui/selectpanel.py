@@ -425,23 +425,25 @@ class DataItemsDialogController(object):
 
         
     def add_item(self, evt):
-        """add selected item"""
+        """Add selected item"""
+        root = self.dlg.treeDataItems.GetRootItem()
+        tables = root.GetChildren()
         item = self.dlg.treeDataItems.GetSelection()
+        if item in tables or item == root:
+            return
         data = self.dlg.treeDataItems.GetItemPyData(item)
-        
-        if data != "table":
-            try:
-                table = data[0]
-                column = data[1]
-                self.dlg.treeDataItems.Delete(item)
-            except IndexError, TypeError:
-                return
-            if (table, column) in self.selected_index:
-                return
-            else:
-                self.selected_index.append((table, column))
-                self.dlg.lbSelect.Append(column[0] + " " + column[1].__visit_name__ + " - " + table, (table, column))
-        #deal with the constraints
+        try:
+            table = data[0]
+            column = data[1]
+            self.dlg.treeDataItems.Delete(item)
+        except IndexError, TypeError:
+            return
+        if (table, column) in self.selected_index:
+            return
+        else:
+            self.selected_index.append((table, column))
+            self.dlg.lbSelect.Append(column[0] + " " + column[1].__visit_name__ + " - " + table, (table, column))
+            #deal with the constraints
         if data[0] in self.selectedTables.keys():
             self.selectedTables[data[0]].append(data[1][0])
         else:

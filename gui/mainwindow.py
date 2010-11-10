@@ -205,10 +205,10 @@ class Application(wx.App):
         info.Copyright = "(C) 2010 Edward Williams"
         info.Description = wordwrap("This is a GUI based application for"
                                     "easy query and report creation",
-                                    350, wx.ClientDC(self.frame))
+                                    350, wx.ClientDC(wx.GetApp().GetTopWindow()))
         info.WebSite = ("http://www.twitter.com/edv4rd0", "@edv4rd0 on Twitter")
         info.Developers = ["Edward Williams"]
         info.License = wordwrap("BSD License", 500,
-                            wx.ClientDC(self.frame))
+                            wx.ClientDC(wx.GetApp().GetTopWindow()))
         # Show the wx.AboutBox
         wx.AboutBox(info)
