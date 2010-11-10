@@ -110,10 +110,16 @@ def return_where_conditions(condObj, engineID):
                 else:
                     if itrCond.boolVal == 'and':
                         v = return_where_conditions(itrCond.firstObj, engineID)
-                        conditions.append(and_(*v))
+                        try:
+                            conditions.append(and_(*v))
+                        except TypeError: #length of v is one
+                            conditions.append(v)
                     elif itrCond.boolVal == 'or':
                         v = return_where_conditions(itrCond.firstObj, engineID)
-                        conditions.append(or_(*v))
+                        try:
+                            conditions.append(or_(*v))
+                        except TypeError: #length of v is one
+                            conditions.append(v)
             except ConditionException:
                 raise ClauseException()
         else:
@@ -123,6 +129,8 @@ def return_where_conditions(condObj, engineID):
                 raise ClauseException()
         itrCond = itrCond.nextObj #increment
     #return result set
+    if len(conditions) == 1:
+        return conditions[0] #otherwise it will unpack one value from the list correctly
     return conditions
 
 
@@ -156,6 +164,8 @@ def build_query(query):
         SQLAQuery = select(columns)
 
     if len(query.conditions.conditions) > 0: #check if query has any WHERE conditions, if so, build where clause
-
-        SQLAQuery = SQLAQuery.where(*return_where_conditions(query.conditions, query.engineID))
+        try:
+            SQLAQuery = SQLAQuery.where(*return_where_conditions(query.conditions, query.engineID))
+        except TypeError: #length of conditions returned is one
+            SQLAQuery = SQLAQuery.where(return_where_conditions(query.conditions, query.engineID))
     return SQLAQuery

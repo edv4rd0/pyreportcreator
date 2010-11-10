@@ -250,17 +250,17 @@ class DocumentEditorController(object):
                 #choose name
                 namedlg = wx.TextEntryDialog(parent = wx.GetApp().GetTopWindow(), message = "Please a name for the query",
                                              caption = "Name query", defaultValue = self.documentsOpen[docId].document.name)
-                namedlg.ShowModal()
-                name = namedlg.GetValue()
-                self.documentsOpen[docId].document.name = name
-                namedlg.Destroy()
+                if namedlg.ShowModal() == wx.ID_OK:
+                    name = namedlg.GetValue()
+                    self.documentsOpen[docId].document.name = name
+                    namedlg.Destroy()
                 #save document
                 self.profile.save_doc(self.documentsOpen[docId].document)
                 pub.sendMessage('namechanged', docId = docId, name = name)
                 del self.documentsOpen[docId]
             elif dlg.res == 'dis':
                 del self.documentsOpen[docId]
-                pub.sendMessage('remove_query', docId = docId)
+                pub.sendMessage('removequery', docId = docId)
             dlg.Destroy()
         
     def update_editor_toolbar(self, evt):

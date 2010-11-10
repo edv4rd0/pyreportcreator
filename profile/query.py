@@ -30,7 +30,6 @@ class Condition(AbstractCondition):
     """
     Defines a condition (a la, column LIKE '%term')
     """
-
     
     def __init__(self, condID, parent = None, prev = None):
         AbstractCondition.__init__(self, condID, parent, prev)
