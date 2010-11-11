@@ -139,6 +139,43 @@ class DocumentEditorController(object):
         pub.subscribe(self.open_document, 'open_document')
         pub.subscribe(self.fail_close, 'failureclose')
         pub.subscribe(self.view_sql, 'viewsql')
+        pub.subscribe(self.run_query, 'runquery')
+
+    def run_query(self):
+        """Get current doc and run the query"""
+        query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
+        try:
+            builtQuery = querybuilder.build_query(query)
+        except querybuilder.ClauseException:
+            dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
+                                   message = "One or more of the query conditions are either empty or missing parameters, please check them and try again.",\
+                                   caption = "Query Building Error", style = wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+        except sqlalchemy.exc.OperationalError:
+            dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
+                                   message = "There was an error connecting to the database. Please make sure it's up and try again.", \
+                                   caption = "Database Connectivity Error", style = wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+        #now run the built query
+        try:
+            querybuilder.run_report(builtQuery, query.engineID)
+        except querybuilder.ClauseException:
+            dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
+                                   message = "One or more of the query conditions are either empty or missing parameters, please check them and try again.",\
+                                   caption = "Query Building Error", style = wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+        except sqlalchemy.exc.OperationalError:
+            dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
+                                   message = "There was an error connecting to the database. Please make sure it's up and try again.", \
+                                   caption = "Database Connectivity Error", style = wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+
 
     def view_sql(self):
         """Get current doc and then generate sql"""

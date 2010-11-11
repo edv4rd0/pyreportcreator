@@ -3,6 +3,7 @@ import sqlalchemy
 from sqlalchemy import select
 from sqlalchemy.sql import and_, or_, not_
 from pyreportcreator.profile import profile, query
+import csv
 
 class ClauseException(Exception):
     """Raise this if there is an error in building the where clause"""
@@ -25,11 +26,13 @@ class JoinException(Exception):
         self.var = var
 
 
-def run_report(report):
-    queries = dict()
-    for query in report.queries:
-        queries[query.engineID, query._name] = build_query(query)
-    #will have to sort out some means of reading it line by line into a csv file
+def run_report(query, engineId, fileName = 'test.csv'):
+    """Write query results to CSV file"""
+    csvOut = csv.writer(open(fileName, 'wb'),  dialect='excel')
+    result = datahandler.ConnectionManager.dataConnections[engineId].execute(query)
+    for row in result:
+        csvOut.writerow(row)
+    
 
 def get_condition(condition, engineID):
     """
