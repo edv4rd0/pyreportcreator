@@ -94,7 +94,6 @@ class JoinDialog(wx.Dialog):
                 self.wrote = False
                 pub.sendMessage('disconnected', connID = self.query.engineID)
                 self.Close()
-        
 
 
         #load up the data into the view
@@ -490,6 +489,8 @@ class SelectController(object):
         #ListCtrl events
         self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_SELECTED, self.activate_remove_btn)
         self.selectPanel.selectList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.deactivate_remove_btn)
+        #subscribe events
+        pub.subscribe(self.join_automagic, 'joinadded')
 
     def configure_join(self, evt):
         """
@@ -507,6 +508,12 @@ class SelectController(object):
             dlg.ShowModal()
             self.update_join_view()
             dlg.Destroy()
+
+    def join_automagic(self, documentID):
+        """Just handles the PubSub event, if for this query, it actions it"""
+        print "join automagic"
+        if documentID == self.query.documentID:
+            self.update_join_view()
 
     def update_join_view(self):
         """Update the small view of the join details in the main select panel"""

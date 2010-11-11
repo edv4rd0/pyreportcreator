@@ -239,50 +239,49 @@ class Query(Document):
         pub.sendMessage('document.name_change', name = self.name, documentID = self.documentID)
         self.change_made()
 
-    def check_for_relations(self, table, selTable = None):
+    def check_for_relations(self, table):
         """
         This runs through the tables already added and checks for relations and returns any mapped relations.
-        Need to have the type of relation figured out and returned by the DataHandler module I think.
+        Need to have the type of relation figured out and returned by the DataHandler module.
         Relations are returned as a list of dicts from the datahandler module like so:
         {'local_table': t2, 'local_columns': i['constrained_columns'], \
         'foreign_table': t1, 'foreign_columns': i['referred_columns'], 'unique': True|False})
+        Only two tables allowed per query, so this operates with that assumption.
         """
-        relations = []
-        if selTable == None:
-            for t in self.selectItems.keys(): #the keys are table names
-                result = datahandler.return_relationship_info(self.engineID, t, table)
-                if result != False:
-                    
-                    pub.sendMessage('query.compose_join', join = joinInfo, documentID = self.documentID)
-                else:
-                    pub.sendMessage('query.compose_join', documentID = self.documentID)                    
-        return relations
+        for t in self.selectItems.keys(): #the keys are table names
+            result = datahandler.return_relationship_info(self.engineID, t, table)
+            if result != False:
+                result = result[0] #only taking the first relation
+                for i in result['local_columns']:
+                    leftColType = str(datahandler.DataHandler.get_column_type_object(self.engineID, result['local_table'], i))
+                    for j in result['foreign_columns']:
+                        if str(datahandler.DataHandler.get_column_type_object(self.engineID, result['foreign_table'], i)) \
+                           == leftColType:
+                            relation = ((result['local_table'], i), (result['foreign_table'], j))
+                            return relation
+        return False
 
-    def devise_join(self, localColumns, foreignColumns, localTable, foreignTable):
-        """
-        This tries to devise a join based on the existing relationship
-        """
-        if len(foreign_columns) == 1 and len(localColumns) == 1:
-            foreignType = get_type(self.engineID, foreignTable, foreignColumns[0])
-            localType = get_type(self.engineID, localTable, localColumns[0])        
 
     def add_select_item(self, table, column):
         """
         Add a select item to the query. If from a new, second table, this must
         check how the user wants to join the two tables.
         """
-        print self.documentID, self.selectItems################################################################################
+        print self.documentID, self.selectItems
         if table in self.selectItems.keys():
             if column not in [c[0] for c in self.selectItems[table]]:
                 self.selectItems[table].append([column, 0])
-                #assert(self.selectItems[table].index([column, 0]) == 0)
                 self.change_made()
                 pub.sendMessage('query.add_select.success', column = (table, column), documentID = self.documentID)
             else:
                 pub.sendMessage('query.add_select.duplicate', column = (table, column), documentID = self.documentID)
         else:
             if len(self.selectItems.keys()) == 1:
-                check = self.check_for_relations(table, 1)
+                relation = self.check_for_relations(table)
+                if relation != False:
+                    #add join based on relationship
+                    self.add_join(relation[0][0], relation[1][0], 'inner', relation[0][1], relation[1][1], '==')
+                    pub.sendMessage('joinadded', documentID = self.documentID) 
             self.selectItems[table] = list()
             self.selectItems[table].append([column, 0])
             self.change_made()
@@ -361,43 +360,13 @@ class Query(Document):
                 joiningValue: the column or value connected with the jooining table
                 opr: the operator ('==', etc)
         """
-        #try:
-        #if (leftTable, joiningTable) in self.joins.keys():
         if fakeRight:
             self.joins = [type, (joiningTable, joiningValue), (leftTable, tableValue), opr, fakeRight]
         else:
             self.joins = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr, fakeRight]
         print self.joins
-        #elif (joiningTable, leftTable) in self.joins.keys():
-        #    del self.joins[(joiningTable, leftTable)]
-        #    self.joins[(leftTable, joiningTable)] = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr]
-        #else:
-        #    self.joins[(leftTable, joiningTable)] = (type, (leftTable, tableValue), (joiningTable, joiningValue), opr)
-        #pub.sendMessage('query.add_join.success', documentID, self.documentID, join = (leftTable, joiningTable))
         self.change_made()
         return True
-        #except:
-        #    pub.sendMessage('query.add_join.failure', documentID = self.documentID) 
-        #    return False
-
-
-    def remove_join(self, table1, table2):
-        """
-        Remove a join from the definition
-        """
-        try:
-            if (table1, table2) in self.joins.keys():
-                del self.joins[(table1, table2)]
-                self.change_made()
-            elif (table2, table1) in self.joins.keys():
-                del self.joins[(table2, table1)]
-                self.change_made()
-            else:
-                return True #nothing changed
-            return True
-        except:
-            pub.sendMessage('query.remove_join.failure', documentID = self.documentID) 
-            return False
 
     def group(self, table, column):
         """Set up GROUP BY on a particular column"""

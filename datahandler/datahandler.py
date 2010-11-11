@@ -100,6 +100,8 @@ class DataHandler(object):
                         if index['unique'] == True:
                             if i['referred_columns'] in index['column_names']:
                                 oneToOne = True
+                    for p in i['constrained_columns']:
+                        print p
                     #append relationship
                     relations.append({'local_table': t1, 'local_columns': i['constrained_columns'], \
                                       'foreign_table': t2, 'foreign_columns': i['referred_columns'], 'unique': oneToOne})
@@ -111,12 +113,17 @@ class DataHandler(object):
                         if index['unique'] == True:
                             if i['referred_columns'] in index['column_names']:
                                 oneToOne = True
+                    for p in i['constrained_columns']:
+                        print p
                     relations.append({'local_table': t2, 'local_columns': i['constrained_columns'], \
                                       'foreign_table': t1, 'foreign_columns': i['referred_columns'], 'unique': oneToOne})
         except exc.NoSuchTableError:
             return False
-        if len(relations) > 0:
+        if len(relations) == 1:
             return relations
+        elif len(relations) > 1:
+            for r in relations:
+                print r
         else:
             return False
 
@@ -185,9 +192,11 @@ def return_relationship_info(databaseID, table1, table2):
     database is a sqlalchemy engine object
     
     """
+    print "checking relations"
     try:
         insp = reflection.Inspector.from_engine(ConnectionManager.dataConnections[databaseID])
     except KeyError: #database doesn't exist
+        print "key error"
         return False
     
     return DataHandler.check_relations(insp, table1, table2)
