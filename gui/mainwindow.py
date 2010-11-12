@@ -146,18 +146,19 @@ class Application(wx.App):
         datahandler.DataHandler.metaData = dict()
         datahandler.DataHandler.dataObjects = dict()
         dlg = wx.FileDialog(wx.GetApp().GetTopWindow(), "Open Project", os.getcwd(), "", "*.pro", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            dlg.Destroy()
+        dlg.ShowModal()
+        path = dlg.GetPath()
+        dlg.Destroy()
+        if path != '':
             if path[-4:] != ".pro":
                 self.profile._fileName = path + ".pro"
             else:
                 self.profile._fileName = path
-        self.profilePanelControl.refresh(self.profile)
-        self.profile.open_profile()
-        #load connections
-        datahandler.load_data_connections(self.profile.connections)
-        self.dataPanelControl.refresh(self.profile)
+            self.profilePanelControl.refresh(self.profile)
+            self.profile.open_profile()
+            #load connections
+            datahandler.load_data_connections(self.profile.connections)
+            self.dataPanelControl.refresh(self.profile)
 
                 
     def profile_save(self, evt):

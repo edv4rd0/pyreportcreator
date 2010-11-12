@@ -94,6 +94,8 @@ class Profile(object):
                 self.save_doc(openDocs[i])
         except IOError:
             self._fileName = newFile
+        except shutil.Error:
+            pass
 
             
 
