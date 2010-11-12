@@ -29,9 +29,23 @@ class JoinException(Exception):
 def run_report(query, engineId, fileName = 'test.csv'):
     """Write query results to CSV file"""
     csvOut = csv.writer(open(fileName, 'wb'),  dialect='excel')
-    result = datahandler.ConnectionManager.dataConnections[engineId].execute(query)
+    # execute query
+    offset = 0
+    s = query.limit(1)
+    result = datahandler.ConnectionManager.dataConnections[engineId].execute(s)
     for row in result:
         csvOut.writerow(row)
+    offset = 1
+    while True:
+        s = query.offset(offset).limit(1)
+        result = datahandler.ConnectionManager.dataConnections[engineId].execute(s)
+        if result.rowcount < offset:
+            break
+        for row in result:
+            csvOut.writerow(row)
+        offset += 1
+        
+    
     
 
 def get_condition(condition, engineID):

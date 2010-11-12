@@ -4,6 +4,7 @@ from pyreportcreator.datahandler import datahandler
 import jsonpickle
 import zipfile
 import shutil
+import os
 #OK, query object's condition expression consists of conditions which each specify their parent and left sibling (except the leftmost, which is set to Null
 # ThisAllows multiple nested sets
 
@@ -55,13 +56,31 @@ class Profile(object):
 
     def write_connections_to_file(self):
         """Write the data connections to disk"""
-        zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
-        pickled = jsonpickle.encode(self.connections)
-        info = zipfile.ZipInfo("connections")
-        info.compress_type = zipfile.ZIP_DEFLATED
-        zf.writestr(info, pickled)
-        zf.close()
-        self.connState = "saved"
+        try:
+            zin = zipfile.ZipFile (self._fileName, 'r', zipfile.ZIP_DEFLATED)
+            zout = zipfile.ZipFile (self._fileName+"tmp", 'w', zipfile.ZIP_DEFLATED)
+            for item in zin.infolist():
+                buffer = zin.read(item.filename)
+                if (item.filename != 'connections'):
+                    zout.writestr(item, buffer)
+            pickled = jsonpickle.encode(self.connections)
+            info = zipfile.ZipInfo("connections")
+            info.compress_type = zipfile.ZIP_DEFLATED
+            zout.writestr(info, pickled)
+            zout.close()
+            zin.close()
+            shutil.copyfile(self._fileName+"tmp", self._fileName)
+            os.remove(self._fileName+"tmp")
+            self.connState = "saved"
+        except IOError:
+            zout = zipfile.ZipFile (self._fileName, 'w', zipfile.ZIP_DEFLATED)
+            pickled = jsonpickle.encode(self.connections)
+            info = zipfile.ZipInfo("connections")
+            info.compress_type = zipfile.ZIP_DEFLATED
+            zout.writestr(info, pickled)
+            zout.close()
+            self.connState = "saved"
+
 
     def load_connections(self):
         """Load connections to memory"""
@@ -121,12 +140,20 @@ class Profile(object):
 
     def save_doc(self, document):
         """Save a document to the zip file"""
-        zf = zipfile.ZipFile(self._fileName, 'a', zipfile.ZIP_DEFLATED)
+        zin = zipfile.ZipFile(self._fileName, 'r', zipfile.ZIP_DEFLATED)
+        zout = zipfile.ZipFile(self._fileName+"tmp", 'w', zipfile.ZIP_DEFLATED)
+        for item in zin.infolist():
+            buffer = zin.read(item.filename)
+            if (item.filename != document.documentID):
+                zout.writestr(item, buffer)
         pickled = jsonpickle.encode(document)
         info = zipfile.ZipInfo(document.documentID)
         info.compress_type = zipfile.ZIP_DEFLATED
-        zf.writestr(info, pickled)
-        zf.close()
+        zout.writestr(info, pickled)
+        zout.close()
+        zin.close()
+        shutil.copyfile(self._fileName+"tmp", self._fileName)
+        os.remove(self._fileName+"tmp")
         document.was_saved()
 
     def load_doc_profile(self, docID, zf):

@@ -291,15 +291,16 @@ class DocumentEditorController(object):
             dlg.ShowModal()
             if dlg.res == 'save':
                 #choose name
-                namedlg = wx.TextEntryDialog(parent = wx.GetApp().GetTopWindow(), message = "Please a name for the query",
-                                             caption = "Name query", defaultValue = self.documentsOpen[docId].document.name)
-                if namedlg.ShowModal() == wx.ID_OK:
-                    name = namedlg.GetValue()
-                    self.documentsOpen[docId].document.name = name
-                    namedlg.Destroy()
+                if self.documentsOpen[docId].document.name == "Untitled Query":
+                    namedlg = wx.TextEntryDialog(parent = wx.GetApp().GetTopWindow(), message = "Please enter a name for the query",
+                                                 caption = "Name query", defaultValue = self.documentsOpen[docId].document.name)
+                    if namedlg.ShowModal() == wx.ID_OK:
+                        name = namedlg.GetValue()
+                        self.documentsOpen[docId].document.name = name
+                        namedlg.Destroy()
+                        pub.sendMessage('namechanged', docId = docId, name = name)
                 #save document
                 self.profile.save_doc(self.documentsOpen[docId].document)
-                pub.sendMessage('namechanged', docId = docId, name = name)
                 del self.documentsOpen[docId]
             elif dlg.res == 'dis':
                 del self.documentsOpen[docId]
