@@ -244,7 +244,6 @@ class DocumentEditorController(object):
                     self.profile._fileName = path + ".pro"
                 else:
                     self.profile._fileName = path
-                print self.profile._fileName
             else:
                 return
                 
@@ -255,9 +254,7 @@ class DocumentEditorController(object):
         except AttributeError:
             return #the user has clicked cancel
         document = self.profile.new_document(docType, connID)
-        print "justMade", document.documentID, document.selectItems, "just made"
         #create document
-        print document.documentID
         self.documentsOpen[document.documentID] = selectpanel.QueryController(self.view, document, self.profile)
         
         #let things like the Profile panel know and update themselves (view, not model related)
@@ -265,20 +262,13 @@ class DocumentEditorController(object):
 
     def open_document(self, docType, documentID):
         """Add an already existing document to the editor"""
-        print "opening1", docType, documentID
-        print self.documentsOpen, "open"
         if docType == 'query':
             try:
-                print "try:"
                 self.view.SetSelection(self.documentsOpen[documentID].page)
-                print "it worked"
             except KeyError:
-                print "jdsjdsjdsjkdsdjksjkds"
                 document = self.profile.load_doc(documentID)
-                print "loaded da fricking doc"
                 print document.documentID, documentID
                 self.documentsOpen[document.documentID] = selectpanel.QueryController(self.view, document, self.profile)
-                print "opening", document.selectItems
 
     def close_tab(self, evt):
         """For the tab menu"""

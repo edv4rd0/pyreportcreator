@@ -33,7 +33,6 @@ class Profile(object):
     def conn_not_exist(self, dbType, dbName, serverAddress, serverPort = None, dbUser = None, dbPassword = None):
         """Check whether a database connection exists or not"""
         for i in self.connections:
-            print self.connections[i], [dbType, serverAddress, dbName, dbUser, dbPassword, serverPort]
             if self.connections[i] == [dbType, serverAddress, dbName, dbUser, dbPassword, serverPort]:
                 return i
         return False
@@ -58,7 +57,6 @@ class Profile(object):
         """Write the data connections to disk"""
         zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
         pickled = jsonpickle.encode(self.connections)
-        print pickled, "<--pickled"
         info = zipfile.ZipInfo("connections")
         info.compress_type = zipfile.ZIP_DEFLATED
         zf.writestr(info, pickled)
@@ -78,13 +76,11 @@ class Profile(object):
         self._fileName = fileName
         zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
         for i in self.documents:
-            print "saving items"
             pickled = jsonpickle.encode(self.documents[i])
             self.documents[i].was_saved()
             zf.writestr(str(i), pickled)
         pickled = jsonpickle.encode(self.connections)
         zf.writestr('connections', pickled)
-        print "saved profile"
         zf.close()
 
     def copy_and_save(self, newFile, openDocs):
@@ -105,13 +101,11 @@ class Profile(object):
         """Opens file and completely erases old objects"""
         zf = zipfile.ZipFile(self._fileName, 'r', zipfile.ZIP_DEFLATED)
         items = zf.namelist()
-        print items
         for i in items:
             if str(i) != 'connections':
                 doc = self.load_doc_profile(str(i), zf) 
                 if isinstance(doc, Query):
                     docType = 'query'
-                    print "opening query"
                 else:
                     docType = 'report'
                 self.document_index[doc.documentID] = docType
@@ -121,17 +115,12 @@ class Profile(object):
             self.connections = jsonpickle.decode(zf.open("connections").read())
         except:
             self.connections = dict()
-            print "failed to load connections"
-        print "opened profile" 
         zf.close()
 
     def save_doc(self, document):
         """Save a document to the zip file"""
         zf = zipfile.ZipFile(self._fileName, 'a', zipfile.ZIP_DEFLATED)
-        print "saving doc", zf.namelist()
-        print document.name, "saving"
         pickled = jsonpickle.encode(document)
-        print pickled, "<--pickled"
         info = zipfile.ZipInfo(document.documentID)
         info.compress_type = zipfile.ZIP_DEFLATED
         zf.writestr(info, pickled)
@@ -158,9 +147,7 @@ class Profile(object):
     def load_doc(self, docID):
         """load a document from the zip file"""
         zf = zipfile.ZipFile(self._fileName, 'r')
-        print "loading", zf.namelist()
         unpickled = jsonpickle.decode(zf.open(zf.getinfo(docID)).read())
-        print "unpickled", zf.namelist()
         for i in unpickled.conditions.conditions:
             if i.condID == unpickled.conditions.firstID:
                 unpickled.conditions.firstObj = i
@@ -173,7 +160,6 @@ class Profile(object):
                     i.prevObj == j
                     j.nextObj == i
         zf.close()
-        print unpickled.name, "prof:"
         unpickled.was_saved() #otherwise will appear altered
         #self.documents[unpickled.documentID] = unpickled
         return unpickled
@@ -212,7 +198,6 @@ class Document(object):
     def was_saved(self):
         """This allows items like toolbars to register that it doesn't need saving"""
         self.state = self.__STATE_SAVED
-        print self.state
         pub.sendMessage('document.state.saved', documentID = self.documentID)
 
 #-----------------------------------------------------------------#
@@ -271,7 +256,6 @@ class Query(Document):
         Add a select item to the query. If from a new, second table, this must
         check how the user wants to join the two tables.
         """
-        print self.documentID, self.selectItems
         if table in self.selectItems.keys():
             if column not in [c[0] for c in self.selectItems[table]]:
                 self.selectItems[table].append([column, 0])
@@ -368,7 +352,6 @@ class Query(Document):
             self.joins = [type, (joiningTable, joiningValue), (leftTable, tableValue), opr, fakeRight]
         else:
             self.joins = [type, (leftTable, tableValue), (joiningTable, joiningValue), opr, fakeRight]
-        print self.joins
         self.change_made()
         return True
 

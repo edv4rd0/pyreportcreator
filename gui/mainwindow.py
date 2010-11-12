@@ -171,7 +171,6 @@ class Application(wx.App):
                     self.profile._fileName = path + ".pro"
                 else:
                     self.profile._fileName = path
-                print self.profile._fileName
             else:
                 return
         self.save_all_docs()
@@ -207,7 +206,14 @@ class Application(wx.App):
                     self.profile._fileName = path + ".pro"
                 else:
                     self.profile._fileName = path
-                print self.profile._fileName
+                try:
+                    self.profilePanelControl.refresh(self.profile)
+                    self.profile.open_profile()
+                    #load connections
+                    datahandler.load_data_connections(self.profile.connections)
+                    self.dataPanelControl.refresh(self.profile)
+                except IOError:
+                    pass
             else:
                 return
         wizards.WizardNewDataSource(self.frame, self.profile)

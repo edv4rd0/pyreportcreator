@@ -11,8 +11,6 @@ def establish_sqlite_connection(address, profile):
     if sys.platform != "win32":
         try:
             i = string.rindex(address, "/")
-            print i
-            print "\n" 
         except ValueError:
             print ValueError
     else:

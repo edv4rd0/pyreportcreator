@@ -23,9 +23,11 @@ class TitlePage(wiz.PyWizardPage):
         
         # choices (radio buttons)
         self.rbDBChoice_mysql = wx.RadioButton(self, -1, 'MySQL - Connect to a MySQL database', (10, 10), style=wx.RB_GROUP)
-        self.rbDBChoice_postgresql = wx.RadioButton(self, -1, 'PostgreSQL - Connect to a PostgreSQL database', (10, 10))
-        self.rbDBChoice_sqlite = wx.RadioButton(self, -1, 'SQLite 3 - Connect to an SQLite 3 database', (10, 10))
-
+        self.rbDBChoice_postgresql = wx.RadioButton(self, -1, 'PostgreSQL - Connect to a PostgreSQL database\n [Not implemented]', (10, 10))
+        self.rbDBChoice_sqlite = wx.RadioButton(self, -1, 'SQLite 3 - Connect to an SQLite 3 database\n [Not implemented]', (10, 10))
+        # disable the last two options as they have not been tested
+        self.rbDBChoice_postgresql.Enable(False)
+        self.rbDBChoice_sqlite.Enable(False)
         # set sizer
         self.sizer.Add(self.textTitle, 0, wx.ALIGN_CENTRE | wx.ALL, 5)
         self.sizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.ALL, 5)
@@ -212,7 +214,6 @@ class DetailsPage(wiz.PyWizardPage):
         self.prev = prev
 
     def GetNext(self):
-        print "YO"
         if self.IsCompleted():
             if self.control.OnDetailsPageDone():
                 self.next = self.control.finalPage
@@ -348,10 +349,7 @@ class WizardNewDataSource(object):
         self.detailsPage.tcDatabaseName.Bind(wx.EVT_TEXT, self.OnChangeValue)
         self.sqlitePage.tcFilePath.Bind(wx.EVT_TEXT, self.OnSQLiteValueChange)
         
-        if wizard.RunWizard(self.titlePage):
-            print "success"
-        else:
-            print "cancelled"
+        wizard.RunWizard(self.titlePage)
 
     def OnPageChanged(self, evt):
         """When the next button is clicked on the first page, the next button get's disabled."""

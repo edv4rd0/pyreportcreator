@@ -58,21 +58,15 @@ class ConnectionManager(object):
             
         #create engines
         if databaseType == u'mysql':
-            cls.dataConnections[dbID] = (create_engine(connectionString, pool_recycle=3600, echo = True)) #create new engine
+            cls.dataConnections[dbID] = (create_engine(connectionString, pool_recycle=3600, echo = False)) #create new engine
         else:
-            cls.dataConnections[dbID] = (create_engine(connectionString, echo = True)) #create new engine
-        #TODO: turn off 'echo = True' before shipping
+            cls.dataConnections[dbID] = (create_engine(connectionString, echo = False)) #create new engine
         try:
             testConnection = cls.dataConnections[dbID].connect()
             testConnection.close()
         except sqlalchemy.exc.OperationalError:
             return False
-        print "Success" #TODO: remove this
         return dbID
-       # except:
-        #    del cls.dataConnections[dbID]
-         #   print "Failure" #TODO Remove this
-          #  return False
 
 
 class DataHandler(object):
@@ -90,7 +84,6 @@ class DataHandler(object):
             return True
         except:
             return False
-            #TODO: Actually raise errors (will have to update calling code)
 
     @classmethod
     def check_relations(cls, insp, t1, t2):
@@ -111,8 +104,6 @@ class DataHandler(object):
                         if index['unique'] == True:
                             if i['referred_columns'] in index['column_names']:
                                 oneToOne = True
-                    for p in i['constrained_columns']:
-                        print p
                     #append relationship
                     relations.append({'local_table': t1, 'local_columns': i['constrained_columns'], \
                                       'foreign_table': t2, 'foreign_columns': i['referred_columns'], 'unique': oneToOne})
@@ -124,8 +115,6 @@ class DataHandler(object):
                         if index['unique'] == True:
                             if i['referred_columns'] in index['column_names']:
                                 oneToOne = True
-                    for p in i['constrained_columns']:
-                        print p
                     relations.append({'local_table': t2, 'local_columns': i['constrained_columns'], \
                                       'foreign_table': t1, 'foreign_columns': i['referred_columns'], 'unique': oneToOne})
         except exc.NoSuchTableError:
@@ -133,8 +122,7 @@ class DataHandler(object):
         if len(relations) == 1:
             return relations
         elif len(relations) > 1:
-            for r in relations:
-                print r
+            return relations
         else:
             return False
 
@@ -203,7 +191,6 @@ def return_relationship_info(databaseID, table1, table2):
     database is a sqlalchemy engine object
     
     """
-    print "checking relations"
     try:
         insp = reflection.Inspector.from_engine(ConnectionManager.dataConnections[databaseID])
     except KeyError: #database doesn't exist

@@ -41,15 +41,12 @@ class DataPanelControl(object):
     def db_disconnected(self, connID):
         """Update view to reflect the fact that one data connection is offline"""
         root = self.tree.GetRootItem()
-        print "disconnected", connID
         (child, cookie) = self.tree.GetFirstChild(root)
         while child.IsOk():
-            print self.tree.GetData(child).GetData()[0]
             if self.tree.GetData(child).GetData()[0] == connID:
                 self.tree.SetPyData(child, (connID, "disconnected"))
                 text = self.tree.GetItemText(child)
                 self.tree.SetItemText(child, "[off] " + text)
-                print "changed text"
                 break
             (child, cookie) = self.tree.GetNextChild(root, cookie)
 
@@ -103,7 +100,6 @@ class DataPanelControl(object):
                     colDesc = k[0] + "[PK]"
                 else:
                     colDesc = k[0]
-                    
                 f = self.tree.AppendItem(child, colDesc)
                 self.tree.SetPyData(f, (c[0], c[1], k))
             (child, cookie) = self.tree.GetNextChild(d, cookie)
@@ -155,16 +151,13 @@ class ProfilePanelControl(object):
         while child.IsOk(): 
             # do something with child
             c = self.tree.GetItemData(child).GetData()
-            print c, "query doc data"
             if c == docId:
                 self.tree.Delete(child)
-                print "deleted"
                 break
             (child, cookie) = self.tree.GetNextChild(self.queryNode, cookie)
 
     def name_changed(self, docId, name):
         """Remove listing of query document in tree ctrl"""
-        print "actually changing name"
         (child, cookie) = self.tree.GetFirstChild(self.queryNode)
         while child.IsOk(): 
             # do something with child

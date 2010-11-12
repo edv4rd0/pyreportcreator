@@ -78,7 +78,6 @@ def get_mysql_types(columnType):
     if isinstance(columnType, YEAR):
         return "year"
     else:
-        print columnType
         raise TypeError()
 
 
@@ -154,9 +153,7 @@ class CustomIntCtrl(intctrl.IntCtrl):
         if isLoading:
             self.SetValue(self.condition.field2)
         else:
-            print "not loading int"
             self.condition.field2 = 0
-            print self.condition.field2
             self.update_state()
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
@@ -203,11 +200,9 @@ class DateCtrl(CustomMaskedCtrl):
             self.lastValue = str(self.condition.field2.year) + " " + month + " " + day
             self.SetValue(self.lastValue)
         else:
-            print self.condition.field2, "first"
             self.lastValue = "2010 12 31"
             self.condition.field2 = timestampconv.date_conv(self.lastValue)
             self.update_state()
-            print self.condition.field2, "bb"
         self.Bind(wx.EVT_TEXT, self.assign_value)
 
     def assign_value(self, evt):
@@ -380,12 +375,10 @@ class DateBetweenValue(wx.Panel):
         self.SetBackgroundColour('#C9C0BB')
         self.condition = condition
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        print self.condition.field2, "a"
         if typeDetails == 'date':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "#{4} ## ##", value = "2010 12 01", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "#{4} ## ##", value = "2010 12 31", size = (200, -1))
             if isLoading:
-                print self.condition.field2, self.condition.field2[0].month
                 month1 = str(self.condition.field2[0].month)
                 if len(month1) == 1:
                     month1 = '0' + month1
@@ -404,11 +397,9 @@ class DateBetweenValue(wx.Panel):
                 self.ctrl1.SetValue(self.lastCtrlValue[0])
                 self.ctrl2.SetValue(self.lastCtrlValue[1])
             else:
-                print self.condition.field2
                 self.lastCtrlValue = ["2010 12 01", "2010 12 31"]
                 self.condition.field2 = [timestampconv.date_conv("2010 12 01"), timestampconv.date_conv("2010 12 31")]
                 self.update_state()
-                print self.condition.field2
         elif typeDetails == 'time':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "##:## ##", value = "23:00 00", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "##:## ##", value = "24:00 00", size = (200, -1))
@@ -580,7 +571,6 @@ class PickColumnDialog(wx.Dialog):
         
     def select(self, evt):
         item = self.tree.GetSelection()
-        print item
         data = self.tree.GetItemData(item).GetData()
         if data != "table":
             self.change_text_confirm(data)
@@ -621,8 +611,6 @@ class WhereController(object):
 
     def load_conditions(self):
         """Load condition objects"""
-        print "Ok, loading"
-        print self.query.conditions, self.query.conditions.firstID
         if self.query.conditions.boolVal == "or":
             self.whereEditor.choiceLogic.SetSelection( 1 )
         else:
@@ -643,7 +631,6 @@ class WhereController(object):
             self.wherePanel.topSizer.Insert(0, view.topSizer, 0, wx.EXPAND | wx.ALL)
             self.wherePanel.topSizer.Layout()
             self.wherePanel.layout_magic()
-            print "loaded a condition"
             
         try:
             conditionObj = self.query.conditions.firstObj.nextObj
@@ -666,7 +653,6 @@ class WhereController(object):
                     self.wherePanel.topSizer.Insert(index, view, 0, wx.EXPAND | wx.ALL)
                     self.wherePanel.topSizer.Layout()
                     self.wherePanel.layout_magic()
-                    print "loaded set"
                 index += 1
                 conditionObj = conditionObj.nextObj
         except AttributeError:
@@ -710,8 +696,6 @@ class WhereController(object):
         self.wherePanel.topSizer.Layout()
         self.wherePanel.layout_magic()
         self.query.change_made() #change state to altered
-        for i in self.query.conditions.conditions:
-            print ["add_condition", i.condID, i.nextID, i.prevID, i.nextObj, i.prevObj]
         
     def add_set(self, evt):
         """Add condition set to top level"""
@@ -800,9 +784,6 @@ class WhereController(object):
         self.wherePanel.Layout()
         self.wherePanel.layout_magic()
         self.query.change_made() #change state to altered
-        #get sizer and index
-        for i in self.query.conditions.conditions:
-            print ["add_sibling_condition", i.condID, i.nextID, i.prevID, i.nextObj, i.prevObj]
 
     def add_sibling_set(self, sizer, panel, ind, condObj):
         """
@@ -849,8 +830,6 @@ class WhereController(object):
         self.wherePanel.topSizer.Layout()
         self.wherePanel.layout_magic()
         self.query.change_made() #change state to altered
-        for i in parentSet.conditions:
-            print ["add_sibling_condition", i.condID, i.nextID, i.prevID, i.nextObj, i.prevObj, "parent", i.parentObj, "parentfirstobj", i.parentObj.firstObj]
             
 
 class WhereEditor(wx.Panel):
@@ -1018,7 +997,6 @@ class SetEditorControl(object):
             self.editor.topSizer.Insert(1, view.topSizer, 0, wx.EXPAND | wx.ALL)
             self.editor.topSizer.Layout()
             self.whereController.update_wherepanel()
-            print "loaded a condition"
             try:
                 conditionObj = self.cond.firstObj.nextObj
                 index = 2
@@ -1156,11 +1134,9 @@ class ConditionEditorControl(object):
             #the index exists for code to check constraints when deleting select items etc
             self.condition.field1 = (choice[0], choice[1])
             self.editor.tcColumn.ChangeValue(choice[0]+"."+choice[1])
-            print choice[2].__dict__
             self.typeDetails = get_mysql_types(choice[2])
             self.editor.choiceOperator.Clear()
             self.editor.paramSizer.Clear(True)
-            print self.typeDetails
             if self.typeDetails[0] == "int":
                 self.editor.choiceOperator.AppendItems(self.editor.date_opr)
                 self.editor.choiceOperator.SetSelection( 0 )
@@ -1243,7 +1219,6 @@ class ConditionEditorControl(object):
             self.editor.choiceOperator.Clear()
             if self.typeDetails[0] == "string":
                 self.editor.choiceOperator.AppendItems(self.operations)
-                print self.operations
                 if self.condition.operator == "LIKE":
                     self.editor.choiceOperator.SetSelection( 0 )
                 elif self.condition.operator == "==":
@@ -1383,17 +1358,16 @@ class ConditionEditorControl(object):
             self.editor.paramSizer.Add(self.editor.paramWidget)
 
         except IndexError:
-            print IndexError,"No column"
+            print IndexError
         #self.editor.paramSizer.Layout()
         self.editor.topSizer.Layout()
         self.whereController.update_wherepanel()
-        print "updated ppanel, loading stuff"
+
 
     def add_condition(self, evt):
         """This handles the event and sends a message with the object"""
         
         sizer = self.editor.topSizer
-        print "adding simbling with indentation: ", self.editor.indentation
         self.whereController.add_sibling_condition(sizer = sizer, panel = self.editor.parent, ind = self.editor.indentation, condObj = self.condition)
 
     def add_sub(self, evt):

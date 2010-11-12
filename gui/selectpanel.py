@@ -212,8 +212,6 @@ class JoinDialog(wx.Dialog):
             for k in self.rightSelectionsTypes[1:]:
                 if str(k[1]) == str(choiceType):
                     self.rightSelections.append((k[0], k[2]))
-                    print k, k[2]
-            print self.rightSelections
             self.panel.choiceRight.Clear()
             self.panel.choiceRight.Append(self.rightSelections[0])
             for i in self.rightSelections[1:]:
@@ -229,7 +227,6 @@ class JoinDialog(wx.Dialog):
             self.panel.btnOk.Enable(False)
         else:
             self.workingJoin['joiningValue'] = self.rightSelections[choice][1]
-            print self.rightSelections[choice]
             if self.panel.choiceLeft.GetCurrentSelection() == 0:
                 self.panel.btnOk.Enable(False)
             else:
@@ -363,7 +360,6 @@ class DataItemsDialogController(object):
             pub.sendMessage('disconnected', connID = self.query.engineID)
             self.dlg.Destroy()
         except IndexError:
-            print IndexError, "update_view"
             self.dlg.Close()
         
         #load select items
@@ -387,7 +383,6 @@ class DataItemsDialogController(object):
         selectedTables = self.selectedTables.keys()
         tables = self.dlg.treeDataItems.GetRootItem().GetChildren()
         for tableToDisable in tables:
-            print "pydata", self.dlg.treeDataItems.GetItemPyData(tableToDisable)
             if self.dlg.treeDataItems.GetItemPyData(tableToDisable) not in selectedTables:
                 tableToDisable.Collapse()
                 tableToDisable.Enable(False)
@@ -511,7 +506,6 @@ class SelectController(object):
 
     def join_automagic(self, documentID):
         """Just handles the PubSub event, if for this query, it actions it"""
-        print "join automagic"
         if documentID == self.query.documentID:
             self.update_join_view()
 
@@ -600,7 +594,7 @@ class SelectController(object):
                         dlg.Destroy()
                         return
             except KeyError:
-                print KeyError, "Item not removed"
+                print KeyError
                 return
             index = self.selectPanel.selectList.GetNextSelected(index)
 
@@ -674,26 +668,6 @@ class QueryToolbook(wx.Toolbook):
         
         self.AddPage(self.selectPage, "Select Items", 1, imageId = 1)
         self.AddPage(self.conditionEditor,"Add Conditions", imageId = 0)
- 
-        self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGED, self.OnPageChanged)
-        self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGING, self.OnPageChanging)
-        
- 
-    #----------------------------------------------------------------------
-    def OnPageChanged(self, event):
-        old = event.GetOldSelection()
-        new = event.GetSelection()
-        sel = self.GetSelection()
-        print 'OnPageChanged,  old:%d, new:%d, sel:%d\n' % (old, new, sel)
-        event.Skip()
- 
-    #----------------------------------------------------------------------
-    def OnPageChanging(self, event):
-        old = event.GetOldSelection()
-        new = event.GetSelection()
-        sel = self.GetSelection()
-        print 'OnPageChanging, old:%d, new:%d, sel:%d\n' % (old, new, sel)
-        event.Skip()
         
 
 class QueryController(object):
@@ -708,7 +682,6 @@ class QueryController(object):
         self.document = document #need to keep tabs on the document we're editing
         self.toolbook = QueryToolbook(self.parentView, self.document.documentID)
         self.page = self.parentView.AddPage(self.toolbook, document.name, select = True)
-        print document.name
         self.profile = profile
 
         #sub controllers
