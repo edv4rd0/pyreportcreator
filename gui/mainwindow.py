@@ -4,6 +4,7 @@ from wx.lib.wordwrap import wordwrap
 import wizards
 from pyreportcreator.gui import gui, mainpanel, sidepanelcontrol
 from pyreportcreator.profile import profile
+from pyreportcreator.datahandler import datahandler
 from pubsub import pub
 import os
 
@@ -11,12 +12,13 @@ class SaveOrDiscard(wx.Dialog):
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, -1, title = "Really quit?", size=(300, 210))
 
-        panel = wx.Panel(self, -1)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        text = wx.StaticText(panel, -1, label = "There are unsaved items,")
-        text2 = wx.StaticText(panel, -1, label = "really quit?")
-
+        text = wx.StaticText(self, -1, label = "There are unsaved items,")
+        text2 = wx.StaticText(self, -1, label = "really quit?")
+        vbox.Add(text, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        vbox.Add(text2, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         self.btnSave = wx.Button(self, -1, 'Save', size=(70, 30))
         self.btnDiscard = wx.Button(self, -1, 'Discard', size=(70, 30))
@@ -27,7 +29,6 @@ class SaveOrDiscard(wx.Dialog):
         hbox.Add(self.btnCancel, 1, wx.RIGHT, 5)
         hbox.Add(self.btnSave, 1, wx.RIGHT, 5)
 
-        vbox.Add(panel)
         vbox.Add((-1,-1), 1)
         vbox.Add(hbox, 0, wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM | wx.EXPAND, 10)
 
@@ -137,6 +138,13 @@ class Application(wx.App):
                 return
             dlg.Destroy()
 
+        #close all tabs
+        self.documentEditorControl.close_all_tabs()
+        self.profile = profile.Profile() #reset profile to zero
+        self.documentEditorControl.profile = self.profile
+        datahandler.ConnectionManager.dataConnections = dict()
+        datahandler.DataHandler.metaData = dict()
+        datahandler.DataHandler.dataObjects = dict()
         dlg = wx.FileDialog(wx.GetApp().GetTopWindow(), "Open Project", os.getcwd(), "", "*.pro", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
@@ -145,9 +153,12 @@ class Application(wx.App):
                 self.profile._fileName = path + ".pro"
             else:
                 self.profile._fileName = path
-            print self.profile._fileName
-            #close all documents and reset
-            self.documentEditorControl.reset()
+        self.profilePanelControl.refresh(self.profile)
+        self.profile.open_profile()
+        #load connections
+        datahandler.load_data_connections(self.profile.connections)
+        self.dataPanelControl.refresh(self.profile)
+
                 
     def profile_save(self, evt):
         """Calls save method of the profile class and does some checking annd handles any errors"""

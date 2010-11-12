@@ -108,6 +108,16 @@ class DataPanelControl(object):
                 self.tree.SetPyData(f, (c[0], c[1], k))
             (child, cookie) = self.tree.GetNextChild(d, cookie)
 
+    def refresh(self, profile):
+        """Completely reset and the load connections"""
+        self.profile = profile
+        self.tree.DeleteChildren(self.tree.GetRootItem())
+        self.dataIndex = dict()
+        for i in self.profile.connections.keys():
+            try:
+                self.update_view(i)
+            except sqlalchemy.exc.OperationalError:
+                continue
 
 class ProfilePanelControl(object):
     """This controls events connected with the tree control (mostly) in the sidepanel class"""
@@ -132,6 +142,12 @@ class ProfilePanelControl(object):
         pub.subscribe(self.remove_query, 'removequery')
         pub.subscribe(self.name_changed, 'namechanged')
 
+    def refresh(self, profile):
+        """Refresh and completely reset view"""
+        self.documentIndex = dict()
+        self.profile = profile
+        self.tree.DeleteChildren(self.queryNode)
+        #rest of documents loaded when profile is loaded (pubsub event)
 
     def remove_query(self, docId):
         """Remove listing of query document in tree ctrl"""

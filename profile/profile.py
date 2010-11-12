@@ -45,8 +45,6 @@ class Profile(object):
             self.write_connections_to_file()
         else:
             self.connState = "altered"
-            
-            
     
     def get_name(self, connID):
         """return database name"""
@@ -58,8 +56,7 @@ class Profile(object):
 
     def write_connections_to_file(self):
         """Write the data connections to disk"""
-        zf = zipfile.ZipFile(self._fileName, 'a', zipfile.ZIP_DEFLATED)
-        print "saving doc", zf.namelist()
+        zf = zipfile.ZipFile(self._fileName, 'w', zipfile.ZIP_DEFLATED)
         pickled = jsonpickle.encode(self.connections)
         print pickled, "<--pickled"
         info = zipfile.ZipInfo("connections")
@@ -70,7 +67,11 @@ class Profile(object):
 
     def load_connections(self):
         """Load connections to memory"""
-        
+        zf = zipfile.ZipFile(self._fileName, 'r', zipfile.ZIP_DEFLATED)
+        unpickled = jsonpickle.decode(zf.open("connections").read())
+        self.connections = unpickled
+        zf.close()
+        self.connState = "saved"
         
     def save_profile(self, fileName):
         """Pickles profile to file"""
@@ -100,12 +101,11 @@ class Profile(object):
 
             
 
-    def open_profile(self, fileName):
+    def open_profile(self):
         """Opens file and completely erases old objects"""
-        self._fileName = fileName
-        self.document_index = dict()
         zf = zipfile.ZipFile(self._fileName, 'r', zipfile.ZIP_DEFLATED)
         items = zf.namelist()
+        print items
         for i in items:
             if str(i) != 'connections':
                 doc = self.load_doc_profile(str(i), zf) 
@@ -115,9 +115,13 @@ class Profile(object):
                 else:
                     docType = 'report'
                 self.document_index[doc.documentID] = docType
-                pub.sendMessage('newdocument', name = self.documents[i].name, docId = doc.documentID, docType = docType)
+                pub.sendMessage('newdocument', name = doc.name, docId = doc.documentID, docType = docType)
         #load connections
-        self.connections = jsonpickle.decode(zf.open(zf.getinfo(docID)).read())
+        try:
+            self.connections = jsonpickle.decode(zf.open("connections").read())
+        except:
+            self.connections = dict()
+            print "failed to load connections"
         print "opened profile" 
         zf.close()
 

@@ -7,6 +7,17 @@ from urllib import quote_plus as urlquote
 
 xstr = lambda s: s or ""
 
+def load_data_connections(connections):
+    """Load data connections and meta data"""
+    for i in connections.keys():
+        con = connections[i]
+        try:
+            ConnectionManager.create_new_data_connection(con[0], con[1], con[2], con[3], con[4], port = con[5], dbID = i)
+            DataHandler.add(i)
+            DataHandler.add_data_objects(i)
+        except sqlalchemy.exc.OperationalError:
+            pass
+
 class ConnectionManager(object):
     """This class creates the engines and holds all engines in memory."""
     

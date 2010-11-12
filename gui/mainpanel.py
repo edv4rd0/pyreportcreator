@@ -83,27 +83,29 @@ class DataSourceDialog(wx.Dialog):
 
 class SaveDiscardDialog(wx.Dialog):
     def __init__(self, parent):
-        wx.Dialog.__init__(self, parent, -1, "Save Before Closing?", size=(250, 210))
+        wx.Dialog.__init__(self, parent, -1, "Save Before Closing?", size=(300, 150))
         vbox = wx.BoxSizer(wx.VERTICAL)
-        stline = wx.StaticText(self, 11, 'Your work is unsaved! Save, or quit without saving?')
-        vbox.Add(stline, 1, wx.ALIGN_CENTER|wx.TOP, 45)
+        stline = wx.StaticText(self, -1, 'Your work is unsaved!')
+        stline2 = wx.StaticText(self, -1, 'Save, or quit without saving?')
+        vbox.Add(stline, 0, wx.ALIGN_LEFT|wx.TOP | wx.LEFT, 5)
+        vbox.Add(stline2, 1, wx.ALIGN_LEFT|wx.BOTTOM | wx.LEFT, 5)
         self.btnSave = wx.Button(self, -1, "Save")
         self.btnDiscard = wx.Button(self, -1, "Discard")
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         sizer.Add(self.btnDiscard, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         sizer.Add(self.btnSave, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
-        vbox.Add(sizer, 0, wx.ALIGN_CENTER)
+        vbox.Add(sizer, 0,  wx.ALIGN_RIGHT)
         self.SetSizer(vbox)
         self.btnSave.Bind(wx.EVT_BUTTON, self.on_yes)
         self.btnDiscard.Bind(wx.EVT_BUTTON, self.on_no)
+        self.res = 'dis'
         
     def on_yes(self, event):
         self.res = 'save'
         self.Close()
 
     def on_no(self, event):
-        self.res = 'dis'
         self.Close()
 
 class MainNotebook(fnb.FlatNotebook):
@@ -141,8 +143,15 @@ class DocumentEditorController(object):
         pub.subscribe(self.view_sql, 'viewsql')
         pub.subscribe(self.run_query, 'runquery')
 
+    def close_all_tabs(self):
+        """Close all tabs in notebook"""
+        self.view.DeleteAllPages()
+
     def run_query(self):
-        """Get current doc and run the query"""
+        """
+        Get current doc and run the query.
+        This asks the user for a filename.
+        """
         query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
         try:
             builtQuery = querybuilder.build_query(query)
@@ -162,7 +171,14 @@ class DocumentEditorController(object):
             return
         #now run the built query
         try:
-            querybuilder.run_report(builtQuery, query.engineID)
+            dlg = wx.FileDialog(wx.GetApp().GetTopWindow(), "Choose Output File", os.getcwd(), "", "*.csv", wx.SAVE)
+            if dlg.ShowModal() == wx.ID_OK:
+                path = dlg.GetPath()
+                dlg.Destroy()
+                if path[-4:] != ".csv":
+                    path = path + ".csv"
+                #write report to csv file
+                querybuilder.run_report(builtQuery, query.engineID, path)
         except querybuilder.ClauseException:
             dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
                                    message = "One or more of the query conditions are either empty or missing parameters, please check them and try again.",\

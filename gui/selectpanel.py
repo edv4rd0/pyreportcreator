@@ -604,6 +604,16 @@ class SelectController(object):
                 return
             index = self.selectPanel.selectList.GetNextSelected(index)
 
+class SelectListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
+    """Custom ListCtrl with auto width mixin"""
+    def __init__(self, parent):
+        wx.ListCtrl.__init__(self, parent, size = (-1,200), style = wx.SUNKEN_BORDER | wx.LC_REPORT)
+        ListCtrlAutoWidthMixin.__init__(self)
+        self.InsertColumn(0, "Column Name", width=200)
+        self.InsertColumn(1, "Table Name", width=-1)
+        self.resizeLastColumn(200)
+        
+
 class SelectPanel(wx.Panel):
     """The panel for a query editor"""
 
@@ -612,9 +622,7 @@ class SelectPanel(wx.Panel):
 	wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = (-1,-1), style = wx.TAB_TRAVERSAL| wx.SUNKEN_BORDER )
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         #select items area
-        self.selectList = wx.ListCtrl(self, size = (-1,200), style = wx.SUNKEN_BORDER | wx.LC_REPORT)
-        self.selectList.InsertColumn(0, "Column Name", width=-1)
-        self.selectList.InsertColumn(1, "Table Name", width=-1)
+        self.selectList = SelectListCtrl(self)
         self.topSizer.Add(self.selectList, 1, wx.EXPAND | wx.ALL, 5)
         #select items buttons
         self.sizerButtons = wx.BoxSizer(wx.HORIZONTAL)
