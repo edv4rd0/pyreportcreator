@@ -37,13 +37,13 @@ def run_report(query, engineId, fileName = 'test.csv'):
         csvOut.writerow(row)
     offset = 1
     while True:
-        s = query.offset(offset).limit(1)
+        s = query.offset(offset).limit(1000)
         result = datahandler.ConnectionManager.dataConnections[engineId].execute(s)
-        if result.rowcount < offset:
-            break
         for row in result:
             csvOut.writerow(row)
-        offset += 1
+        if result.rowcount < 1000:
+            break
+        offset += 1000
         
     
     
