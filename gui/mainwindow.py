@@ -85,10 +85,14 @@ class Application(wx.App):
         self.Bind(wx.EVT_TOOL, self.add_data_source, id = 1)
         self.Bind(wx.EVT_TOOL, self.view_sql, id = 4)
         self.Bind(wx.EVT_TOOL, self.run_query, id = 3)
+        self.Bind(wx.EVT_TOOL, self.save_query, id = 2)
         #start app
         self.frame.Maximize()
         self.frame.Show()
         return True
+
+    def save_query(self, evt):
+        pub.sendMessage('savequery')
 
     def run_query(self, evt):
         pub.sendMessage('runquery')

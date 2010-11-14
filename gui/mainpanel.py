@@ -142,17 +142,31 @@ class DocumentEditorController(object):
         pub.subscribe(self.fail_close, 'failureclose')
         pub.subscribe(self.view_sql, 'viewsql')
         pub.subscribe(self.run_query, 'runquery')
+        pub.subscribe(self.save_query, 'savequery')
 
     def close_all_tabs(self):
         """Close all tabs in notebook"""
         self.view.DeleteAllPages()
 
+    def save_query(self):
+        """
+        Get current doc and run the query.
+        This asks the user for a filename.
+        """
+        try:
+            self.profile.save_doc(self.documentsOpen[self.view.GetCurrentPage().documentID].document)
+        except AttributeError:
+            return
+            
     def run_query(self):
         """
         Get current doc and run the query.
         This asks the user for a filename.
         """
-        query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
+        try:
+            query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
+        except AttributeError:
+            return
         try:
             builtQuery = querybuilder.build_query(query)
         except querybuilder.ClauseException:
@@ -178,7 +192,16 @@ class DocumentEditorController(object):
                 if path[-4:] != ".csv":
                     path = path + ".csv"
                 #write report to csv file
-                querybuilder.run_report(builtQuery, query.engineID, path)
+                headings = []
+                for t in query.selectItems.keys():
+                    for c in query.selectItems[t]:
+                        headings.append(t + "." + c[0])
+                querybuilder.run_report(builtQuery, query.engineID, path, headings)
+                dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
+                                   message = "Successfully created report. \nWritten to: " + path, \
+                                   caption = "Success!", style = wx.OK)
+                dlg.ShowModal()
+                dlg.Destroy()
         except querybuilder.ClauseException:
             dlg = wx.MessageDialog(parent = wx.GetApp().GetTopWindow(),\
                                    message = "One or more of the query conditions are either empty or missing parameters, please check them and try again.",\
@@ -195,7 +218,10 @@ class DocumentEditorController(object):
 
     def view_sql(self):
         """Get current doc and then generate sql"""
-        query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
+        try:
+            query = self.documentsOpen[self.view.GetCurrentPage().documentID].document
+        except AttributeError:
+            return
         try:
             builtQuery = querybuilder.build_query(query)
             dlg = ViewSQLDialog(wx.GetApp().GetTopWindow(), builtQuery.__str__())
@@ -236,16 +262,7 @@ class DocumentEditorController(object):
         Note: this is NOT used for already existing documents.
         """
         if self.profile._fileName == '':
-            dlg = wx.FileDialog(wx.GetApp().GetTopWindow(), "Name your project file", os.getcwd(), "", "*.pro", wx.SAVE)
-            if dlg.ShowModal() == wx.ID_OK:
-                path = dlg.GetPath()
-                dlg.Destroy()
-                if path[-4:] != ".pro":
-                    self.profile._fileName = path + ".pro"
-                else:
-                    self.profile._fileName = path
-            else:
-                return
+            return
                 
         dlg = DataSourceDialog(wx.GetApp().GetTopWindow(), self.profile)
         dlg.ShowModal()

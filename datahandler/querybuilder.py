@@ -26,10 +26,12 @@ class JoinException(Exception):
         self.var = var
 
 
-def run_report(query, engineId, fileName = 'test.csv'):
+def run_report(query, engineId, fileName = 'test.csv', headings = None):
     """Write query results to CSV file"""
     csvOut = csv.writer(open(fileName, 'wb'),  dialect='excel')
     # execute query
+    if headings:
+        csvOut.writerow(headings)
     offset = 0
     s = query.limit(1)
     result = datahandler.ConnectionManager.dataConnections[engineId].execute(s)
@@ -44,8 +46,6 @@ def run_report(query, engineId, fileName = 'test.csv'):
         if result.rowcount < 1000:
             break
         offset += 1000
-        
-    
     
 
 def get_condition(condition, engineID):
