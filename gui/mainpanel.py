@@ -75,7 +75,6 @@ class DataSourceDialog(wx.Dialog):
         if selectedIndex == wx.NOT_FOUND:
             return
         self.data = self.listData[selectedIndex]
-        print self.data
         self.Close()
 
 
@@ -284,7 +283,6 @@ class DocumentEditorController(object):
                 self.view.SetSelection(self.documentsOpen[documentID].page)
             except KeyError:
                 document = self.profile.load_doc(documentID)
-                print document.documentID, documentID
                 self.documentsOpen[document.documentID] = selectpanel.QueryController(self.view, document, self.profile)
 
     def close_tab(self, evt):
@@ -295,7 +293,6 @@ class DocumentEditorController(object):
     def closing_tab(self, evt):
         """Check if it's saved, if not allow the user to save or discard"""
         docId = self.view.GetPage(self.view.GetSelection()).documentID
-        print self.documentsOpen
         #check saved state of document
         if self.documentsOpen[docId].document.state == 'saved':
             del self.documentsOpen[docId]
@@ -329,4 +326,4 @@ class DocumentEditorController(object):
         This will update the toolbar type for the editor (if required)
         and will also check thing such as whether the document is saved enable/disable the Save button.
         """
-        print "Page changed"
+        pass
