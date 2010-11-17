@@ -94,7 +94,6 @@ def get_condition(condition, engineID):
     elif condition.operator == "IS IN":
         return field1.in_(field2)
     elif condition.operator == "BETWEEN":
-        print field2
         return field1.between(field2[0], field2[1])
     elif condition.operator == "NOT BETWEEN":
         return ~field1.between(field2[0], field2[1])

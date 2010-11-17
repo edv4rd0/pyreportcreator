@@ -159,17 +159,6 @@ class Profile(object):
     def load_doc_profile(self, docID, zf):
         """for use only within load_profile"""
         unpickled = jsonpickle.decode(zf.open(str(docID)).read())
-        for i in unpickled.conditions.conditions:
-            if i.condID == unpickled.conditions.firstID:
-                unpickled.conditions.firstObj = i
-                i.parentObj = unpickled.conditions
-            for j in unpickled.conditions.conditions:
-                if j.condID == i.nextID:
-                    j.prevObj == i
-                    i.nextObj == j
-                elif i.condID == j.nextID:
-                    i.prevObj == j
-                    j.nextObj == i
         unpickled.was_saved() #otherwise it'll appear altered
         return unpickled
 
@@ -177,20 +166,8 @@ class Profile(object):
         """load a document from the zip file"""
         zf = zipfile.ZipFile(self._fileName, 'r')
         unpickled = jsonpickle.decode(zf.open(zf.getinfo(docID)).read())
-        for i in unpickled.conditions.conditions:
-            if i.condID == unpickled.conditions.firstID:
-                unpickled.conditions.firstObj = i
-                i.parentObj = unpickled.conditions
-            for j in unpickled.conditions.conditions:
-                if j.condID == i.nextID:
-                    j.prevObj == i
-                    i.nextObj == j
-                elif i.condID == j.nextID:
-                    i.prevObj == j
-                    j.nextObj == i
         zf.close()
         unpickled.was_saved() #otherwise will appear altered
-        #self.documents[unpickled.documentID] = unpickled
         return unpickled
         
     def new_document(self, docType, engineID = None):
