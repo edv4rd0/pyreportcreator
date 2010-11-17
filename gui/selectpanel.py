@@ -9,6 +9,7 @@ from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 from pubsub import pub
 import querypanel
 import sqlalchemy
+from sqlalchemy.dialects import mysql
 
 
 class JoinPanel( wx.Panel ):
@@ -132,7 +133,7 @@ class JoinDialog(wx.Dialog):
                     self.slider.SetValue(0)
                     self.panel.tcExplain.SetValue(self.panel.textExplain[0])
                     
-            #get the colums for each table
+            #get the columns for each table
             try:
                 self.columnsLeft = datahandler.DataHandler.get_columns(self.query.engineID, self.workingJoin['leftTable'])
                 self.columnsRight = datahandler.DataHandler.get_columns(self.query.engineID, self.workingJoin['joiningTable'])
@@ -146,7 +147,6 @@ class JoinDialog(wx.Dialog):
                 self.leftSelections.append(i[0] + "\t" + i[1].__visit_name__)
                 self.leftSelectionsTypes.append(i[1])
                 self.leftColumnNames.append(i[0])
-
             self.panel.choiceLeft.AppendItems(self.leftSelections)
             ind = self.leftColumnNames.index(self.workingJoin['tableValue'])
             self.panel.choiceLeft.SetSelection(ind)
@@ -155,7 +155,7 @@ class JoinDialog(wx.Dialog):
             #Now, build the right choice options and set selection
             for r in self.columnsRight:
                 self.rightSelectionsTypes.append((r[0] + "\t" + r[1].__visit_name__, r[1], r[0]))
-                if str(r[1]) == str(self.leftSelectionsTypes[ind]):
+                if str(r[1].compile(dialect=mysql.dialect())) == str(self.leftSelectionsTypes[ind].compile(dialect=mysql.dialect())):
                     self.rightSelections.append((r[0] + "\t" + r[1].__visit_name__, r[0]))
                     self.panel.choiceRight.Append(r[0] + "\t" + r[1].__visit_name__)
                     if r[0] == self.workingJoin['joiningValue']:
@@ -210,7 +210,7 @@ class JoinDialog(wx.Dialog):
             choiceType = self.leftSelectionsTypes[choice]
             self.rightSelections = ['Choose a compatible column...']
             for k in self.rightSelectionsTypes[1:]:
-                if str(k[1]) == str(choiceType):
+                if str(k[1].compile(dialect=mysql.dialect())) == str(choiceType.compile(dialect=mysql.dialect())):
                     self.rightSelections.append((k[0], k[2]))
             self.panel.choiceRight.Clear()
             self.panel.choiceRight.Append(self.rightSelections[0])
