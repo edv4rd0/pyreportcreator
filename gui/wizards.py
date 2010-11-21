@@ -313,7 +313,7 @@ class WizardNewDataSource(object):
         self.profile = profile #this is needed to pass to connection interface for the purposes of checking if connection exists
         #set wizard bitmap
         try:
-            bitmap = wx.Image('graphics/some-bitmap', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+            bitmap = wx.Image('gui/graphics/some-bitmap.png', wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         except:
             bitmap = wxNullBitmap
 

@@ -232,9 +232,10 @@ class Application(wx.App):
         info.Description = wordwrap("This is a GUI based application for"
                                     "easy query and report creation",
                                     350, wx.ClientDC(wx.GetApp().GetTopWindow()))
-        info.WebSite = ("http://www.twitter.com/edv4rd0", "@edv4rd0 on Twitter")
+        info.WebSite = ("http://www.edwardwilliams.geek.nz", "Edward's Homepage")
         info.Developers = ["Edward Williams"]
-        info.License = wordwrap("BSD License", 500,
+        f = open('LICENSE', 'r')
+        info.License = wordwrap(f.read(), 500,
                             wx.ClientDC(wx.GetApp().GetTopWindow()))
         # Show the wx.AboutBox
         wx.AboutBox(info)

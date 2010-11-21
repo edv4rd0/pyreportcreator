@@ -210,6 +210,8 @@ class JoinDialog(wx.Dialog):
             choiceType = self.leftSelectionsTypes[choice]
             self.rightSelections = ['Choose a compatible column...']
             for k in self.rightSelectionsTypes[1:]:
+                #run through columns and check if types are the same, some columns are MySQL types
+                #and non-standard SQL types, thus the dialect type checking.
                 if str(k[1].compile(dialect=mysql.dialect())) == str(choiceType.compile(dialect=mysql.dialect())):
                     self.rightSelections.append((k[0], k[2]))
             self.panel.choiceRight.Clear()
