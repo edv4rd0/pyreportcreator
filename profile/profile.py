@@ -250,7 +250,7 @@ class Query(Document):
                 for i in result['local_columns']:
                     leftColType = str(datahandler.DataHandler.get_column_type_object(self.engineID, result['local_table'], i))
                     for j in result['foreign_columns']:
-                        if str(datahandler.DataHandler.get_column_type_object(self.engineID, result['foreign_table'], i)) \
+                        if str(datahandler.DataHandler.get_column_type_object(self.engineID, result['foreign_table'], j)) \
                            == leftColType:
                             relation = ((result['local_table'], i), (result['foreign_table'], j))
                             return relation

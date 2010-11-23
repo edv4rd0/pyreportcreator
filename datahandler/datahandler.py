@@ -93,7 +93,7 @@ class DataHandler(object):
         @Params:
         t1, t2 are strings of the table names
         """
-        relations = []
+        relations = []   
         try:
             for i in insp.get_foreign_keys(t1):
                 if i['referred_table'] == t2:
