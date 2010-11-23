@@ -226,8 +226,8 @@ class Application(wx.App):
     def about_dialog(self, evt):
         """Loads and displays an about dialog box"""
         info = wx.AboutDialogInfo()
-        info.Name = "Database Query Creator"
-        info.Version = "0.0.1 Devel"
+        info.Name = "Report Creator"
+        info.Version = "0.0.1 Development Release"
         info.Copyright = "(C) 2010 Edward Williams"
         info.Description = wordwrap("This is a GUI based application for"
                                     "easy query and report creation",

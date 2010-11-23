@@ -375,6 +375,7 @@ class DateBetweenValue(wx.Panel):
         self.SetBackgroundColour('#C9C0BB')
         self.condition = condition
         sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.typeDetails = typeDetails
         if typeDetails == 'date':
             self.ctrl1 = masked.TextCtrl(self, -1, mask = "#{4} ## ##", value = "2010 12 01", size = (200, -1))
             self.ctrl2 = masked.TextCtrl(self, -1, mask = "#{4} ## ##", value = "2010 12 31", size = (200, -1))
@@ -499,13 +500,13 @@ class DateBetweenValue(wx.Panel):
     def assign_value_ctrl1(self, evt):
         """Handles the text entry event and modifies the condition object"""
         curValue = self.ctrl1.GetValue()
-        if typeDetails == 'time':
+        if self.typeDetails == 'time':
             value = timestampconv.time_conv(curValue)
-        if typeDetails == 'date':
+        if self.typeDetails == 'date':
             value = timestampconv.date_conv(curValue)
-        if typeDetails == 'datetime':
+        if self.typeDetails == 'datetime':
             value = timestampconv.datetime_conv(curValue)
-        if typeDetails == 'year':
+        if self.typeDetails == 'year':
             value = timestampconv.year_conv(curValue)
         if value == False:
             self.ctrl1.SetValue(self.lastCtrlValue[0])
@@ -516,13 +517,13 @@ class DateBetweenValue(wx.Panel):
 
     def assign_value_ctrl2(self, evt):
         curValue = self.ctrl2.GetValue()
-        if typeDetails == 'time':
+        if self.typeDetails == 'time':
             value = timestampconv.time_conv(curValue)
-        if typeDetails == 'date':
+        if self.typeDetails == 'date':
             value = timestampconv.date_conv(curValue)
-        if typeDetails == 'datetime':
+        if self.typeDetails == 'datetime':
             value = timestampconv.datetime_conv(curValue)
-        if typeDetails == 'year':
+        if self.typeDetails == 'year':
             value = timestampconv.year_conv(curValue)
         if value == False:
             self.ctrl2.SetValue(self.lastCtrlValue[1])
