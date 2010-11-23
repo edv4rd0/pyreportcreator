@@ -452,9 +452,7 @@ class DataItemsDialogController(object):
         """Close dialog and add selected items"""
         try:
             if len(self.selected_index) > 0:
-                print self.selected_index
                 for i in self.selected_index: #add new select items to query
-                    print i
                     self.query.add_select_item(i[0], i[1][0])
                 self.update = True
             else:
